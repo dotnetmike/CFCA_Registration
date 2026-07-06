@@ -1,0 +1,156 @@
+---
+description: Supabase + Next.js integration — clients, auth, auto-migrations, seeding, env keys, and pitfalls
+globs: supabase/**/*,src/lib/supabase/**/*,src/lib/db/**/*,scripts/db/**/*,.env*,next.config.ts,src/middleware.ts,src/lib/auth/**/*
+alwaysApply: false
+---
+
+# Supabase Integration (Next.js App Router)
+
+Use this rule when adding or maintaining Supabase in a Next.js project. Prefer `@supabase/supabase-js` + `@supabase/ssr`; avoid raw `DATABASE_URL` to `db.*.supabase.co` on Windows (IPv6/DNS issues).
+
+## Environment variables
+
+| Variable | Purpose | Notes |
+|----------|---------|--------|
+| `NEXT_PUBLIC_SUPABASE_URL` | Project URL | `https://<ref>.supabase.co` |
+| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Browser + server auth | `sb_publishable_*` (replaces legacy anon) |
+| `SUPABASE_SERVICE_ROLE_KEY` | Server admin only | `sb_secret_*` — never expose to client |
+| `SUPABASE_ACCESS_TOKEN` | Auto-migrations (DDL) | Personal token `sbp_*` from [account tokens](https://supabase.com/dashboard/account/tokens) |
+| `SUPABASE_DB_PASSWORD` | Pooler fallback | From Settings → Database; quote if special chars |
+| `SUPABASE_DB_REGION` | Pooler host | e.g. `ap-southeast-2` |
+| `SEED_ADMIN_*` | Dev admin bootstrap | Server-only; quote passwords with `$` |
+
+**Critical:** Do **not** put `sb_secret_*` or `sb_publishable_*` in `SUPABASE_ACCESS_TOKEN`. Management API returns `JWT could not be decoded`. Use `sbp_*` PAT or `npm run db:login` (stores `~/.supabase/access-token`).
+
+```env
+# Quote passwords with $ or special characters
+SEED_ADMIN_PASSWORD="your-password"
+```
+
+## Client layout (`src/lib/supabase/`)
+
+- `env.ts` — `getSupabaseUrl()`, `getSupabasePublishableKey()`, `getSupabaseServiceRoleKey()`, `getProjectRef()`
+- `client.ts` — `createBrowserClient` via `@supabase/ssr`
+- `server.ts` — `createServerClient` with cookies (Server Components / actions)
+- `admin.ts` — `createClient(url, serviceRoleKey)` for seeds and admin APIs
+- `middleware.ts` — session refresh; read env directly (no throw if missing during edge init)
+
+```typescript
+// admin.ts — server-only
+export const createAdminClient = () =>
+  createClient(getSupabaseUrl(), getSupabaseServiceRoleKey(), {
+    auth: { autoRefreshToken: false, persistSession: false },
+  })
+```
+
+## Auth
+
+- Use **server actions** or route handlers with `createClient()` from `server.ts`
+- Normalize email: `email.trim().toLowerCase()` on sign-in/sign-up
+- Role lives in `public.profiles.role`; middleware redirects `/dashboard` by role
+- **Admin seed:** always call `admin.updateUserById` with `password` when user already exists (otherwise login fails after password change in `.env`)
+
+## Auto-migration system (required pattern)
+
+### Folder layout
+
+```
+supabase/
+  migrations/
+    000_migration_runner.sql   # schema_migrations + run_migration(sql) RPC
+    001_*.sql
+    002_*.sql
+  setup.sql                    # concatenation of all migrations (bootstrap)
+scripts/db/
+  deploy.ts                    # CLI entry: loadEnv → runDatabaseDeploy
+src/lib/db/
+  load-env.ts
+  deploy.ts
+  migrate.ts
+  apply-setup.ts
+  migrate-management.ts        # Management API DDL
+  migrate-pooler.ts              # pg + pooler fallback (dynamic import)
+  migrate-cli.ts
+  access-token.ts
+  sql-split.ts
+  seed-admin.ts
+  connection.ts
+```
+
+### Deploy flow (`npm run dev` / `start`)
+
+1. `tsx scripts/db/deploy.ts` runs **before** `next dev` (do **not** use `instrumentation.ts` for deploy — breaks `@/` aliases and bundles `pg`)
+2. `runDatabaseDeploy()` → `runMigrations()` → `seedAdminUser()`
+3. Set `SKIP_DB_DEPLOY=true` to skip (e.g. CI that migrates separately)
+
+### Migration logic (`migrate.ts`)
+
+1. Verify Supabase via `admin.auth.admin.listUsers`
+2. If `profiles` or `run_migration` RPC missing → `applySetupSql()`:
+   - **Primary:** Management API `POST /v1/projects/{ref}/database/query` with `sbp_*` token
+   - **Fallback:** `pg` via pooler (`postgres.<ref>@aws-0-<region>.pooler.supabase.com:6543`)
+   - Reject misconfigured `SUPABASE_ACCESS_TOKEN` early with clear message
+3. If schema exists → apply pending files from `supabase/migrations/` via `run_migration` RPC; track in `public.schema_migrations`
+
+Regenerate `setup.sql` when migrations change:
+
+```powershell
+Get-Content supabase/migrations/*.sql | Set-Content supabase/setup.sql -Encoding utf8
+```
+
+### `next.config.ts`
+
+```typescript
+serverExternalPackages: ["pg"],
+```
+
+Keep `pg` import **dynamic** inside `migrate-pooler.ts` only so App Router build does not bundle it.
+
+## package.json scripts
+
+```json
+{
+  "scripts": {
+    "db:deploy": "tsx scripts/db/deploy.ts",
+    "db:login": "npx supabase@latest login",
+    "dev": "tsx scripts/db/deploy.ts && next dev",
+    "start": "tsx scripts/db/deploy.ts && next start"
+  }
+}
+```
+
+Dependencies: `@supabase/supabase-js`, `@supabase/ssr`, `pg`, `tsx` (dev).
+
+## RLS & schema conventions
+
+- `profiles` extends `auth.users`; trigger `handle_new_user` on signup
+- Helpers: `is_leader_or_admin()`, `is_admin()`, `leader_manages_member()`
+- Enable RLS on all app tables; leaders/admins get scoped write policies
+- Use `user_role` enum: `member` | `leader` | `admin`
+
+## Common pitfalls
+
+| Issue | Fix |
+|-------|-----|
+| `Invalid login credentials` after changing `SEED_ADMIN_PASSWORD` | Re-run deploy; seed must `updateUserById({ password })` for existing users |
+| `ENOTFOUND db.*.supabase.co` | Use Management API or pooler, not direct DB host |
+| `tenant/user postgres.<ref> not found` | Wrong DB password or region; verify pooler string in dashboard |
+| Management API 401 JWT | Use `sbp_*` PAT, not `sb_secret_*` |
+| `Cannot find package '@/lib'` in instrumentation | Remove DB deploy from instrumentation; use npm script prefix |
+| `$` in `.env` password truncated | Quote the value: `PASSWORD="4hN2$y5x"` |
+
+## New project checklist
+
+1. Create Supabase project; add env vars from `.env.example`
+2. `npm run db:login` **or** set `SUPABASE_ACCESS_TOKEN=sbp_…`
+3. Add SQL migrations under `supabase/migrations/`; build `setup.sql`
+4. Implement `src/lib/supabase/*` and `src/lib/db/*` per layout above
+5. Wire `dev`/`start` to `db:deploy` first
+6. Configure Auth redirect URLs: `{SITE_URL}/auth/callback`
+7. Set `SEED_ADMIN_*` for local admin; never commit real secrets
+
+## Vercel / production
+
+- Env: `NEXT_PUBLIC_*`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_ACCESS_TOKEN` (or run migrations in CI)
+- Optional `SKIP_DB_DEPLOY=true` if migrations run in GitHub Actions before deploy
+- Do not expose service role or access token to the client
