@@ -1,6 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useState } from "react"
+import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useForm, useFieldArray } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -34,6 +35,9 @@ import { Alert } from "@/components/ui/alert"
 
 const STEPS = ["Personal", "Attendees", "Transport", "Review"]
 
+const EMAIL_IN_USE_FALLBACK =
+  "This email is already registered. Please log in to your account instead."
+
 const FieldError = ({ message }: { message?: string }) =>
   message ? <p className="text-xs text-red-600" role="alert">{message}</p> : null
 
@@ -46,6 +50,7 @@ const RegistrationForm = () => {
   const isBusy = saveAction !== null
   useBusyCursor(isBusy)
   const [error, setError] = useState("")
+  const [emailInUse, setEmailInUse] = useState(false)
   const [registrationId, setRegistrationId] = useState<string | null>(null)
   const [participantReference, setParticipantReference] = useState<string | null>(null)
   const [submitted, setSubmitted] = useState(false)
@@ -59,10 +64,10 @@ const RegistrationForm = () => {
       mobile: "",
       cfca_position: "member",
       state: undefined,
-      accommodation_type: "own",
+      accommodation_type: "",
       spouse_attending: false,
       attendees: [],
-      transport_option: "own",
+      transport_option: "",
       submit: false,
     },
   })
@@ -76,6 +81,11 @@ const RegistrationForm = () => {
   const needsAirportTransport = showArrival || showDeparture
 
   const loadRegistration = useCallback(async () => {
+    if (!user) {
+      setIsLoading(false)
+      return
+    }
+
     setIsLoading(true)
     const res = await authFetch("/api/registrations")
     if (res.ok) {
@@ -84,6 +94,9 @@ const RegistrationForm = () => {
         setRegistrationId(data.registration.id)
         setParticipantReference(data.registration.participant_reference ?? null)
         setSubmitted(!!data.registration.submitted_at)
+        const hasTransportSelection =
+          data.registration.pickup_melbourne_airport != null ||
+          data.registration.dropoff_melbourne_airport != null
         form.reset({
           surname: data.registration.surname,
           given_name: data.registration.given_name,
@@ -100,11 +113,13 @@ const RegistrationForm = () => {
           spouse_attending: data.registration.spouse_attending,
           spouse_email: data.registration.spouse_email,
           spouse_mobile: data.registration.spouse_mobile,
-          accommodation_type: data.registration.accommodation_type ?? "own",
-          transport_option: booleansToTransportOption(
-            data.registration.pickup_melbourne_airport,
-            data.registration.dropoff_melbourne_airport
-          ),
+          accommodation_type: data.registration.accommodation_type ?? "",
+          transport_option: hasTransportSelection
+            ? booleansToTransportOption(
+                data.registration.pickup_melbourne_airport,
+                data.registration.dropoff_melbourne_airport
+              )
+            : "",
           pickup_melbourne_airport: data.registration.pickup_melbourne_airport,
           dropoff_melbourne_airport: data.registration.dropoff_melbourne_airport,
           hotel_transport_required: data.registration.hotel_transport_required,
@@ -129,7 +144,7 @@ const RegistrationForm = () => {
           })) ?? [],
           submit: false,
         })
-      } else if (user) {
+      } else {
         const { given_name, surname } = parseFullName(user.name)
         form.reset({
           surname,
@@ -137,8 +152,8 @@ const RegistrationForm = () => {
           email: user.email,
           mobile: "",
           cfca_position: "member",
-          accommodation_type: "own",
-          transport_option: "own",
+          accommodation_type: "",
+          transport_option: "",
           spouse_attending: false,
           attendees: [],
           submit: false,
@@ -166,12 +181,13 @@ const RegistrationForm = () => {
     }
   }
 
-  const save = async (
+  const saveAuthenticated = async (
     submit = false,
     action: "next" | "submit" | "step" = "next",
     assignParticipantReference = false
   ): Promise<boolean> => {
     setError("")
+    setEmailInUse(false)
     setSaveAction(action)
     const values = form.getValues()
     const payload = { ...values, submit, assign_participant_reference: assignParticipantReference }
@@ -200,7 +216,7 @@ const RegistrationForm = () => {
 
     if (!res.ok) {
       const data = await res.json()
-      setError(data.error ?? "Save failed")
+      applyApiError(data)
       setSaveAction(null)
       return false
     }
@@ -218,9 +234,60 @@ const RegistrationForm = () => {
     return true
   }
 
+  const applyApiError = (data: { error?: string; code?: string }) => {
+    const message = data.error ?? "Request failed"
+    setError(message)
+    setEmailInUse(data.code === "EMAIL_IN_USE" || message.includes("already registered"))
+  }
+
+  const checkEmailUnique = async (email: string): Promise<boolean> => {
+    const params = new URLSearchParams({ email })
+    if (registrationId) params.set("excludeId", registrationId)
+    const res = await fetch(`/api/registrations/check-email?${params.toString()}`)
+    const data = await res.json()
+    if (!res.ok || data.available === false) {
+      applyApiError({
+        error: data.error ?? EMAIL_IN_USE_FALLBACK,
+        code: data.available === false ? "EMAIL_IN_USE" : undefined,
+      })
+      return false
+    }
+    setEmailInUse(false)
+    return true
+  }
+
+  const submitAsGuest = async (): Promise<boolean> => {
+    setError("")
+    setEmailInUse(false)
+    setSaveAction("submit")
+    const values = form.getValues()
+    const payload = { ...values, submit: true, assign_participant_reference: true }
+
+    const res = await fetch("/api/registrations", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    })
+
+    if (!res.ok) {
+      const data = await res.json()
+      applyApiError(data)
+      setSaveAction(null)
+      return false
+    }
+
+    const data = await res.json()
+    setSaveAction(null)
+    const params = new URLSearchParams()
+    if (data.signupToken) params.set("token", data.signupToken)
+    if (data.viewToken) params.set("view", data.viewToken)
+    router.push(`/register/complete?${params.toString()}`)
+    return true
+  }
+
   const handleStepClick = async (targetStep: number) => {
-    if (!submitted || targetStep === step || isBusy) return
-    const saved = await save(false, "step")
+    if (!user || !submitted || targetStep === step || isBusy) return
+    const saved = await saveAuthenticated(false, "step")
     if (saved) {
       setError("")
       setStep(targetStep)
@@ -231,34 +298,130 @@ const RegistrationForm = () => {
     const fieldsToValidate: (keyof RegistrationFormData)[] =
       step === 0
         ? ["surname", "given_name", "email", "mobile", "state"]
-        : []
+        : step === 2
+          ? ["accommodation_type", "transport_option"]
+          : []
 
     if (fieldsToValidate.length > 0) {
       const valid = await form.trigger(fieldsToValidate)
       if (!valid) {
-        setError("Please complete all required fields marked with * before continuing.")
+        setError(
+          step === 2
+            ? "Please select accommodation and airport transport before continuing."
+            : "Please complete all required fields marked with * before continuing."
+        )
         return
       }
     }
 
-    const saved = await save(false, "next", step === 0)
+    if (step === 2) {
+      const accommodation = form.getValues("accommodation_type") as string | null | undefined
+      const transport = form.getValues("transport_option") as string | null | undefined
+      let hasError = false
+
+      if (!accommodation) {
+        form.setError("accommodation_type", {
+          type: "required",
+          message: "Please select an accommodation option",
+        })
+        hasError = true
+      }
+      if (!transport) {
+        form.setError("transport_option", {
+          type: "required",
+          message: "Please select an airport transport option",
+        })
+        hasError = true
+      }
+      if (hasError) {
+        setError("Please select accommodation and airport transport before continuing.")
+        return
+      }
+    }
+
+    if (step === 0) {
+      setSaveAction("next")
+      const emailOk = await checkEmailUnique(form.getValues("email"))
+      setSaveAction(null)
+      if (!emailOk) return
+    }
+
+    if (!user) {
+      setError("")
+      setEmailInUse(false)
+      setStep(step + 1)
+      return
+    }
+
+    const saved = await saveAuthenticated(false, "next", step === 0)
     if (saved && step < STEPS.length - 1) {
       setError("")
+      setEmailInUse(false)
       setStep(step + 1)
     }
   }
 
   const handleSubmit = async () => {
+    const accommodation = form.getValues("accommodation_type") as string | null | undefined
+    const transport = form.getValues("transport_option") as string | null | undefined
+    let missingTransportStep = false
+
+    if (!accommodation) {
+      form.setError("accommodation_type", {
+        type: "required",
+        message: "Please select an accommodation option",
+      })
+      missingTransportStep = true
+    }
+    if (!transport) {
+      form.setError("transport_option", {
+        type: "required",
+        message: "Please select an airport transport option",
+      })
+      missingTransportStep = true
+    }
+    if (missingTransportStep) {
+      setError("Please select accommodation and airport transport before submitting.")
+      setStep(2)
+      return
+    }
+
     const valid = await form.trigger()
     if (!valid) return
-    await save(true, "submit")
+
+    if (!user) {
+      await submitAsGuest()
+      return
+    }
+
+    if (submitted && !registrationId) {
+      setError("Please log in to edit your registration.")
+      return
+    }
+
+    await saveAuthenticated(true, "submit")
   }
 
-  if (isLoading) return <p className="text-center text-gray-500">Loading registration...</p>
+  if (authLoading || (user && isLoading)) {
+    return <p className="text-center text-gray-500">Loading registration...</p>
+  }
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
-      <h1 className="text-3xl font-bold">Conference Registration</h1>
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <h1 className="text-3xl font-bold">Conference Registration</h1>
+        {!user && (
+          <p className="text-sm text-gray-600">
+            Already registered?{" "}
+            <Link
+              href="/login?redirect=/my-registration"
+              className="font-medium text-blue-600 hover:underline"
+            >
+              Login
+            </Link>
+          </p>
+        )}
+      </div>
 
       <div className="flex gap-2" role="tablist" aria-label="Registration steps">
         {STEPS.map((s, i) => {
@@ -297,7 +460,22 @@ const RegistrationForm = () => {
         })}
       </div>
 
-      {error && <Alert variant="error">{error}</Alert>}
+      {error && (
+        <Alert variant="error">
+          {error}
+          {emailInUse && (
+            <>
+              {" "}
+              <Link
+                href="/login?redirect=/my-registration"
+                className="font-semibold underline"
+              >
+                Login here
+              </Link>
+            </>
+          )}
+        </Alert>
+      )}
       {submitted && (
         <Alert variant="success">Your registration has been submitted. You can still update details below.</Alert>
       )}
@@ -469,19 +647,22 @@ const RegistrationForm = () => {
             <CardHeader><CardTitle>Transport &amp; Accommodation</CardTitle></CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="accommodation_type">Accommodation during conference</Label>
+                <Label htmlFor="accommodation_type">Accommodation during conference *</Label>
                 <select
                   id="accommodation_type"
                   className="flex h-10 w-full rounded-md border border-gray-300 px-3 text-sm"
                   {...form.register("accommodation_type")}
                   aria-label="Accommodation during conference"
+                  aria-required="true"
                 >
+                  <option value="">Select accommodation option</option>
                   {ACCOMMODATION_OPTIONS.map((option) => (
                     <option key={option.value} value={option.value}>
                       {option.label}
                     </option>
                   ))}
                 </select>
+                <FieldError message={form.formState.errors.accommodation_type?.message} />
               </div>
 
               {accommodationType === "billet" && (
@@ -499,23 +680,33 @@ const RegistrationForm = () => {
               )}
 
               <div className="space-y-2">
-                <Label htmlFor="transport_option">Airport transport (Tullamarine)</Label>
+                <Label htmlFor="transport_option">Airport transport (Tullamarine) *</Label>
                 <select
                   id="transport_option"
                   className="flex h-10 w-full rounded-md border border-gray-300 px-3 text-sm"
                   {...form.register("transport_option")}
                   aria-label="Airport transport option"
+                  aria-required="true"
                 >
+                  <option value="">Select transport option</option>
                   {TRANSPORT_OPTIONS.map((option) => (
                     <option key={option.value} value={option.value}>
                       {option.label}
                     </option>
                   ))}
                 </select>
+                <FieldError message={form.formState.errors.transport_option?.message} />
               </div>
 
               {transportOption && transportOption !== "own" && (
                 <TransportScheduleAlert transportOption={transportOption} />
+              )}
+
+              {transportOption === "own" && (
+                <Alert variant="info">
+                  You have selected <strong>self arranged</strong> transport — you will manage
+                  your own travel to and from the conference.
+                </Alert>
               )}
 
               {needsAirportTransport && (
@@ -593,7 +784,7 @@ const RegistrationForm = () => {
                 type="button"
                 onClick={handleNext}
                 isLoading={saveAction === "next"}
-                loadingText="Saving..."
+                loadingText={user ? "Saving..." : "Continuing..."}
                 disabled={isBusy}
                 aria-label="Next step"
               >

@@ -1,0 +1,36 @@
+---
+description: Spec-driven development — keep specs/ and code in sync; read specs before product changes
+alwaysApply: true
+---
+
+# Spec-driven development
+
+This repo is **spec-driven**. Product behavior lives under `specs/`. Specs and code must stay in sync.
+
+## Before product work
+
+1. Open [`specs/INDEX.md`](specs/INDEX.md) and read the relevant `global/` and `features/` specs.
+2. Treat listed `files:` as the ownership set for that change.
+3. Follow [`specs/_meta/SYNC-PROTOCOL.md`](specs/_meta/SYNC-PROTOCOL.md).
+
+## When the user asks for a feature / behavior change
+
+1. **Update the matching spec first** (behavior + acceptance criteria + `files` if paths change).
+2. Then implement or adjust **code** to match the spec.
+3. Set `synced_commit: working-tree` until committed; after commit run `npm run specs:stamp` or update the short SHA.
+
+## When code was changed without a spec update
+
+1. Diff the feature’s `files:` against the current tree.
+2. **Update the spec** so it describes the code (do not silently leave specs stale).
+3. Refresh `synced_commit` / `synced_at`.
+
+## Do not
+
+- Implement product behavior that contradicts an active spec without updating the spec.
+- Invent parallel docs outside `specs/` for the same feature (link from README only).
+- Leave `synced_commit` pointing at an old SHA after intentional behavior changes.
+
+## New features
+
+Copy `specs/_meta/TEMPLATE.md` → `specs/features/<name>.md`, add a row to `specs/INDEX.md`, then code.

@@ -1,0 +1,51 @@
+---
+id: global.auth-security
+title: Auth and security
+status: active
+synced_commit: working-tree
+synced_at: 2026-07-11
+owners: [team]
+files:
+  - src/middleware.ts
+  - src/lib/auth/paths.ts
+  - src/lib/auth/context.tsx
+  - src/lib/auth/jwt.ts
+  - src/lib/auth/tokens.ts
+  - src/lib/auth/cookies.ts
+  - src/lib/auth/session.ts
+  - src/lib/auth/api.ts
+  - src/app/api/auth/login/route.ts
+  - src/app/api/auth/logout/route.ts
+  - src/app/api/auth/refresh/route.ts
+  - src/app/api/auth/me/route.ts
+---
+
+# Auth and security
+
+## Purpose
+
+Custom JWT auth (not Supabase Auth). Access + refresh cookies; Bearer tokens for API via `authFetch`.
+
+## Behavior
+
+- Access JWT: HS256, `JWT_ACCESS_SECRET`, expiry `JWT_ACCESS_EXPIRY` (default 6h).
+- Refresh token: httpOnly cookie `cfca_refresh_token`, rotated on refresh; hashed in DB.
+- Access cookie: `cfca_access_token` (httpOnly) for middleware checks.
+- Middleware verifies access JWT or silent-refreshes; else redirect to `/login?redirect=…`.
+- API routes use `requireAuth` (Bearer) + optional `requirePermission`.
+- Failed password change must **not** return 401 in a way that triggers session-expiry redirect (use 400 for wrong current password).
+- Audit important auth events via `writeAuditLog`.
+
+## Acceptance criteria
+
+- [ ] Protected pages redirect to login without valid session
+- [ ] `authFetch` attaches Bearer and refreshes on 401 for data APIs
+- [ ] Logout clears session cookies
+
+## Related specs
+
+- `features.login`
+- `features.signup`
+- `features.password-reset`
+- `features.account`
+- `features.audit`

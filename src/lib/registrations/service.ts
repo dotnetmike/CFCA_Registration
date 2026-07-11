@@ -40,7 +40,7 @@ export const generateRegistrationNo = async () => {
 
 export const mapFormToDb = (data: RegistrationFormData, extras: {
   registration_no?: string
-  user_id: string
+  user_id: string | null
   amount_due: number
   early_bird_slot: string
   is_early_bird: boolean
@@ -71,7 +71,7 @@ export const mapFormToDb = (data: RegistrationFormData, extras: {
   spouse_email: data.spouse_email ?? "",
   spouse_mobile: data.spouse_mobile ?? "",
   accommodation_type: data.accommodation_type === "" || data.accommodation_type == null
-    ? "own"
+    ? null
     : data.accommodation_type,
   pickup_melbourne_airport: transport.pickup_melbourne_airport,
   dropoff_melbourne_airport: transport.dropoff_melbourne_airport,
@@ -106,5 +106,9 @@ export const getRegistrationWithAttendees = async (id: string) => {
     .eq("registration_id", id)
     .order("sort_order")
 
-  return { ...registration, attendees: attendees ?? [] }
+  return {
+    ...registration,
+    attendees: attendees ?? [],
+    registration_attendees: attendees ?? [],
+  }
 }

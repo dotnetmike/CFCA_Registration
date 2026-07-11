@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server"
-import { requireAuth } from "@/lib/auth/api"
 import { getGooglePlacesApiKey } from "@/lib/address/env"
 import {
   parseGooglePlaceDetails,
@@ -121,9 +120,6 @@ const fetchGooglePlaceDetails = async (placeId: string): Promise<AustralianAddre
 }
 
 export const GET = async (request: NextRequest) => {
-  const auth = await requireAuth(request)
-  if (auth instanceof NextResponse) return auth
-
   const { searchParams } = new URL(request.url)
   const query = searchParams.get("q")?.trim() ?? ""
   const placeId = searchParams.get("placeId")?.trim()

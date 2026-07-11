@@ -3,6 +3,7 @@ import { createAdminClient } from "@/lib/supabase/admin"
 import { requireAuth, requirePermission, jsonError } from "@/lib/auth/api"
 import { parseBankPdf } from "@/lib/payments/parse-bank-pdf"
 import { sendRegistrationEmail } from "@/lib/email/send"
+import { writeAuditLog } from "@/lib/audit/log"
 
 export const POST = async (request: NextRequest) => {
   const auth = await requireAuth(request)
@@ -103,6 +104,25 @@ export const POST = async (request: NextRequest) => {
 
           const updated = { ...registration, amount_paid: newPaid, payment_status: paymentStatus }
           await sendRegistrationEmail(updated, "payment_received")
+
+          await writeAuditLog({
+            userId: auth.sub,
+            action: "payment.record",
+            previousValue: {
+              amount_paid: registration.amount_paid,
+              payment_status: registration.payment_status,
+            },
+            updatedValue: {
+              amount_paid: newPaid,
+              payment_status: paymentStatus,
+            },
+            metadata: {
+              registration_id: registration.id,
+              amount: txn.amount,
+              reference: txn.extracted_reference,
+            },
+            request,
+          })
         }
 
         matchStatus = "auto_matched"
@@ -122,6 +142,19 @@ export const POST = async (request: NextRequest) => {
 
       results.push({ reference: txn.extracted_reference, amount: txn.amount, matchStatus })
     }
+
+    await writeAuditLog({
+      userId: auth.sub,
+      action: "payment.reconcile",
+      updatedValue: {
+        statement_id: statement.id,
+        filename: file.name,
+        matched: results.filter((r) => r.matchStatus === "auto_matched").length,
+        unmatched: results.filter((r) => r.matchStatus === "unmatched").length,
+      },
+      metadata: { results },
+      request,
+    })
 
     return NextResponse.json({
       statementId: statement.id,

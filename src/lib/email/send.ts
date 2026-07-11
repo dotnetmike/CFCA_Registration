@@ -1,5 +1,13 @@
 import { Resend } from "resend"
 import { createAdminClient } from "@/lib/supabase/admin"
+import { formatCurrency } from "@/lib/pricing/calculate"
+import { CFCA_POSITION_LABELS } from "@/lib/registrations/schema"
+import {
+  booleansToTransportOption,
+  getAccommodationLabel,
+  getTransportOptionLabel,
+} from "@/lib/registrations/transport"
+import { getSiteUrl } from "@/lib/site-url"
 
 type EmailType =
   | "registration_submitted"
@@ -8,15 +16,46 @@ type EmailType =
   | "payment_received"
   | "payment_reminder"
 
-type RegistrationRecord = {
+type AttendeeRow = {
+  given_name?: string
+  surname?: string
+  age?: number
+  needs_kids_supervision?: boolean
+}
+
+export type RegistrationEmailRecord = {
   id: string
   registration_no: string
+  participant_reference?: string | null
   email: string
   given_name: string
   surname: string
+  mobile?: string
+  state?: string | null
+  cfca_position?: string | null
+  address_line1?: string
+  suburb?: string
+  address_state?: string | null
+  postcode?: string
+  spouse_attending?: boolean
+  spouse_surname?: string
+  spouse_given_name?: string
+  spouse_email?: string
+  spouse_mobile?: string
+  accommodation_type?: string | null
+  pickup_melbourne_airport?: boolean | null
+  dropoff_melbourne_airport?: boolean | null
+  arrival_date?: string | null
+  arrival_airport?: string
+  arrival_flight_no?: string
+  departure_date?: string | null
+  departure_airport?: string
+  departure_flight_no?: string
   amount_due: number
   amount_paid: number
   payment_status: string
+  attendees?: AttendeeRow[]
+  registration_attendees?: AttendeeRow[]
 }
 
 const getResend = () => {
@@ -28,63 +67,174 @@ const getResend = () => {
 const getFrom = () =>
   process.env.EMAIL_FROM ?? "CFCA Registration <onboarding@resend.dev>"
 
-const buildSubject = (type: EmailType, reg: RegistrationRecord) => {
+const paymentRef = (reg: RegistrationEmailRecord) =>
+  reg.participant_reference || reg.registration_no
+
+const buildSubject = (type: EmailType, reg: RegistrationEmailRecord) => {
+  const ref = paymentRef(reg)
   switch (type) {
     case "registration_submitted":
-      return `CFCA Conference Registration Confirmed — ${reg.registration_no}`
+      return `CFCA Conference Registration Confirmed — ${ref}`
     case "registration_updated":
-      return `CFCA Registration Updated — ${reg.registration_no}`
+      return `CFCA Registration Updated — ${ref}`
     case "accommodation_updated":
-      return `CFCA Transport/Accommodation Updated — ${reg.registration_no}`
+      return `CFCA Transport/Accommodation Updated — ${ref}`
     case "payment_received":
-      return `Payment Received — ${reg.registration_no}`
+      return `Payment Received — ${ref}`
     case "payment_reminder":
-      return `Payment Reminder — ${reg.registration_no}`
+      return `Payment Reminder — ${ref}`
   }
 }
 
-const buildBody = (type: EmailType, reg: RegistrationRecord) => {
+const formatAttendees = (reg: RegistrationEmailRecord) => {
+  const rows = reg.registration_attendees ?? reg.attendees ?? []
+  if (rows.length === 0) return "None"
+  return rows
+    .map((a) => {
+      const supervision = a.needs_kids_supervision ? " (kids supervision)" : ""
+      return `- ${a.given_name ?? ""} ${a.surname ?? ""} (age ${a.age ?? 0})${supervision}`
+    })
+    .join("\n")
+}
+
+const buildSubmittedDetails = (reg: RegistrationEmailRecord, viewUrl?: string) => {
   const name = `${reg.given_name} ${reg.surname}`.trim()
+  const ref = paymentRef(reg)
+  const transport = booleansToTransportOption(
+    reg.pickup_melbourne_airport,
+    reg.dropoff_melbourne_airport
+  )
+  const position = reg.cfca_position
+    ? CFCA_POSITION_LABELS[reg.cfca_position as keyof typeof CFCA_POSITION_LABELS] ?? reg.cfca_position
+    : "—"
+
+  const lines = [
+    `Dear ${name},`,
+    "",
+    "Thank you for registering for the CFCA Conference. Here is a summary of your registration:",
+    "",
+    "=== Registration ===",
+    `Registration No: ${reg.registration_no}`,
+    `Payment Reference (Unique Code): ${ref}`,
+    `Name: ${name}`,
+    `Email: ${reg.email}`,
+    `Mobile: ${reg.mobile ?? "—"}`,
+    `Conference State: ${reg.state ?? "—"}`,
+    `CFCA Position: ${position}`,
+  ]
+
+  if (reg.address_line1 || reg.suburb || reg.postcode) {
+    lines.push(
+      `Address: ${[reg.address_line1, reg.suburb, reg.address_state, reg.postcode].filter(Boolean).join(", ")}`
+    )
+  }
+
+  lines.push(
+    "",
+    "=== Spouse ===",
+    `Spouse attending: ${reg.spouse_attending ? "Yes" : "No"}`
+  )
+
+  if (reg.spouse_attending) {
+    lines.push(
+      `Spouse name: ${reg.spouse_given_name ?? ""} ${reg.spouse_surname ?? ""}`.trim(),
+      `Spouse email: ${reg.spouse_email || "—"}`,
+      `Spouse mobile: ${reg.spouse_mobile || "—"}`
+    )
+  }
+
+  lines.push("", "=== Additional Attendees ===", formatAttendees(reg))
+
+  lines.push(
+    "",
+    "=== Accommodation & Transport ===",
+    `Accommodation: ${getAccommodationLabel(reg.accommodation_type) || "—"}`,
+    `Transport: ${getTransportOptionLabel(transport)}`
+  )
+
+  if (reg.pickup_melbourne_airport) {
+    lines.push(
+      `Arrival date: ${reg.arrival_date || "—"}`,
+      `Arrival airport: ${reg.arrival_airport || "—"}`,
+      `Arrival flight: ${reg.arrival_flight_no || "—"}`
+    )
+  }
+
+  if (reg.dropoff_melbourne_airport) {
+    lines.push(
+      `Departure date: ${reg.departure_date || "—"}`,
+      `Departure airport: ${reg.departure_airport || "—"}`,
+      `Departure flight: ${reg.departure_flight_no || "—"}`
+    )
+  }
+
+  lines.push(
+    "",
+    "=== Payment ===",
+    `Amount Due: ${formatCurrency(Number(reg.amount_due))}`,
+    `Status: ${reg.payment_status}`,
+    "",
+    `IMPORTANT: Include your Unique Code (${ref}) in both Message and Ref. when paying via your bank app.`,
+    ""
+  )
+
+  if (viewUrl) {
+    lines.push(
+      "View your registration details (no login required):",
+      viewUrl,
+      "",
+      "To edit your registration later, create an account or log in on the registration portal.",
+      ""
+    )
+  }
+
+  lines.push("If you have already paid and receive this in error, please contact the registration team.")
+
+  return lines.join("\n")
+}
+
+const buildBody = (type: EmailType, reg: RegistrationEmailRecord, viewUrl?: string) => {
+  const name = `${reg.given_name} ${reg.surname}`.trim()
+  const ref = paymentRef(reg)
   const base = `Dear ${name},\n\n`
 
   switch (type) {
     case "registration_submitted":
-      return `${base}Thank you for registering for the CFCA Conference.
-
-Registration Number: ${reg.registration_no}
-Amount Due: $${Number(reg.amount_due).toFixed(2)}
-
-Please include your registration number (${reg.registration_no}) in your bank transfer payment reference.
-
-If you have already paid and receive this in error, please contact the registration team.`
+      return buildSubmittedDetails(reg, viewUrl)
     case "registration_updated":
-      return `${base}Your registration (${reg.registration_no}) has been updated. Please review your details on the registration portal.`
+      return `${base}Your registration (${ref}) has been updated. Please review your details on the registration portal.`
     case "accommodation_updated":
-      return `${base}Your transport and accommodation details (${reg.registration_no}) have been updated.`
+      return `${base}Your transport and accommodation details (${ref}) have been updated.`
     case "payment_received":
-      return `${base}We have received your payment for registration ${reg.registration_no}.
+      return `${base}We have received your payment for registration ${ref}.
 
-Amount Paid: $${Number(reg.amount_paid).toFixed(2)}
+Amount Paid: ${formatCurrency(Number(reg.amount_paid))}
 Status: ${reg.payment_status}`
     case "payment_reminder":
-      return `${base}This is a reminder that payment is outstanding for registration ${reg.registration_no}.
+      return `${base}This is a reminder that payment is outstanding for registration ${ref}.
 
-Amount Due: $${Number(reg.amount_due).toFixed(2)}
+Amount Due: ${formatCurrency(Number(reg.amount_due))}
 
-Please include ${reg.registration_no} in your payment reference.`
+Please include ${ref} in your payment reference.`
   }
 }
 
 export const sendRegistrationEmail = async (
-  registration: RegistrationRecord,
-  type: EmailType
+  registration: RegistrationEmailRecord,
+  type: EmailType,
+  options?: { viewToken?: string }
 ) => {
+  const viewUrl = options?.viewToken
+    ? `${getSiteUrl()}/r/${encodeURIComponent(options.viewToken)}`
+    : undefined
+
   const resend = getResend()
   const subject = buildSubject(type, registration)
-  const body = buildBody(type, registration)
+  const body = buildBody(type, registration, viewUrl)
 
   if (!resend) {
     console.log(`[email] (dev) ${type} to ${registration.email}: ${subject}`)
+    if (viewUrl) console.log(`[email] (dev) view link: ${viewUrl}`)
     await logEmail(registration, type, registration.email, subject, null)
     return
   }
@@ -104,7 +254,7 @@ export const sendRegistrationEmail = async (
 }
 
 const logEmail = async (
-  registration: RegistrationRecord,
+  registration: RegistrationEmailRecord,
   type: EmailType,
   recipient: string,
   subject: string,

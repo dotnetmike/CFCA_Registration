@@ -6,6 +6,7 @@ import { hashPassword, verifyPassword } from "@/lib/auth/tokens"
 import { createSession, getRequestMeta } from "@/lib/auth/session"
 import { applySessionCookies } from "@/lib/auth/cookies"
 import { jsonError } from "@/lib/auth/api"
+import { writeAuditLog } from "@/lib/audit/log"
 
 const loginSchema = z.object({
   email: z.string().email(),
@@ -26,10 +27,25 @@ export const POST = async (request: NextRequest) => {
     .eq("email", email)
     .maybeSingle()
 
-  if (!user || !user.is_active) return jsonError("Invalid credentials", 401)
+  if (!user || !user.is_active) {
+    await writeAuditLog({
+      action: "auth.login_failed",
+      metadata: { email, reason: "invalid_credentials" },
+      request,
+    })
+    return jsonError("Invalid credentials", 401)
+  }
 
   const valid = await verifyPassword(parsed.data.password, user.password_hash)
-  if (!valid) return jsonError("Invalid credentials", 401)
+  if (!valid) {
+    await writeAuditLog({
+      userId: user.id,
+      action: "auth.login_failed",
+      metadata: { email, reason: "invalid_password" },
+      request,
+    })
+    return jsonError("Invalid credentials", 401)
+  }
 
   const { accessToken, refreshToken, user: authUser } = await createSession(
     user.id,
@@ -48,6 +64,13 @@ export const POST = async (request: NextRequest) => {
   })
 
   applySessionCookies(response, accessToken, refreshToken)
+
+  await writeAuditLog({
+    userId: user.id,
+    action: "auth.login",
+    updatedValue: { email },
+    request,
+  })
 
   return response
 }

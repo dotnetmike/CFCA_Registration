@@ -1,36 +1,72 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# CFCA Conference Registration
 
-## Getting Started
+Next.js app for CFCA conference registration, payments, and staff dashboard.
 
-First, run the development server:
+## Spec-driven development
+
+**Specs are the source of truth** for product behavior. Keep them in sync with code.
+
+| Doc | Purpose |
+|-----|---------|
+| [specs/README.md](./specs/README.md) | How the team works with specs |
+| [specs/INDEX.md](./specs/INDEX.md) | Catalog of all specs |
+| [specs/_meta/SYNC-PROTOCOL.md](./specs/_meta/SYNC-PROTOCOL.md) | Sync rules + commit hashes |
+
+**Workflow**
+
+1. Find or create a spec under `specs/global/` or `specs/features/`.
+2. Update the spec for the intended behavior.
+3. Implement code to match.
+4. After commit: `npm run specs:stamp` to write `synced_commit` / `synced_at`.
+
+In Cursor, ask the agent to read specs first, e.g. *“Follow specs/features/registration.md”* or *“Update the payment spec from the current code”*.
+
+## Getting started
 
 ```bash
+# Install
+npm install
+
+# Copy env and fill secrets
+cp .env.example .env
+
+# Apply DB migrations + start Next.js (dev)
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Useful scripts
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| Script | Description |
+|--------|-------------|
+| `npm run dev` | Deploy pending migrations + `next dev` |
+| `npm run build` | Production build |
+| `npm run start` | Deploy migrations + `next start` (rebuild after code changes!) |
+| `npm run db:deploy` | Migrations / admin seed only |
+| `npm run specs:stamp` | Set all product specs’ `synced_commit` to `HEAD` |
 
-## Learn More
+> **Note:** `npm run start` serves the last **build**. After editing source, run `npm run build` then `npm run start`, or use `npm run dev` for hot reload.
 
-To learn more about Next.js, take a look at the following resources:
+## Stack
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- Next.js (App Router) + TypeScript + Tailwind
+- Custom JWT auth (cookies + Bearer)
+- Supabase Postgres (migrations in `supabase/migrations/`)
+- Resend for email (optional in local)
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Project map
 
-## Deploy on Vercel
+```
+specs/           Product specs (source of truth)
+src/app/         Pages + API routes
+src/components/  UI + feature components
+src/lib/         Auth, registrations, email, audit, db
+supabase/        SQL migrations
+.cursor/rules/   Cursor AI rules (incl. spec-driven)
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Learn more
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- [Next.js docs](https://nextjs.org/docs)
+- Repo agent notes: [AGENTS.md](./AGENTS.md)

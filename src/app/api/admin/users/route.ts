@@ -5,6 +5,7 @@ import { requireAuth, requirePermission, jsonError } from "@/lib/auth/api"
 import { hashPassword } from "@/lib/auth/tokens"
 import { normalizeEmail } from "@/lib/utils"
 import { revokeAllSessions } from "@/lib/auth/session"
+import { writeAuditLog } from "@/lib/audit/log"
 
 export const GET = async (request: NextRequest) => {
   const auth = await requireAuth(request)
@@ -85,6 +86,14 @@ export const POST = async (request: NextRequest) => {
     )
   }
 
+  await writeAuditLog({
+    userId: auth.sub,
+    action: "user.create",
+    updatedValue: { email, name: parsed.data.name, groups: parsed.data.groups },
+    metadata: { target_user_id: user.id },
+    request,
+  })
+
   return NextResponse.json({ id: user.id }, { status: 201 })
 }
 
@@ -102,15 +111,36 @@ export const PATCH = async (request: NextRequest) => {
 
   const admin = createAdminClient()
 
+  const { data: existingUser } = await admin
+    .from("users")
+    .select("id, email, name, is_active, user_user_groups(user_groups(name))")
+    .eq("id", userId)
+    .maybeSingle()
+
+  const previousValue = existingUser
+    ? {
+        email: existingUser.email,
+        name: existingUser.name,
+        is_active: existingUser.is_active,
+        groups: ((existingUser.user_user_groups as unknown as { user_groups: { name: string } | null }[]) ?? [])
+          .map((g) => g.user_groups?.name)
+          .filter((name): name is string => !!name),
+      }
+    : null
+
+  const updatedValue: Record<string, unknown> = { ...previousValue }
+
   if (password) {
     const passwordHash = await hashPassword(password)
     await admin.from("users").update({ password_hash: passwordHash }).eq("id", userId)
     await revokeAllSessions(userId)
+    updatedValue.password_changed = true
   }
 
   if (typeof is_active === "boolean") {
     await admin.from("users").update({ is_active }).eq("id", userId)
     if (!is_active) await revokeAllSessions(userId)
+    updatedValue.is_active = is_active
   }
 
   if (groups && Array.isArray(groups)) {
@@ -121,7 +151,17 @@ export const PATCH = async (request: NextRequest) => {
         groupRows.map((g) => ({ user_id: userId, group_id: g.id }))
       )
     }
+    updatedValue.groups = groups
   }
+
+  await writeAuditLog({
+    userId: auth.sub,
+    action: "user.update",
+    previousValue,
+    updatedValue,
+    metadata: { target_user_id: userId },
+    request,
+  })
 
   return NextResponse.json({ success: true })
 }

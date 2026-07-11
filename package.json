@@ -1,6 +1,6 @@
 {
   "name": "cfca-registration",
-  "version": "0.1.21",
+  "version": "0.4.0",
   "private": true,
   "scripts": {
     "db:deploy": "tsx scripts/db/deploy.ts",
@@ -8,7 +8,8 @@
     "dev": "tsx scripts/db/deploy.ts && next dev",
     "build": "next build",
     "start": "tsx scripts/db/deploy.ts && next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "specs:stamp": "tsx scripts/specs/stamp.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.0.1",

@@ -69,7 +69,10 @@ const DashboardPage = () => {
             <Link href="/dashboard/payments/reconcile" className="text-blue-600 hover:underline">Payment Reconcile</Link>
           )}
           {user?.permissions.includes("users:manage") && (
-            <Link href="/dashboard/users" className="text-blue-600 hover:underline">Users</Link>
+            <>
+              <Link href="/dashboard/users" className="text-blue-600 hover:underline">Users</Link>
+              <Link href="/dashboard/audit" className="text-blue-600 hover:underline">Audit Log</Link>
+            </>
           )}
         </nav>
       </div>

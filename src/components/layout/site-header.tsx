@@ -30,9 +30,9 @@ export const SiteHeader = () => {
         <nav className="flex items-center gap-4 text-sm" aria-label="Main navigation">
           {!isLoading && user ? (
             <>
-              <Link href="/register" className="hover:text-blue-600">Register</Link>
               <Link href="/my-registration" className="hover:text-blue-600">My Registration</Link>
               <Link href="/payment" className="hover:text-blue-600">Payment</Link>
+              <Link href="/account" className="hover:text-blue-600">Account</Link>
               {isManager(user) && (
                 <Link href="/dashboard" className="hover:text-blue-600">Dashboard</Link>
               )}

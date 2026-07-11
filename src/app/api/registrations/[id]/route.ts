@@ -1,15 +1,24 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createAdminClient } from "@/lib/supabase/admin"
 import { requireAuth, requirePermission, jsonError } from "@/lib/auth/api"
-import { registrationSchema, REGISTRATION_FIELDS, formatRegistrationSchemaError } from "@/lib/registrations/schema"
+import { registrationSchema, registrationBaseSchema, REGISTRATION_FIELDS, formatRegistrationSchemaError } from "@/lib/registrations/schema"
 import {
   claimEarlyBirdSlot,
   computeAmountDue,
+  generateRegistrationNo,
   getRegistrationWithAttendees,
   mapFormToDb,
 } from "@/lib/registrations/service"
 import { assignParticipantReferenceIfNeeded } from "@/lib/registrations/participant-reference"
+import { createViewAndSignupTokens } from "@/lib/registrations/view-token"
 import { sendRegistrationEmail } from "@/lib/email/send"
+import { writeAuditLog, pickChangedFields } from "@/lib/audit/log"
+import { pickRegistrationAuditSnapshot, REGISTRATION_AUDIT_FIELDS } from "@/lib/audit/registration"
+import { normalizeEmail } from "@/lib/utils"
+import {
+  EMAIL_IN_USE_MESSAGE,
+  isRegistrationEmailAvailable,
+} from "@/lib/registrations/email-unique"
 
 const getAssignParticipantReference = (body: unknown) =>
   typeof body === "object" &&
@@ -90,8 +99,44 @@ export const PUT = async (request: NextRequest, { params }: RouteParams) => {
 
   const body = await request.json().catch(() => null)
   const assignParticipantReference = getAssignParticipantReference(body)
-  const parsed = registrationSchema.partial().safeParse(body)
+  const parsed = registrationBaseSchema.partial().safeParse(body)
   if (!parsed.success) return jsonError(formatRegistrationSchemaError(parsed.error))
+
+  if (parsed.data.submit) {
+    const incomingAccommodation = parsed.data.accommodation_type as string | null | undefined
+    const hasExistingAccommodation = !!existing.accommodation_type
+    if (!incomingAccommodation && !hasExistingAccommodation) {
+      return jsonError("Please select an accommodation option")
+    }
+    if (incomingAccommodation === "") {
+      return jsonError("Please select an accommodation option")
+    }
+
+    const incomingTransport = parsed.data.transport_option as string | null | undefined
+    const hasExistingTransport =
+      existing.pickup_melbourne_airport != null || existing.dropoff_melbourne_airport != null
+    if (!incomingTransport && !hasExistingTransport) {
+      return jsonError("Please select an airport transport option")
+    }
+    if (incomingTransport === "") {
+      return jsonError("Please select an airport transport option")
+    }
+  }
+
+  if (parsed.data.email) {
+    const email = normalizeEmail(parsed.data.email)
+    parsed.data.email = email
+    const emailCheck = await isRegistrationEmailAvailable(email, {
+      excludeRegistrationId: id,
+      allowUserId: auth.sub,
+    })
+    if (!emailCheck.available) {
+      return NextResponse.json(
+        { error: EMAIL_IN_USE_MESSAGE, code: "EMAIL_IN_USE" },
+        { status: 409 }
+      )
+    }
+  }
 
   let participantReference = existing.participant_reference as string | null
   try {
@@ -135,13 +180,24 @@ export const PUT = async (request: NextRequest, { params }: RouteParams) => {
   const wasSubmitted = !!existing.submitted_at
   const isSubmitting = parsed.data.submit && !wasSubmitted
 
+  let registrationNo = existing.registration_no as string
+  if (isSubmitting && String(registrationNo).startsWith("DRAFT")) {
+    registrationNo = await generateRegistrationNo()
+  }
+
+  let viewToken: string | undefined
+  if (isSubmitting && !existing.view_token_hash) {
+    const tokens = await createViewAndSignupTokens(id)
+    viewToken = tokens.viewToken
+  }
+
   const dbUpdate = mapFormToDb(formData as Parameters<typeof mapFormToDb>[0], {
     user_id: existing.user_id,
     amount_due: amountDue,
     early_bird_slot: earlyBirdSlot,
     is_early_bird: earlyBirdSlot !== "none",
     submitted_at: isSubmitting ? new Date().toISOString() : existing.submitted_at,
-    registration_no: existing.registration_no,
+    registration_no: registrationNo,
   })
 
   const { error } = await admin
@@ -176,8 +232,34 @@ export const PUT = async (request: NextRequest, { params }: RouteParams) => {
       : canWriteAccom && !canWriteAll
         ? "accommodation_updated"
         : "registration_updated"
-    await sendRegistrationEmail(full, emailType)
+    await sendRegistrationEmail(
+      full,
+      emailType,
+      isSubmitting && viewToken ? { viewToken } : undefined
+    )
   }
+
+  const previousSnapshot = pickRegistrationAuditSnapshot(existing as Record<string, unknown>)
+  const updatedSnapshot = full
+    ? pickRegistrationAuditSnapshot(full as Record<string, unknown>)
+    : previousSnapshot
+  const { previous, updated } = pickChangedFields(
+    previousSnapshot,
+    updatedSnapshot,
+    [...REGISTRATION_AUDIT_FIELDS]
+  )
+
+  await writeAuditLog({
+    userId: auth.sub,
+    action: isSubmitting ? "registration.submit" : "registration.update",
+    previousValue: previous,
+    updatedValue: updated,
+    metadata: {
+      registration_id: id,
+      attendees_updated: !!parsed.data.attendees,
+    },
+    request,
+  })
 
   return NextResponse.json({ registration: full })
 }

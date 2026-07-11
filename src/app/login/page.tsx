@@ -15,7 +15,8 @@ const LoginForm = () => {
   const { login } = useAuth()
   const router = useRouter()
   const searchParams = useSearchParams()
-  const redirect = searchParams.get("redirect") ?? "/register"
+  const redirect = searchParams.get("redirect") ?? "/my-registration"
+  const resetSuccess = searchParams.get("reset") === "success"
 
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
@@ -45,6 +46,9 @@ const LoginForm = () => {
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
           <fieldset disabled={isLoading} className="space-y-4 border-0 p-0 m-0 min-w-0">
+          {resetSuccess && (
+            <Alert variant="success">Your password has been reset. You can log in now.</Alert>
+          )}
           {error && <Alert variant="error">{error}</Alert>}
           <div className="space-y-2">
             <Label htmlFor="email">Email</Label>
@@ -70,6 +74,11 @@ const LoginForm = () => {
               aria-label="Password"
             />
           </div>
+          <p className="text-right text-sm">
+            <Link href="/forgot-password" className="text-blue-600 hover:underline">
+              Forgot password?
+            </Link>
+          </p>
           <Button
             type="submit"
             className="w-full"

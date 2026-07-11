@@ -29,6 +29,7 @@ const emptyableAccommodation = z.union([z.enum(["own", "billet"]), z.literal("")
 const emptyableTransport = z
   .union([z.enum(["own", "pickup", "dropoff", "pickup_dropoff"]), z.literal(""), z.null()])
   .optional()
+
 const optionalString = z.union([z.string(), z.null()]).optional()
 const optionalBoolean = z.union([z.boolean(), z.null()]).optional()
 const optionalEmail = z.union([z.string().email("Valid email required"), z.literal(""), z.null()]).optional()
@@ -40,7 +41,7 @@ export const attendeeSchema = z.object({
   needs_kids_supervision: z.boolean().optional(),
 })
 
-export const registrationSchema = z.object({
+export const registrationBaseSchema = z.object({
   surname: z.string().min(1, "Surname is required"),
   given_name: z.string().min(1, "Name is required"),
   email: z.string().email("Valid email required"),
@@ -56,8 +57,8 @@ export const registrationSchema = z.object({
   spouse_attending: z.boolean(),
   spouse_email: optionalEmail,
   spouse_mobile: optionalString,
-  accommodation_type: emptyableAccommodation.default("own"),
-  transport_option: emptyableTransport.default("own"),
+  accommodation_type: emptyableAccommodation,
+  transport_option: emptyableTransport,
   pickup_melbourne_airport: optionalBoolean,
   dropoff_melbourne_airport: optionalBoolean,
   hotel_transport_required: optionalBoolean,
@@ -73,6 +74,28 @@ export const registrationSchema = z.object({
   accommodation_contact_phone: optionalString,
   attendees: z.array(attendeeSchema),
   submit: z.boolean(),
+})
+
+export const registrationSchema = registrationBaseSchema.superRefine((data, ctx) => {
+  if (!data.submit) return
+
+  const accommodation = data.accommodation_type as string | null | undefined
+  if (!accommodation) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Please select an accommodation option",
+      path: ["accommodation_type"],
+    })
+  }
+
+  const transport = data.transport_option as string | null | undefined
+  if (!transport) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Please select an airport transport option",
+      path: ["transport_option"],
+    })
+  }
 })
 
 export const formatRegistrationSchemaError = (error: z.ZodError) => {
