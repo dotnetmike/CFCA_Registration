@@ -51,6 +51,12 @@ export type RegistrationEmailRecord = {
   departure_date?: string | null
   departure_airport?: string
   departure_flight_no?: string
+  hotel_name?: string
+  hotel_address?: string
+  pickup_transport_contact_name?: string
+  pickup_transport_contact_phone?: string
+  dropoff_transport_contact_name?: string
+  dropoff_transport_contact_phone?: string
   amount_due: number
   amount_paid: number
   payment_status: string
@@ -156,7 +162,8 @@ const buildSubmittedDetails = (reg: RegistrationEmailRecord, viewUrl?: string) =
     lines.push(
       `Arrival date: ${reg.arrival_date || "—"}`,
       `Arrival airport: ${reg.arrival_airport || "—"}`,
-      `Arrival flight: ${reg.arrival_flight_no || "—"}`
+      `Arrival flight: ${reg.arrival_flight_no || "—"}`,
+      `Pickup contact: ${reg.pickup_transport_contact_name || "—"} (${reg.pickup_transport_contact_phone || "—"})`
     )
   }
 
@@ -164,7 +171,15 @@ const buildSubmittedDetails = (reg: RegistrationEmailRecord, viewUrl?: string) =
     lines.push(
       `Departure date: ${reg.departure_date || "—"}`,
       `Departure airport: ${reg.departure_airport || "—"}`,
-      `Departure flight: ${reg.departure_flight_no || "—"}`
+      `Departure flight: ${reg.departure_flight_no || "—"}`,
+      `Drop-off contact: ${reg.dropoff_transport_contact_name || "—"} (${reg.dropoff_transport_contact_phone || "—"})`
+    )
+  }
+
+  if (reg.hotel_name || reg.hotel_address) {
+    lines.push(
+      `Accommodation name: ${reg.hotel_name || "—"}`,
+      `Accommodation address: ${reg.hotel_address || "—"}`
     )
   }
 

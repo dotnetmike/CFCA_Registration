@@ -86,6 +86,10 @@ export const mapFormToDb = (data: RegistrationFormData, extras: {
   hotel_address: needsAssistance ? "" : (data.hotel_address ?? ""),
   accommodation_contact_name: data.accommodation_contact_name ?? "",
   accommodation_contact_phone: data.accommodation_contact_phone ?? "",
+  pickup_transport_contact_name: data.pickup_transport_contact_name ?? "",
+  pickup_transport_contact_phone: data.pickup_transport_contact_phone ?? "",
+  dropoff_transport_contact_name: data.dropoff_transport_contact_name ?? "",
+  dropoff_transport_contact_phone: data.dropoff_transport_contact_phone ?? "",
   updated_at: new Date().toISOString(),
   }
 }

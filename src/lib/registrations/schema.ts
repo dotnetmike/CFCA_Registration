@@ -72,6 +72,10 @@ export const registrationBaseSchema = z.object({
   hotel_address: optionalString,
   accommodation_contact_name: optionalString,
   accommodation_contact_phone: optionalString,
+  pickup_transport_contact_name: optionalString,
+  pickup_transport_contact_phone: optionalString,
+  dropoff_transport_contact_name: optionalString,
+  dropoff_transport_contact_phone: optionalString,
   attendees: z.array(attendeeSchema),
   submit: z.boolean(),
 })
@@ -126,6 +130,10 @@ export const accommodationOnlySchema = z.object({
   hotel_address: z.string().optional(),
   accommodation_contact_name: z.string().optional(),
   accommodation_contact_phone: z.string().optional(),
+  pickup_transport_contact_name: z.string().optional(),
+  pickup_transport_contact_phone: z.string().optional(),
+  dropoff_transport_contact_name: z.string().optional(),
+  dropoff_transport_contact_phone: z.string().optional(),
 })
 
 export const REGISTRATION_FIELDS = {
@@ -139,5 +147,7 @@ export const REGISTRATION_FIELDS = {
     "hotel_transport_required", "arrival_date", "arrival_airport", "arrival_flight_no",
     "departure_date", "departure_airport", "departure_flight_no",
     "hotel_name", "hotel_address", "accommodation_contact_name", "accommodation_contact_phone",
+    "pickup_transport_contact_name", "pickup_transport_contact_phone",
+    "dropoff_transport_contact_name", "dropoff_transport_contact_phone",
   ],
 } as const

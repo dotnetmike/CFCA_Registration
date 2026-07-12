@@ -11,6 +11,61 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert } from "@/components/ui/alert"
+import { formatCurrency } from "@/lib/pricing/calculate"
+import {
+  AUSTRALIAN_STATES,
+  CFCA_POSITIONS,
+  CFCA_POSITION_LABELS,
+} from "@/lib/registrations/schema"
+import {
+  ACCOMMODATION_OPTIONS,
+  TRANSPORT_OPTIONS,
+  booleansToTransportOption,
+  getAccommodationLabel,
+  getTransportFlightSections,
+  getTransportOptionLabel,
+  transportOptionToBooleans,
+} from "@/lib/registrations/transport"
+
+type Attendee = {
+  surname?: string
+  given_name?: string
+  age?: number
+  needs_kids_supervision?: boolean
+}
+
+const Field = ({
+  label,
+  name,
+  defaultValue,
+  type = "text",
+  readOnly,
+  children,
+}: {
+  label: string
+  name?: string
+  defaultValue?: string
+  type?: string
+  readOnly: boolean
+  children?: React.ReactNode
+}) => (
+  <div className="space-y-2">
+    <Label htmlFor={name}>{label}</Label>
+    {children ?? (
+      <Input
+        id={name}
+        name={name}
+        type={type}
+        defaultValue={defaultValue ?? ""}
+        readOnly={readOnly}
+        disabled={readOnly}
+        className={readOnly ? "bg-gray-50 text-gray-800" : undefined}
+        aria-label={label}
+        aria-readonly={readOnly}
+      />
+    )}
+  </div>
+)
 
 const RegistrationDetailPage = () => {
   const params = useParams()
@@ -18,14 +73,21 @@ const RegistrationDetailPage = () => {
   const { user, authFetch } = useAuth()
   const router = useRouter()
   const [registration, setRegistration] = useState<Record<string, unknown> | null>(null)
+  const [formKey, setFormKey] = useState(0)
   const [isLoading, setIsLoading] = useState(true)
+  const [isEditing, setIsEditing] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   useBusyCursor(isSaving)
   const [error, setError] = useState("")
   const [success, setSuccess] = useState("")
+  const [transportOption, setTransportOption] = useState<
+    "own" | "pickup" | "dropoff" | "pickup_dropoff"
+  >("own")
+  const [sameTransportContact, setSameTransportContact] = useState(true)
 
-  const canEditRegistration = user?.permissions.includes("registrations:write_all")
-  const canEditAccommodation = user?.permissions.includes("accommodation:write_all")
+  const canEditRegistration = !!user?.permissions.includes("registrations:write_all")
+  const canEditAccommodation = !!user?.permissions.includes("accommodation:write_all")
+  const canEdit = canEditRegistration || canEditAccommodation
 
   useEffect(() => {
     if (!user) return
@@ -45,9 +107,47 @@ const RegistrationDetailPage = () => {
     load()
   }, [user, authFetch, id, router])
 
+  useEffect(() => {
+    if (!registration) return
+    const reg = registration as Record<string, string | boolean | number | null>
+    const option = booleansToTransportOption(
+      reg.pickup_melbourne_airport as boolean | null,
+      reg.dropoff_melbourne_airport as boolean | null
+    )
+    setTransportOption(option)
+
+    const pickupName = String(reg.pickup_transport_contact_name ?? "")
+    const pickupPhone = String(reg.pickup_transport_contact_phone ?? "")
+    const dropoffName = String(reg.dropoff_transport_contact_name ?? "")
+    const dropoffPhone = String(reg.dropoff_transport_contact_phone ?? "")
+    const bothEmpty = !pickupName && !pickupPhone && !dropoffName && !dropoffPhone
+    setSameTransportContact(
+      bothEmpty || (pickupName === dropoffName && pickupPhone === dropoffPhone)
+    )
+  }, [registration, formKey])
+
+  const handleStartEdit = () => {
+    setSuccess("")
+    setError("")
+    setIsEditing(true)
+  }
+
+  const handleCancelEdit = () => {
+    setIsEditing(false)
+    setError("")
+    setSuccess("")
+    setFormKey((k) => k + 1)
+  }
+
   const handleSave = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
-    if (!registration) return
+    if (!registration || !isEditing) return
+
+    const confirmed = window.confirm(
+      "Are you sure you want to update this registration? The registrant’s record will be changed and they may receive an update email."
+    )
+    if (!confirmed) return
+
     setError("")
     setSuccess("")
     setIsSaving(true)
@@ -56,6 +156,18 @@ const RegistrationDetailPage = () => {
     const payload: Record<string, unknown> = {}
 
     for (const [key, value] of formData.entries()) {
+      if (key === "transport_option") {
+        Object.assign(
+          payload,
+          transportOptionToBooleans(
+            String(value) as Parameters<typeof transportOptionToBooleans>[0]
+          )
+        )
+        continue
+      }
+      if (key === "shared_transport_contact_name" || key === "shared_transport_contact_phone") {
+        continue
+      }
       if (key.startsWith("cb_")) {
         payload[key.replace("cb_", "")] = true
       } else if (value === "on") {
@@ -65,10 +177,58 @@ const RegistrationDetailPage = () => {
       }
     }
 
-    const checkboxes = ["spouse_attending", "pickup_melbourne_airport", "dropoff_melbourne_airport", "hotel_transport_required"]
-    for (const cb of checkboxes) {
-      if (!(cb in payload)) payload[cb] = false
+    const selectedTransport = String(
+      formData.get("transport_option") ?? transportOption
+    ) as Parameters<typeof transportOptionToBooleans>[0]
+    const needsPickup =
+      selectedTransport === "pickup" || selectedTransport === "pickup_dropoff"
+    const needsDropoff =
+      selectedTransport === "dropoff" || selectedTransport === "pickup_dropoff"
+
+    if (canEditAccommodation) {
+      if (needsPickup && needsDropoff && sameTransportContact) {
+        const sharedName = String(formData.get("shared_transport_contact_name") ?? "")
+        const sharedPhone = String(formData.get("shared_transport_contact_phone") ?? "")
+        payload.pickup_transport_contact_name = sharedName
+        payload.pickup_transport_contact_phone = sharedPhone
+        payload.dropoff_transport_contact_name = sharedName
+        payload.dropoff_transport_contact_phone = sharedPhone
+      } else {
+        if (!needsPickup) {
+          payload.pickup_transport_contact_name = ""
+          payload.pickup_transport_contact_phone = ""
+        }
+        if (!needsDropoff) {
+          payload.dropoff_transport_contact_name = ""
+          payload.dropoff_transport_contact_phone = ""
+        }
+      }
     }
+
+    const checkboxes = [
+      "spouse_attending",
+      "pickup_melbourne_airport",
+      "dropoff_melbourne_airport",
+      "hotel_transport_required",
+    ]
+    for (const cb of checkboxes) {
+      if (!(cb in payload) && (canEditRegistration || canEditAccommodation)) {
+        if (cb === "spouse_attending" && canEditRegistration) payload[cb] = false
+        if (cb !== "spouse_attending" && canEditAccommodation) payload[cb] = false
+      }
+    }
+
+    // Preserve attendees from loaded registration (not edited in this form)
+    const attendees =
+      (registration.registration_attendees as Attendee[] | undefined) ??
+      (registration.attendees as Attendee[] | undefined) ??
+      []
+    payload.attendees = attendees.map((a) => ({
+      surname: a.surname ?? "",
+      given_name: a.given_name ?? "",
+      age: Number(a.age ?? 0),
+      needs_kids_supervision: !!a.needs_kids_supervision,
+    }))
 
     const res = await authFetch(`/api/registrations/${id}`, {
       method: "PUT",
@@ -82,7 +242,9 @@ const RegistrationDetailPage = () => {
     } else {
       const data = await res.json()
       setRegistration(data.registration)
-      setSuccess("Saved successfully")
+      setSuccess("Registration updated successfully.")
+      setIsEditing(false)
+      setFormKey((k) => k + 1)
     }
     setIsSaving(false)
   }
@@ -90,99 +252,424 @@ const RegistrationDetailPage = () => {
   if (isLoading) return <p className="text-center text-gray-500">Loading...</p>
   if (!registration) return <Alert variant="error">Registration not found</Alert>
 
-  const reg = registration as Record<string, string | boolean | null>
+  const reg = registration as Record<string, string | boolean | number | null>
+  const attendees =
+    (registration.registration_attendees as Attendee[] | undefined) ??
+    (registration.attendees as Attendee[] | undefined) ??
+    []
+  const transportValue = booleansToTransportOption(
+    reg.pickup_melbourne_airport as boolean | null,
+    reg.dropoff_melbourne_airport as boolean | null
+  )
+  const { showArrival, showDeparture } = getTransportFlightSections(transportOption)
+  const needsPickup =
+    transportOption === "pickup" || transportOption === "pickup_dropoff"
+  const needsDropoff =
+    transportOption === "dropoff" || transportOption === "pickup_dropoff"
+  const readOnly = !isEditing
+  const str = (key: string) => String(reg[key] ?? "")
+  const sharedTransportName =
+    str("pickup_transport_contact_name") || str("dropoff_transport_contact_name")
+  const sharedTransportPhone =
+    str("pickup_transport_contact_phone") || str("dropoff_transport_contact_phone")
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-4">
-        <Link href="/dashboard" className="text-blue-600 hover:underline">← Back</Link>
-        <h1 className="text-2xl font-bold">{String(reg.registration_no)}</h1>
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <Link href="/dashboard" className="text-blue-600 hover:underline">
+            ← Back
+          </Link>
+          <h1 className="text-2xl font-bold">{str("registration_no")}</h1>
+        </div>
+        {canEdit && !isEditing && (
+          <Button type="button" onClick={handleStartEdit} aria-label="Edit registration">
+            Edit
+          </Button>
+        )}
       </div>
 
       {error && <Alert variant="error">{error}</Alert>}
       {success && <Alert variant="success">{success}</Alert>}
 
-      <form onSubmit={handleSave} className="space-y-6">
-        <fieldset disabled={isSaving} className="space-y-6 border-0 p-0 m-0 min-w-0">
-        {canEditRegistration && (
+      {isEditing && (
+        <Alert variant="warning">
+          <strong>Warning:</strong> You are editing this registration. Changes will update the
+          registrant&apos;s official record and may trigger a notification email. Proceed carefully.
+        </Alert>
+      )}
+
+      {!isEditing && (
+        <Alert variant="info">
+          Viewing in read-only mode. Click <strong>Edit</strong> to make changes
+          {canEdit ? "" : " (you do not have write permission)"}.
+        </Alert>
+      )}
+
+      <form key={formKey} onSubmit={handleSave} className="space-y-6">
+        <fieldset disabled={isSaving} className="m-0 min-w-0 space-y-6 border-0 p-0">
           <Card>
-            <CardHeader><CardTitle>Registration Info</CardTitle></CardHeader>
+            <CardHeader>
+              <CardTitle>Registration Info</CardTitle>
+            </CardHeader>
             <CardContent className="grid gap-4 md:grid-cols-2">
+              <Field label="Surname" name="surname" defaultValue={str("surname")} readOnly={readOnly || !canEditRegistration} />
+              <Field label="Given Name" name="given_name" defaultValue={str("given_name")} readOnly={readOnly || !canEditRegistration} />
+              <Field label="Email" name="email" type="email" defaultValue={str("email")} readOnly={readOnly || !canEditRegistration} />
+              <Field label="Mobile" name="mobile" defaultValue={str("mobile")} readOnly={readOnly || !canEditRegistration} />
+              <Field label="Address" name="address_line1" defaultValue={str("address_line1")} readOnly={readOnly || !canEditRegistration} />
+              <Field label="Suburb" name="suburb" defaultValue={str("suburb")} readOnly={readOnly || !canEditRegistration} />
+              <Field label="Postcode" name="postcode" defaultValue={str("postcode")} readOnly={readOnly || !canEditRegistration} />
               <div className="space-y-2">
-                <Label>Surname</Label>
-                <Input name="surname" defaultValue={String(reg.surname ?? "")} aria-label="Surname" />
+                <Label htmlFor="address_state">Address State</Label>
+                <select
+                  id="address_state"
+                  name="address_state"
+                  defaultValue={str("address_state")}
+                  disabled={readOnly || !canEditRegistration}
+                  className="flex h-10 w-full rounded-md border border-gray-300 px-3 text-sm disabled:bg-gray-50"
+                  aria-label="Address state"
+                >
+                  <option value="">—</option>
+                  {AUSTRALIAN_STATES.map((s) => (
+                    <option key={s} value={s}>{s}</option>
+                  ))}
+                </select>
               </div>
               <div className="space-y-2">
-                <Label>Given Name</Label>
-                <Input name="given_name" defaultValue={String(reg.given_name ?? "")} aria-label="Given name" />
+                <Label htmlFor="state">Conference State</Label>
+                <select
+                  id="state"
+                  name="state"
+                  defaultValue={str("state")}
+                  disabled={readOnly || !canEditRegistration}
+                  className="flex h-10 w-full rounded-md border border-gray-300 px-3 text-sm disabled:bg-gray-50"
+                  aria-label="Conference state"
+                >
+                  <option value="">—</option>
+                  {AUSTRALIAN_STATES.map((s) => (
+                    <option key={s} value={s}>{s}</option>
+                  ))}
+                </select>
               </div>
               <div className="space-y-2">
-                <Label>Email</Label>
-                <Input name="email" type="email" defaultValue={String(reg.email ?? "")} aria-label="Email" />
+                <Label htmlFor="cfca_position">CFCA Position</Label>
+                <select
+                  id="cfca_position"
+                  name="cfca_position"
+                  defaultValue={str("cfca_position") || "member"}
+                  disabled={readOnly || !canEditRegistration}
+                  className="flex h-10 w-full rounded-md border border-gray-300 px-3 text-sm disabled:bg-gray-50"
+                  aria-label="CFCA position"
+                >
+                  {CFCA_POSITIONS.map((p) => (
+                    <option key={p} value={p}>{CFCA_POSITION_LABELS[p]}</option>
+                  ))}
+                </select>
               </div>
-              <div className="space-y-2">
-                <Label>Mobile</Label>
-                <Input name="mobile" defaultValue={String(reg.mobile ?? "")} aria-label="Mobile" />
-              </div>
-              <label className="flex items-center gap-2 text-sm">
-                <input type="checkbox" name="spouse_attending" defaultChecked={!!reg.spouse_attending} aria-label="Spouse attending" />
+              <label className="flex items-center gap-2 text-sm md:col-span-2">
+                <input
+                  type="checkbox"
+                  name="spouse_attending"
+                  defaultChecked={!!reg.spouse_attending}
+                  disabled={readOnly || !canEditRegistration}
+                  aria-label="Spouse attending"
+                />
                 Spouse attending
               </label>
+              <Field label="Spouse Surname" name="spouse_surname" defaultValue={str("spouse_surname")} readOnly={readOnly || !canEditRegistration} />
+              <Field label="Spouse Given Name" name="spouse_given_name" defaultValue={str("spouse_given_name")} readOnly={readOnly || !canEditRegistration} />
+              <Field label="Spouse Email" name="spouse_email" type="email" defaultValue={str("spouse_email")} readOnly={readOnly || !canEditRegistration} />
+              <Field label="Spouse Mobile" name="spouse_mobile" defaultValue={str("spouse_mobile")} readOnly={readOnly || !canEditRegistration} />
             </CardContent>
           </Card>
-        )}
 
-        {canEditAccommodation && (
           <Card>
-            <CardHeader><CardTitle>Transport &amp; Accommodation</CardTitle></CardHeader>
-            <CardContent className="grid gap-4 md:grid-cols-2">
-              <div className="space-y-2">
-                <Label>Accommodation Contact Name</Label>
-                <Input name="accommodation_contact_name" defaultValue={String(reg.accommodation_contact_name ?? "")} aria-label="Contact name" />
+            <CardHeader>
+              <CardTitle>Payment &amp; References</CardTitle>
+            </CardHeader>
+            <CardContent className="grid gap-4 text-sm md:grid-cols-2">
+              <div>
+                <strong>Payment Reference:</strong>{" "}
+                <span className="font-mono font-bold text-red-600">
+                  {str("participant_reference") || "—"}
+                </span>
               </div>
-              <div className="space-y-2">
-                <Label>Accommodation Contact Phone</Label>
-                <Input name="accommodation_contact_phone" defaultValue={String(reg.accommodation_contact_phone ?? "")} aria-label="Contact phone" />
+              <div>
+                <strong>Registration No:</strong> {str("registration_no")}
               </div>
-              <div className="space-y-2">
-                <Label>Hotel Name</Label>
-                <Input name="hotel_name" defaultValue={String(reg.hotel_name ?? "")} aria-label="Hotel name" />
+              <div>
+                <strong>Status:</strong> {str("payment_status")}
               </div>
-              <div className="space-y-2">
-                <Label>Hotel Address</Label>
-                <Input name="hotel_address" defaultValue={String(reg.hotel_address ?? "")} aria-label="Hotel address" />
+              <div>
+                <strong>Amount Due:</strong> {formatCurrency(Number(reg.amount_due ?? 0))}
               </div>
-              <div className="space-y-2">
-                <Label>Arrival Date</Label>
-                <Input name="arrival_date" type="date" defaultValue={String(reg.arrival_date ?? "")} aria-label="Arrival date" />
+              <div>
+                <strong>Amount Paid:</strong> {formatCurrency(Number(reg.amount_paid ?? 0))}
               </div>
-              <div className="space-y-2">
-                <Label>Arrival Flight No</Label>
-                <Input name="arrival_flight_no" defaultValue={String(reg.arrival_flight_no ?? "")} aria-label="Arrival flight" />
+              <div>
+                <strong>Submitted:</strong>{" "}
+                {reg.submitted_at ? new Date(String(reg.submitted_at)).toLocaleString() : "Draft"}
               </div>
-              <label className="flex items-center gap-2 text-sm">
-                <input type="checkbox" name="pickup_melbourne_airport" defaultChecked={!!reg.pickup_melbourne_airport} aria-label="Pickup" />
-                Pick-up from Tullamarine
-              </label>
-              <label className="flex items-center gap-2 text-sm">
-                <input type="checkbox" name="dropoff_melbourne_airport" defaultChecked={!!reg.dropoff_melbourne_airport} aria-label="Drop-off" />
-                Drop-off to Tullamarine
-              </label>
             </CardContent>
           </Card>
-        )}
 
-        {(canEditRegistration || canEditAccommodation) && (
-          <Button
-            type="submit"
-            isLoading={isSaving}
-            loadingText="Saving..."
-            disabled={isSaving}
-            aria-label="Save changes"
-          >
-            Save Changes
-          </Button>
-        )}
+          <Card>
+            <CardHeader>
+              <CardTitle>Additional Attendees</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {attendees.length === 0 ? (
+                <p className="text-sm text-gray-500">No additional attendees</p>
+              ) : (
+                <ul className="space-y-2 text-sm">
+                  {attendees.map((a, i) => (
+                    <li key={i}>
+                      {a.given_name} {a.surname} (age {a.age})
+                      {a.needs_kids_supervision ? " — kids supervision" : ""}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Accommodation</CardTitle>
+            </CardHeader>
+            <CardContent className="grid gap-4 md:grid-cols-2">
+              {!isEditing ? (
+                <div className="text-sm md:col-span-2">
+                  <strong>Type:</strong>{" "}
+                  {getAccommodationLabel(str("accommodation_type")) || "—"}
+                </div>
+              ) : (
+                canEditAccommodation && (
+                  <div className="space-y-2 md:col-span-2">
+                    <Label htmlFor="accommodation_type">Accommodation</Label>
+                    <select
+                      id="accommodation_type"
+                      name="accommodation_type"
+                      defaultValue={str("accommodation_type")}
+                      className="flex h-10 w-full rounded-md border border-gray-300 px-3 text-sm"
+                      aria-label="Accommodation"
+                    >
+                      <option value="">—</option>
+                      {ACCOMMODATION_OPTIONS.map((o) => (
+                        <option key={o.value} value={o.value}>{o.label}</option>
+                      ))}
+                    </select>
+                  </div>
+                )
+              )}
+
+              <Field
+                label="Accommodation name"
+                name="hotel_name"
+                defaultValue={str("hotel_name")}
+                readOnly={readOnly || !canEditAccommodation}
+              />
+              <Field
+                label="Accommodation address"
+                name="hotel_address"
+                defaultValue={str("hotel_address")}
+                readOnly={readOnly || !canEditAccommodation}
+              />
+              <Field
+                label="Accommodation contact name"
+                name="accommodation_contact_name"
+                defaultValue={str("accommodation_contact_name")}
+                readOnly={readOnly || !canEditAccommodation}
+              />
+              <Field
+                label="Accommodation contact phone"
+                name="accommodation_contact_phone"
+                defaultValue={str("accommodation_contact_phone")}
+                readOnly={readOnly || !canEditAccommodation}
+              />
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Transportation</CardTitle>
+            </CardHeader>
+            <CardContent className="grid gap-4 md:grid-cols-2">
+              {!isEditing ? (
+                <div className="text-sm md:col-span-2">
+                  <strong>Airport transport:</strong> {getTransportOptionLabel(transportValue)}
+                </div>
+              ) : (
+                canEditAccommodation && (
+                  <div className="space-y-2 md:col-span-2">
+                    <Label htmlFor="transport_option">Airport transport</Label>
+                    <select
+                      id="transport_option"
+                      name="transport_option"
+                      value={transportOption}
+                      onChange={(e) =>
+                        setTransportOption(
+                          e.target.value as
+                            | "own"
+                            | "pickup"
+                            | "dropoff"
+                            | "pickup_dropoff"
+                        )
+                      }
+                      className="flex h-10 w-full rounded-md border border-gray-300 px-3 text-sm"
+                      aria-label="Airport transport"
+                    >
+                      {TRANSPORT_OPTIONS.map((o) => (
+                        <option key={o.value} value={o.value}>{o.label}</option>
+                      ))}
+                    </select>
+                  </div>
+                )
+              )}
+
+              {(showArrival || (!isEditing && !!str("arrival_date"))) && (
+                <>
+                  <Field
+                    label="Arrival date"
+                    name="arrival_date"
+                    type="date"
+                    defaultValue={str("arrival_date").slice(0, 10)}
+                    readOnly={readOnly || !canEditAccommodation}
+                  />
+                  <Field
+                    label="Arrival airport"
+                    name="arrival_airport"
+                    defaultValue={str("arrival_airport")}
+                    readOnly={readOnly || !canEditAccommodation}
+                  />
+                  <Field
+                    label="Arrival flight no"
+                    name="arrival_flight_no"
+                    defaultValue={str("arrival_flight_no")}
+                    readOnly={readOnly || !canEditAccommodation}
+                  />
+                </>
+              )}
+
+              {(showDeparture || (!isEditing && !!str("departure_date"))) && (
+                <>
+                  <Field
+                    label="Departure date"
+                    name="departure_date"
+                    type="date"
+                    defaultValue={str("departure_date").slice(0, 10)}
+                    readOnly={readOnly || !canEditAccommodation}
+                  />
+                  <Field
+                    label="Departure airport"
+                    name="departure_airport"
+                    defaultValue={str("departure_airport")}
+                    readOnly={readOnly || !canEditAccommodation}
+                  />
+                  <Field
+                    label="Departure flight no"
+                    name="departure_flight_no"
+                    defaultValue={str("departure_flight_no")}
+                    readOnly={readOnly || !canEditAccommodation}
+                  />
+                </>
+              )}
+
+              {!needsPickup && !needsDropoff && (
+                <p className="text-sm text-gray-600 md:col-span-2">
+                  No airport transport requested — transport contacts are not required.
+                </p>
+              )}
+
+              {needsPickup && needsDropoff && (
+                <label className="flex items-center gap-2 text-sm md:col-span-2">
+                  <input
+                    type="checkbox"
+                    checked={sameTransportContact}
+                    onChange={(e) => setSameTransportContact(e.target.checked)}
+                    disabled={readOnly || !canEditAccommodation}
+                    aria-label="Same contact for pickup and drop-off"
+                  />
+                  Same contact for pickup and drop-off
+                </label>
+              )}
+
+              {needsPickup && needsDropoff && sameTransportContact && (
+                <>
+                  <Field
+                    label="Transportation contact name"
+                    name="shared_transport_contact_name"
+                    defaultValue={sharedTransportName}
+                    readOnly={readOnly || !canEditAccommodation}
+                  />
+                  <Field
+                    label="Transportation contact phone"
+                    name="shared_transport_contact_phone"
+                    defaultValue={sharedTransportPhone}
+                    readOnly={readOnly || !canEditAccommodation}
+                  />
+                </>
+              )}
+
+              {needsPickup && !(needsDropoff && sameTransportContact) && (
+                <>
+                  <Field
+                    label="Pickup contact name"
+                    name="pickup_transport_contact_name"
+                    defaultValue={str("pickup_transport_contact_name")}
+                    readOnly={readOnly || !canEditAccommodation}
+                  />
+                  <Field
+                    label="Pickup contact phone"
+                    name="pickup_transport_contact_phone"
+                    defaultValue={str("pickup_transport_contact_phone")}
+                    readOnly={readOnly || !canEditAccommodation}
+                  />
+                </>
+              )}
+
+              {needsDropoff && !(needsPickup && sameTransportContact) && (
+                <>
+                  <Field
+                    label="Drop-off contact name"
+                    name="dropoff_transport_contact_name"
+                    defaultValue={str("dropoff_transport_contact_name")}
+                    readOnly={readOnly || !canEditAccommodation}
+                  />
+                  <Field
+                    label="Drop-off contact phone"
+                    name="dropoff_transport_contact_phone"
+                    defaultValue={str("dropoff_transport_contact_phone")}
+                    readOnly={readOnly || !canEditAccommodation}
+                  />
+                </>
+              )}
+            </CardContent>
+          </Card>
+
+          {isEditing && canEdit && (
+            <div className="flex flex-wrap gap-3">
+              <Button
+                type="submit"
+                isLoading={isSaving}
+                loadingText="Saving..."
+                disabled={isSaving}
+                aria-label="Save registration changes"
+              >
+                Save Changes
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleCancelEdit}
+                disabled={isSaving}
+                aria-label="Cancel editing"
+              >
+                Cancel
+              </Button>
+            </div>
+          )}
         </fieldset>
       </form>
     </div>
