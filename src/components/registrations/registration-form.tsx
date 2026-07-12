@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useEffect, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useForm, useFieldArray } from "react-hook-form"
@@ -14,7 +14,6 @@ import {
   CFCA_POSITION_LABELS,
   AUSTRALIAN_STATES,
 } from "@/lib/registrations/schema"
-import { parseFullName } from "@/lib/registrations/parse-name"
 import {
   ACCOMMODATION_OPTIONS,
   booleansToTransportOption,
@@ -33,20 +32,41 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert } from "@/components/ui/alert"
 
-const STEPS = ["Personal", "Attendees", "Transport", "Review"]
-
 const EMAIL_IN_USE_FALLBACK =
   "This email is already registered. Please log in to your account instead."
 
+const selectClassName =
+  "flex h-12 w-full rounded-md border border-gray-300 bg-white px-3 text-base"
+
 const FieldError = ({ message }: { message?: string }) =>
-  message ? <p className="text-xs text-red-600" role="alert">{message}</p> : null
+  message ? <p className="text-sm text-red-600" role="alert">{message}</p> : null
+
+const SectionHeading = ({
+  number,
+  title,
+  description,
+}: {
+  number: number
+  title: string
+  description?: string
+}) => (
+  <div className="space-y-1">
+    <CardTitle className="text-xl md:text-2xl">
+      <span className="mr-2 inline-flex h-8 w-8 items-center justify-center rounded-full bg-blue-100 text-base font-bold text-blue-800">
+        {number}
+      </span>
+      {title}
+    </CardTitle>
+    {description ? <p className="text-base text-gray-600">{description}</p> : null}
+  </div>
+)
 
 const RegistrationForm = () => {
   const { authFetch, user, isLoading: authLoading } = useAuth()
   const router = useRouter()
-  const [step, setStep] = useState(0)
+  const errorBannerRef = useRef<HTMLDivElement>(null)
   const [isLoading, setIsLoading] = useState(false)
-  const [saveAction, setSaveAction] = useState<"next" | "submit" | "step" | null>(null)
+  const [saveAction, setSaveAction] = useState<"submit" | "email-check" | null>(null)
   const isBusy = saveAction !== null
   useBusyCursor(isBusy)
   const [error, setError] = useState("")
@@ -131,42 +151,24 @@ const RegistrationForm = () => {
           departure_flight_no: data.registration.departure_flight_no,
           hotel_name: data.registration.hotel_name,
           hotel_address: data.registration.hotel_address,
-          attendees: data.registration.registration_attendees?.map((a: {
-            surname: string
-            given_name: string
-            age: number
-            needs_kids_supervision: boolean
-          }) => ({
-            surname: a.surname,
-            given_name: a.given_name,
-            age: a.age,
-            needs_kids_supervision: a.needs_kids_supervision,
-          })) ?? [],
-          submit: false,
-        })
-      } else {
-        const { given_name, surname } = parseFullName(user.name)
-        form.reset({
-          surname,
-          given_name,
-          email: user.email,
-          mobile: "",
-          cfca_position: "member",
-          accommodation_type: "",
-          transport_option: "",
-          spouse_attending: false,
-          attendees: [],
+          attendees: (data.registration.registration_attendees ?? data.registration.attendees ?? []).map(
+            (a: { surname: string; given_name: string; age: number; needs_kids_supervision?: boolean }) => ({
+              surname: a.surname,
+              given_name: a.given_name,
+              age: a.age,
+              needs_kids_supervision: a.needs_kids_supervision ?? false,
+            })
+          ),
           submit: false,
         })
       }
     }
     setIsLoading(false)
-  }, [form, authFetch, user])
+  }, [user, authFetch, form])
 
   useEffect(() => {
-    if (!authLoading) {
-      loadRegistration()
-    }
+    if (authLoading) return
+    loadRegistration()
   }, [loadRegistration, authLoading])
 
   const handleAddressSelect = (address: AustralianAddress) => {
@@ -181,16 +183,44 @@ const RegistrationForm = () => {
     }
   }
 
-  const saveAuthenticated = async (
-    submit = false,
-    action: "next" | "submit" | "step" = "next",
-    assignParticipantReference = false
-  ): Promise<boolean> => {
+  const applyApiError = (data: { error?: string; code?: string }) => {
+    const message = data.error ?? "Request failed"
+    setError(message)
+    setEmailInUse(data.code === "EMAIL_IN_USE" || message.includes("already registered"))
+    errorBannerRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
+  }
+
+  const focusFirstFormError = () => {
+    const order: (keyof RegistrationFormData)[] = [
+      "surname",
+      "given_name",
+      "email",
+      "mobile",
+      "state",
+      "accommodation_type",
+      "transport_option",
+    ]
+    const errors = form.formState.errors
+    const first = order.find((key) => errors[key])
+    if (first) {
+      form.setFocus(first)
+      return
+    }
+    errorBannerRef.current?.focus()
+  }
+
+  const showValidationError = (message: string) => {
+    setError(message)
+    errorBannerRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
+    requestAnimationFrame(() => focusFirstFormError())
+  }
+
+  const saveAuthenticated = async (submit = false): Promise<boolean> => {
     setError("")
     setEmailInUse(false)
-    setSaveAction(action)
+    setSaveAction("submit")
     const values = form.getValues()
-    const payload = { ...values, submit, assign_participant_reference: assignParticipantReference }
+    const payload = { ...values, submit, assign_participant_reference: submit }
 
     let currentId = registrationId
 
@@ -234,12 +264,6 @@ const RegistrationForm = () => {
     return true
   }
 
-  const applyApiError = (data: { error?: string; code?: string }) => {
-    const message = data.error ?? "Request failed"
-    setError(message)
-    setEmailInUse(data.code === "EMAIL_IN_USE" || message.includes("already registered"))
-  }
-
   const checkEmailUnique = async (email: string): Promise<boolean> => {
     const params = new URLSearchParams({ email })
     if (registrationId) params.set("excludeId", registrationId)
@@ -250,10 +274,19 @@ const RegistrationForm = () => {
         error: data.error ?? EMAIL_IN_USE_FALLBACK,
         code: data.available === false ? "EMAIL_IN_USE" : undefined,
       })
+      form.setFocus("email")
       return false
     }
     setEmailInUse(false)
     return true
+  }
+
+  const handleEmailBlur = async () => {
+    const email = form.getValues("email")?.trim()
+    if (!email || !email.includes("@")) return
+    setSaveAction("email-check")
+    await checkEmailUnique(email)
+    setSaveAction(null)
   }
 
   const submitAsGuest = async (): Promise<boolean> => {
@@ -285,109 +318,38 @@ const RegistrationForm = () => {
     return true
   }
 
-  const handleStepClick = async (targetStep: number) => {
-    if (!user || !submitted || targetStep === step || isBusy) return
-    const saved = await saveAuthenticated(false, "step")
-    if (saved) {
-      setError("")
-      setStep(targetStep)
-    }
-  }
-
-  const handleNext = async () => {
-    const fieldsToValidate: (keyof RegistrationFormData)[] =
-      step === 0
-        ? ["surname", "given_name", "email", "mobile", "state"]
-        : step === 2
-          ? ["accommodation_type", "transport_option"]
-          : []
-
-    if (fieldsToValidate.length > 0) {
-      const valid = await form.trigger(fieldsToValidate)
-      if (!valid) {
-        setError(
-          step === 2
-            ? "Please select accommodation and airport transport before continuing."
-            : "Please complete all required fields marked with * before continuing."
-        )
-        return
-      }
-    }
-
-    if (step === 2) {
-      const accommodation = form.getValues("accommodation_type") as string | null | undefined
-      const transport = form.getValues("transport_option") as string | null | undefined
-      let hasError = false
-
-      if (!accommodation) {
-        form.setError("accommodation_type", {
-          type: "required",
-          message: "Please select an accommodation option",
-        })
-        hasError = true
-      }
-      if (!transport) {
-        form.setError("transport_option", {
-          type: "required",
-          message: "Please select an airport transport option",
-        })
-        hasError = true
-      }
-      if (hasError) {
-        setError("Please select accommodation and airport transport before continuing.")
-        return
-      }
-    }
-
-    if (step === 0) {
-      setSaveAction("next")
-      const emailOk = await checkEmailUnique(form.getValues("email"))
-      setSaveAction(null)
-      if (!emailOk) return
-    }
-
-    if (!user) {
-      setError("")
-      setEmailInUse(false)
-      setStep(step + 1)
-      return
-    }
-
-    const saved = await saveAuthenticated(false, "next", step === 0)
-    if (saved && step < STEPS.length - 1) {
-      setError("")
-      setEmailInUse(false)
-      setStep(step + 1)
-    }
-  }
-
   const handleSubmit = async () => {
     const accommodation = form.getValues("accommodation_type") as string | null | undefined
     const transport = form.getValues("transport_option") as string | null | undefined
-    let missingTransportStep = false
+    let hasLocalError = false
 
     if (!accommodation) {
       form.setError("accommodation_type", {
         type: "required",
         message: "Please select an accommodation option",
       })
-      missingTransportStep = true
+      hasLocalError = true
     }
     if (!transport) {
       form.setError("transport_option", {
         type: "required",
         message: "Please select an airport transport option",
       })
-      missingTransportStep = true
+      hasLocalError = true
     }
-    if (missingTransportStep) {
-      setError("Please select accommodation and airport transport before submitting.")
-      setStep(2)
+    if (hasLocalError) {
+      showValidationError("Please complete accommodation and airport transport before submitting.")
       return
     }
 
     const valid = await form.trigger()
-    if (!valid) return
+    if (!valid) {
+      showValidationError("Please complete all required fields marked with * before submitting.")
+      return
+    }
+
+    const emailOk = await checkEmailUnique(form.getValues("email"))
+    if (!emailOk) return
 
     if (!user) {
       await submitAsGuest()
@@ -399,7 +361,7 @@ const RegistrationForm = () => {
       return
     }
 
-    await saveAuthenticated(true, "submit")
+    await saveAuthenticated(true)
   }
 
   if (authLoading || (user && isLoading)) {
@@ -407,106 +369,130 @@ const RegistrationForm = () => {
   }
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6">
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <h1 className="text-3xl font-bold">Conference Registration</h1>
-        {!user && (
-          <p className="text-sm text-gray-600">
-            Already registered?{" "}
-            <Link
-              href="/login?redirect=/my-registration"
-              className="font-medium text-blue-600 hover:underline"
-            >
-              Login
-            </Link>
-          </p>
+    <div className="mx-auto max-w-3xl space-y-8">
+      <div className="space-y-3">
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <h1 className="text-3xl font-bold md:text-4xl">Conference Registration</h1>
+          {!user && (
+            <p className="text-base text-gray-600">
+              Already registered?{" "}
+              <Link
+                href="/login?redirect=/my-registration"
+                className="font-medium text-blue-600 hover:underline"
+              >
+                Login
+              </Link>
+            </p>
+          )}
+        </div>
+        <p className="max-w-2xl text-base text-gray-700 md:text-lg">
+          Fill in each section below. When you are finished, press{" "}
+          <strong>{submitted ? "Submit Changes" : "Submit Registration"}</strong> at the bottom
+          of the page. Fields marked with <strong>*</strong> are required.
+        </p>
+      </div>
+
+      <div ref={errorBannerRef} tabIndex={-1} className="outline-none">
+        {error && (
+          <Alert variant="error">
+            {error}
+            {emailInUse && (
+              <>
+                {" "}
+                <Link
+                  href="/login?redirect=/my-registration"
+                  className="font-semibold underline"
+                >
+                  Login here
+                </Link>
+              </>
+            )}
+          </Alert>
         )}
       </div>
 
-      <div className="flex gap-2" role="tablist" aria-label="Registration steps">
-        {STEPS.map((s, i) => {
-          const isActive = i === step
-          const stepClassName = `flex-1 rounded-md px-3 py-2 text-center text-sm font-medium ${
-            isActive ? "bg-blue-600 text-white" : i < step ? "bg-blue-100 text-blue-800" : "bg-gray-100 text-gray-500"
-          }`
-
-          if (submitted) {
-            return (
-              <button
-                key={s}
-                type="button"
-                role="tab"
-                aria-selected={isActive}
-                aria-label={`Go to ${s}`}
-                onClick={() => handleStepClick(i)}
-                disabled={isBusy}
-                className={`${stepClassName} cursor-pointer transition-colors hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60`}
-              >
-                {s}
-              </button>
-            )
-          }
-
-          return (
-            <div
-              key={s}
-              role="tab"
-              aria-selected={isActive}
-              className={stepClassName}
-            >
-              {s}
-            </div>
-          )
-        })}
-      </div>
-
-      {error && (
-        <Alert variant="error">
-          {error}
-          {emailInUse && (
-            <>
-              {" "}
-              <Link
-                href="/login?redirect=/my-registration"
-                className="font-semibold underline"
-              >
-                Login here
-              </Link>
-            </>
-          )}
-        </Alert>
-      )}
       {submitted && (
-        <Alert variant="success">Your registration has been submitted. You can still update details below.</Alert>
+        <Alert variant="success">
+          Your registration has been submitted. You can update details below and submit again.
+        </Alert>
       )}
 
       <form
-        onSubmit={(e) => e.preventDefault()}
-        className="space-y-6"
+        onSubmit={(e) => {
+          e.preventDefault()
+          void handleSubmit()
+        }}
+        className="space-y-8"
+        noValidate
       >
-        <fieldset disabled={isBusy} className="space-y-6 border-0 p-0 m-0 min-w-0">
-        {step === 0 && (
+        <fieldset disabled={isBusy} className="m-0 min-w-0 space-y-8 border-0 p-0">
           <Card>
-            <CardHeader><CardTitle>Personal Details</CardTitle></CardHeader>
-            <CardContent className="grid gap-4 overflow-visible md:grid-cols-2">
+            <CardHeader>
+              <SectionHeading
+                number={1}
+                title="Your details"
+                description="Tell us about yourself."
+              />
+            </CardHeader>
+            <CardContent className="grid gap-5 overflow-visible md:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="surname">Surname *</Label>
-                <Input id="surname" {...form.register("surname")} aria-label="Surname" />
+                <Label htmlFor="surname" className="text-base">Surname *</Label>
+                <Input
+                  id="surname"
+                  className="h-12 text-base"
+                  {...form.register("surname")}
+                  aria-label="Surname"
+                  aria-required="true"
+                  aria-invalid={!!form.formState.errors.surname}
+                />
                 <FieldError message={form.formState.errors.surname?.message} />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="given_name">Name *</Label>
-                <Input id="given_name" {...form.register("given_name")} aria-label="Given name" />
+                <Label htmlFor="given_name" className="text-base">Name *</Label>
+                <Input
+                  id="given_name"
+                  className="h-12 text-base"
+                  {...form.register("given_name")}
+                  aria-label="Given name"
+                  aria-required="true"
+                  aria-invalid={!!form.formState.errors.given_name}
+                />
                 <FieldError message={form.formState.errors.given_name?.message} />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="email">Email *</Label>
-                <Input id="email" type="email" {...form.register("email")} aria-label="Email" />
+                <Label htmlFor="email" className="text-base">Email *</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  className="h-12 text-base"
+                  {...(() => {
+                    const emailField = form.register("email")
+                    return {
+                      ...emailField,
+                      onBlur: async (e: React.FocusEvent<HTMLInputElement>) => {
+                        await emailField.onBlur(e)
+                        await handleEmailBlur()
+                      },
+                    }
+                  })()}
+                  aria-label="Email"
+                  aria-required="true"
+                  aria-invalid={!!form.formState.errors.email || emailInUse}
+                  autoComplete="email"
+                />
                 <FieldError message={form.formState.errors.email?.message} />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="mobile">Mobile Phone *</Label>
-                <Input id="mobile" {...form.register("mobile")} aria-label="Mobile phone" />
+                <Label htmlFor="mobile" className="text-base">Mobile phone *</Label>
+                <Input
+                  id="mobile"
+                  className="h-12 text-base"
+                  {...form.register("mobile")}
+                  aria-label="Mobile phone"
+                  aria-required="true"
+                  aria-invalid={!!form.formState.errors.mobile}
+                  autoComplete="tel"
+                />
                 <FieldError message={form.formState.errors.mobile?.message} />
               </div>
               <div className="space-y-2 md:col-span-2">
@@ -518,18 +504,18 @@ const RegistrationForm = () => {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="suburb">Suburb</Label>
-                <Input id="suburb" {...form.register("suburb")} aria-label="Suburb" />
+                <Label htmlFor="suburb" className="text-base">Suburb</Label>
+                <Input id="suburb" className="h-12 text-base" {...form.register("suburb")} aria-label="Suburb" />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="postcode">Postcode</Label>
-                <Input id="postcode" {...form.register("postcode")} aria-label="Postcode" />
+                <Label htmlFor="postcode" className="text-base">Postcode</Label>
+                <Input id="postcode" className="h-12 text-base" {...form.register("postcode")} aria-label="Postcode" />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="address_state">Address State</Label>
+                <Label htmlFor="address_state" className="text-base">Address state</Label>
                 <select
                   id="address_state"
-                  className="flex h-10 w-full rounded-md border border-gray-300 px-3 text-sm"
+                  className={selectClassName}
                   {...form.register("address_state")}
                   aria-label="Address state"
                 >
@@ -540,12 +526,14 @@ const RegistrationForm = () => {
                 </select>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="state">Conference State *</Label>
+                <Label htmlFor="state" className="text-base">Conference state *</Label>
                 <select
                   id="state"
-                  className="flex h-10 w-full rounded-md border border-gray-300 px-3 text-sm"
+                  className={selectClassName}
                   {...form.register("state")}
-                  aria-label="State"
+                  aria-label="Conference state"
+                  aria-required="true"
+                  aria-invalid={!!form.formState.errors.state}
                 >
                   <option value="">Select state</option>
                   {AUSTRALIAN_STATES.map((s) => (
@@ -554,11 +542,11 @@ const RegistrationForm = () => {
                 </select>
                 <FieldError message={form.formState.errors.state?.message} />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="cfca_position">Position in CFCA</Label>
+              <div className="space-y-2 md:col-span-2">
+                <Label htmlFor="cfca_position" className="text-base">Position in CFCA</Label>
                 <select
                   id="cfca_position"
-                  className="flex h-10 w-full rounded-md border border-gray-300 px-3 text-sm"
+                  className={selectClassName}
                   {...form.register("cfca_position")}
                   aria-label="CFCA position"
                 >
@@ -568,64 +556,104 @@ const RegistrationForm = () => {
                 </select>
               </div>
 
-              <div className="md:col-span-2 space-y-4 border-t pt-4">
-                <label className="flex items-center gap-2 text-sm">
-                  <input type="checkbox" {...form.register("spouse_attending")} aria-label="Spouse attending" />
-                  Spouse is attending
+              <div className="space-y-4 border-t pt-5 md:col-span-2">
+                <label className="flex items-start gap-3 text-base">
+                  <input
+                    type="checkbox"
+                    className="mt-1 h-5 w-5"
+                    {...form.register("spouse_attending")}
+                    aria-label="Spouse is attending"
+                  />
+                  <span>My spouse is attending</span>
                 </label>
                 {spouseAttending && (
-                  <div className="grid gap-4 md:grid-cols-2">
+                  <div className="grid gap-5 md:grid-cols-2">
                     <div className="space-y-2">
-                      <Label>Spouse Surname</Label>
-                      <Input {...form.register("spouse_surname")} aria-label="Spouse surname" />
+                      <Label className="text-base">Spouse surname</Label>
+                      <Input className="h-12 text-base" {...form.register("spouse_surname")} aria-label="Spouse surname" />
                     </div>
                     <div className="space-y-2">
-                      <Label>Spouse Name</Label>
-                      <Input {...form.register("spouse_given_name")} aria-label="Spouse given name" />
+                      <Label className="text-base">Spouse name</Label>
+                      <Input className="h-12 text-base" {...form.register("spouse_given_name")} aria-label="Spouse given name" />
                     </div>
                     <div className="space-y-2">
-                      <Label>Spouse Email</Label>
-                      <Input type="email" {...form.register("spouse_email")} aria-label="Spouse email" />
+                      <Label className="text-base">Spouse email</Label>
+                      <Input className="h-12 text-base" type="email" {...form.register("spouse_email")} aria-label="Spouse email" />
                     </div>
                     <div className="space-y-2">
-                      <Label>Spouse Mobile</Label>
-                      <Input {...form.register("spouse_mobile")} aria-label="Spouse mobile" />
+                      <Label className="text-base">Spouse mobile</Label>
+                      <Input className="h-12 text-base" {...form.register("spouse_mobile")} aria-label="Spouse mobile" />
                     </div>
                   </div>
                 )}
               </div>
             </CardContent>
           </Card>
-        )}
 
-        {step === 1 && (
           <Card>
-            <CardHeader><CardTitle>Other Attendees</CardTitle></CardHeader>
+            <CardHeader>
+              <SectionHeading
+                number={2}
+                title="Other people attending"
+                description="Optional. Add children or other family members if they are coming with you."
+              />
+            </CardHeader>
             <CardContent className="space-y-4">
-              <p className="text-sm text-gray-600">Add children or other family members attending (0 or more).</p>
+              {fields.length === 0 && (
+                <p className="text-base text-gray-600">
+                  No extra attendees yet. Press Add person if someone else is coming with you.
+                </p>
+              )}
               {fields.map((field, index) => (
-                <div key={field.id} className="grid gap-4 rounded-md border p-4 md:grid-cols-4">
+                <div
+                  key={field.id}
+                  className="grid gap-4 rounded-md border border-gray-200 bg-gray-50 p-4 md:grid-cols-4"
+                >
                   <div className="space-y-2">
-                    <Label>Surname</Label>
-                    <Input {...form.register(`attendees.${index}.surname`)} aria-label={`Attendee ${index + 1} surname`} />
+                    <Label className="text-base">Surname</Label>
+                    <Input
+                      className="h-12 text-base"
+                      {...form.register(`attendees.${index}.surname`)}
+                      aria-label={`Attendee ${index + 1} surname`}
+                    />
                   </div>
                   <div className="space-y-2">
-                    <Label>Name</Label>
-                    <Input {...form.register(`attendees.${index}.given_name`)} aria-label={`Attendee ${index + 1} name`} />
+                    <Label className="text-base">Name</Label>
+                    <Input
+                      className="h-12 text-base"
+                      {...form.register(`attendees.${index}.given_name`)}
+                      aria-label={`Attendee ${index + 1} name`}
+                    />
                   </div>
                   <div className="space-y-2">
-                    <Label>Age</Label>
-                    <Input type="number" min={0} {...form.register(`attendees.${index}.age`, { valueAsNumber: true })} aria-label={`Attendee ${index + 1} age`} />
+                    <Label className="text-base">Age</Label>
+                    <Input
+                      className="h-12 text-base"
+                      type="number"
+                      min={0}
+                      {...form.register(`attendees.${index}.age`, { valueAsNumber: true })}
+                      aria-label={`Attendee ${index + 1} age`}
+                    />
                   </div>
                   <div className="flex items-end">
-                    <Button type="button" variant="destructive" size="sm" onClick={() => remove(index)} aria-label={`Remove attendee ${index + 1}`}>
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      onClick={() => remove(index)}
+                      aria-label={`Remove attendee ${index + 1}`}
+                    >
                       Remove
                     </Button>
                   </div>
                   {(form.watch(`attendees.${index}.age`) ?? 0) < 12 && (
-                    <label className="flex items-center gap-2 text-sm md:col-span-4">
-                      <input type="checkbox" {...form.register(`attendees.${index}.needs_kids_supervision`)} aria-label={`Kids supervision for attendee ${index + 1}`} />
-                      Kids supervision required (under 12)
+                    <label className="flex items-start gap-3 text-base md:col-span-4">
+                      <input
+                        type="checkbox"
+                        className="mt-1 h-5 w-5"
+                        {...form.register(`attendees.${index}.needs_kids_supervision`)}
+                        aria-label={`Kids supervision for attendee ${index + 1}`}
+                      />
+                      <span>Kids supervision required (under 12)</span>
                     </label>
                   )}
                 </div>
@@ -633,27 +661,35 @@ const RegistrationForm = () => {
               <Button
                 type="button"
                 variant="outline"
+                className="h-12 text-base"
                 onClick={() => append({ surname: "", given_name: "", age: 0, needs_kids_supervision: false })}
-                aria-label="Add attendee"
+                aria-label="Add another person attending"
               >
-                Add Attendee
+                Add person
               </Button>
             </CardContent>
           </Card>
-        )}
 
-        {step === 2 && (
           <Card>
-            <CardHeader><CardTitle>Transport &amp; Accommodation</CardTitle></CardHeader>
-            <CardContent className="space-y-4">
+            <CardHeader>
+              <SectionHeading
+                number={3}
+                title="Accommodation & transport"
+                description="Choose how you will stay and travel. Both questions are required."
+              />
+            </CardHeader>
+            <CardContent className="space-y-5">
               <div className="space-y-2">
-                <Label htmlFor="accommodation_type">Accommodation during conference *</Label>
+                <Label htmlFor="accommodation_type" className="text-base">
+                  Accommodation during conference *
+                </Label>
                 <select
                   id="accommodation_type"
-                  className="flex h-10 w-full rounded-md border border-gray-300 px-3 text-sm"
+                  className={selectClassName}
                   {...form.register("accommodation_type")}
                   aria-label="Accommodation during conference"
                   aria-required="true"
+                  aria-invalid={!!form.formState.errors.accommodation_type}
                 >
                   <option value="">Select accommodation option</option>
                   {ACCOMMODATION_OPTIONS.map((option) => (
@@ -667,26 +703,29 @@ const RegistrationForm = () => {
 
               {accommodationType === "billet" && (
                 <Alert variant="info">
-                  Please note that we are only limiting our accommodation from Friday till Sunday
-                  during the conference unless you have your own agreement with our fellow bros and sis.
+                  Accommodation assistance is for Friday to Sunday during the conference, unless
+                  you have your own arrangement with fellow brothers and sisters.
                 </Alert>
               )}
 
               {accommodationType === "own" && (
                 <Alert variant="info">
-                  You have selected <strong>self arranged</strong> accommodation — you will manage
-                  your own stay during the conference.
+                  You chose <strong>self arranged</strong> accommodation — you will organise your
+                  own stay.
                 </Alert>
               )}
 
               <div className="space-y-2">
-                <Label htmlFor="transport_option">Airport transport (Tullamarine) *</Label>
+                <Label htmlFor="transport_option" className="text-base">
+                  Airport transport (Tullamarine) *
+                </Label>
                 <select
                   id="transport_option"
-                  className="flex h-10 w-full rounded-md border border-gray-300 px-3 text-sm"
+                  className={selectClassName}
                   {...form.register("transport_option")}
                   aria-label="Airport transport option"
                   aria-required="true"
+                  aria-invalid={!!form.formState.errors.transport_option}
                 >
                   <option value="">Select transport option</option>
                   {TRANSPORT_OPTIONS.map((option) => (
@@ -704,96 +743,76 @@ const RegistrationForm = () => {
 
               {transportOption === "own" && (
                 <Alert variant="info">
-                  You have selected <strong>self arranged</strong> transport — you will manage
-                  your own travel to and from the conference.
+                  You chose <strong>self arranged</strong> transport — you will organise your own
+                  travel to and from the conference.
                 </Alert>
               )}
 
               {needsAirportTransport && (
-                <>
+                <div className="space-y-5 border-t pt-5">
                   {showArrival && (
-                    <>
-                      <h3 className="font-semibold">Arrival Flight</h3>
+                    <div className="space-y-3">
+                      <h3 className="text-lg font-semibold">Arrival flight</h3>
                       <div className="grid gap-4 md:grid-cols-3">
                         <div className="space-y-2">
-                          <Label>Date of Arrival</Label>
-                          <Input type="date" {...form.register("arrival_date")} aria-label="Arrival date" />
+                          <Label className="text-base">Date of arrival</Label>
+                          <Input className="h-12 text-base" type="date" {...form.register("arrival_date")} aria-label="Arrival date" />
                         </div>
                         <div className="space-y-2">
-                          <Label>Airport</Label>
-                          <Input {...form.register("arrival_airport")} aria-label="Arrival airport" />
+                          <Label className="text-base">Airport</Label>
+                          <Input className="h-12 text-base" {...form.register("arrival_airport")} aria-label="Arrival airport" />
                         </div>
                         <div className="space-y-2">
-                          <Label>Flight No.</Label>
-                          <Input {...form.register("arrival_flight_no")} aria-label="Arrival flight number" />
+                          <Label className="text-base">Flight number</Label>
+                          <Input className="h-12 text-base" {...form.register("arrival_flight_no")} aria-label="Arrival flight number" />
                         </div>
                       </div>
-                    </>
+                    </div>
                   )}
 
                   {showDeparture && (
-                    <>
-                      <h3 className="font-semibold">Departure Flight</h3>
+                    <div className="space-y-3">
+                      <h3 className="text-lg font-semibold">Departure flight</h3>
                       <div className="grid gap-4 md:grid-cols-3">
                         <div className="space-y-2">
-                          <Label>Date of Departure</Label>
-                          <Input type="date" {...form.register("departure_date")} aria-label="Departure date" />
+                          <Label className="text-base">Date of departure</Label>
+                          <Input className="h-12 text-base" type="date" {...form.register("departure_date")} aria-label="Departure date" />
                         </div>
                         <div className="space-y-2">
-                          <Label>Airport</Label>
-                          <Input {...form.register("departure_airport")} aria-label="Departure airport" />
+                          <Label className="text-base">Airport</Label>
+                          <Input className="h-12 text-base" {...form.register("departure_airport")} aria-label="Departure airport" />
                         </div>
                         <div className="space-y-2">
-                          <Label>Flight No.</Label>
-                          <Input {...form.register("departure_flight_no")} aria-label="Departure flight number" />
+                          <Label className="text-base">Flight number</Label>
+                          <Input className="h-12 text-base" {...form.register("departure_flight_no")} aria-label="Departure flight number" />
                         </div>
                       </div>
-                    </>
+                    </div>
                   )}
-                </>
+                </div>
               )}
             </CardContent>
           </Card>
-        )}
 
-        {step === 3 && (
           <Card>
-            <CardHeader><CardTitle>Review &amp; Submit</CardTitle></CardHeader>
-            <CardContent>
+            <CardHeader>
+              <SectionHeading
+                number={4}
+                title="Review & submit"
+                description="Check your answers, then submit. You can scroll up to change anything."
+              />
+            </CardHeader>
+            <CardContent className="space-y-6">
               <RegistrationReviewSummary
                 formData={watchAll as RegistrationFormData}
                 participantReference={participantReference}
               />
-            </CardContent>
-          </Card>
-        )}
-
-        <div className="flex justify-between">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => setStep(Math.max(0, step - 1))}
-            disabled={step === 0 || isBusy}
-            aria-label="Previous step"
-          >
-            Back
-          </Button>
-          <div className="flex gap-2">
-            {step < STEPS.length - 1 ? (
+              <div className="rounded-md border border-blue-100 bg-blue-50 p-4 text-base text-blue-900">
+                When you are ready, press the button below. You only need to do this once.
+              </div>
               <Button
-                type="button"
-                onClick={handleNext}
-                isLoading={saveAction === "next"}
-                loadingText={user ? "Saving..." : "Continuing..."}
-                disabled={isBusy}
-                aria-label="Next step"
-              >
-                Next
-              </Button>
-            ) : (
-              <Button
-                type="button"
-                onClick={handleSubmit}
+                type="submit"
+                className="h-14 w-full text-lg"
                 isLoading={saveAction === "submit"}
                 loadingText={submitted ? "Submitting changes..." : "Submitting..."}
                 disabled={isBusy}
@@ -801,9 +820,8 @@ const RegistrationForm = () => {
               >
                 {submitted ? "Submit Changes" : "Submit Registration"}
               </Button>
-            )}
-          </div>
-        </div>
+            </CardContent>
+          </Card>
         </fieldset>
       </form>
     </div>

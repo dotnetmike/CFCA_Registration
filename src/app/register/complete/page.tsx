@@ -143,7 +143,14 @@ const CompleteForm = () => {
         <div className="space-y-4 text-center">
           <p className="text-sm text-gray-600">
             To edit your registration later,{" "}
-            <Link href="/signup" className="text-blue-600 hover:underline">
+            <Link
+              href={
+                email
+                  ? `/signup?email=${encodeURIComponent(email)}&redirect=${encodeURIComponent("/my-registration")}`
+                  : "/"
+              }
+              className="text-blue-600 hover:underline"
+            >
               create an account
             </Link>{" "}
             using the same email, or{" "}
@@ -178,10 +185,10 @@ const CompleteForm = () => {
           {!signupToken ? (
             <Alert variant="warning">
               Missing signup token. Check your confirmation email for a view link, or{" "}
-              <Link href="/signup" className="underline">
-                sign up
-              </Link>{" "}
-              with the same email you used to register.
+              <Link href="/" className="underline">
+                go to registration
+              </Link>
+              .
             </Alert>
           ) : (
             <form onSubmit={handleCreateAccount} className="space-y-4">

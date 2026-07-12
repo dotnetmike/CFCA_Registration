@@ -17,6 +17,7 @@ const SignupForm = () => {
   const searchParams = useSearchParams()
   const redirect = searchParams.get("redirect") ?? "/my-registration"
   const emailFromQuery = searchParams.get("email") ?? ""
+  const hasLinkContext = !!emailFromQuery
 
   const [name, setName] = useState("")
   const [email, setEmail] = useState(emailFromQuery)
@@ -27,32 +28,56 @@ const SignupForm = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (!hasLinkContext) return
     setError("")
     setIsLoading(true)
     try {
       await signup(email, password, name)
       router.push(redirect)
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Signup failed")
+      setError(err instanceof Error ? err.message : "Account setup failed")
     } finally {
       setIsLoading(false)
     }
   }
 
+  if (!hasLinkContext) {
+    return (
+      <Card className="mx-auto max-w-md">
+        <CardHeader>
+          <CardTitle>Set up your account</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <Alert variant="info">
+            Account setup is only available after you have registered for the conference.
+            Register first, then create a password from the confirmation page or magic link.
+          </Alert>
+          <Link href="/">
+            <Button className="w-full" aria-label="Go to registration">
+              Go to registration
+            </Button>
+          </Link>
+          <p className="text-center text-sm text-gray-600">
+            Already have an account?{" "}
+            <Link href="/login" className="text-blue-600 hover:underline">Login</Link>
+          </p>
+        </CardContent>
+      </Card>
+    )
+  }
+
   return (
     <Card className="mx-auto max-w-md">
       <CardHeader>
-        <CardTitle>Create Account</CardTitle>
+        <CardTitle>Set up your account</CardTitle>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
           <fieldset disabled={isLoading} className="m-0 min-w-0 space-y-4 border-0 p-0">
             {error && <Alert variant="error">{error}</Alert>}
-            {emailFromQuery && (
-              <Alert variant="info">
-                Create an account with this email to edit your existing registration.
-              </Alert>
-            )}
+            <Alert variant="info">
+              Create a password for this email to edit your existing registration later.
+            </Alert>
             <div className="space-y-2">
               <Label htmlFor="name">Full Name</Label>
               <Input
@@ -73,6 +98,8 @@ const SignupForm = () => {
                 required
                 autoComplete="email"
                 aria-label="Email address"
+                readOnly={!!emailFromQuery}
+                className={emailFromQuery ? "bg-gray-50" : undefined}
               />
             </div>
             <div className="space-y-2">
@@ -95,7 +122,7 @@ const SignupForm = () => {
               loadingText="Creating account..."
               disabled={isLoading}
             >
-              Sign Up
+              Create password
             </Button>
           </fieldset>
         </form>

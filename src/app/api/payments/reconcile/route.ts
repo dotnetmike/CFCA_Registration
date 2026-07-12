@@ -99,7 +99,13 @@ export const POST = async (request: NextRequest) => {
 
           await admin
             .from("registrations")
-            .update({ amount_paid: newPaid, payment_status: paymentStatus })
+            .update({
+              amount_paid: newPaid,
+              payment_status: paymentStatus,
+              payment_last_updated_source: "bank_reconcile",
+              payment_last_updated_at: new Date().toISOString(),
+              payment_last_updated_by: auth.sub,
+            })
             .eq("id", registration.id)
 
           const updated = { ...registration, amount_paid: newPaid, payment_status: paymentStatus }

@@ -77,17 +77,34 @@ const RegistrationDetailPage = () => {
   const [isLoading, setIsLoading] = useState(true)
   const [isEditing, setIsEditing] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
-  useBusyCursor(isSaving)
   const [error, setError] = useState("")
   const [success, setSuccess] = useState("")
   const [transportOption, setTransportOption] = useState<
     "own" | "pickup" | "dropoff" | "pickup_dropoff"
   >("own")
   const [sameTransportContact, setSameTransportContact] = useState(true)
+  const [notes, setNotes] = useState<
+    { id: string; body: string; created_at: string; created_by_name: string }[]
+  >([])
+  const [noteBody, setNoteBody] = useState("")
+  const [isSavingPayment, setIsSavingPayment] = useState(false)
+  const [isSavingNote, setIsSavingNote] = useState(false)
+  const [paymentAmountPaid, setPaymentAmountPaid] = useState("")
+  const [paymentStatus, setPaymentStatus] = useState("pending")
+  useBusyCursor(isSaving || isSavingPayment || isSavingNote)
 
   const canEditRegistration = !!user?.permissions.includes("registrations:write_all")
   const canEditAccommodation = !!user?.permissions.includes("accommodation:write_all")
   const canEdit = canEditRegistration || canEditAccommodation
+  const canManagePayment =
+    !!user?.permissions.includes("payments:reconcile") ||
+    !!user?.permissions.includes("registrations:write_all")
+  const canAddNotes =
+    !!user?.permissions.includes("registrations:read_all") &&
+    (!!user?.permissions.includes("registrations:write_all") ||
+      !!user?.permissions.includes("accommodation:write_all") ||
+      !!user?.permissions.includes("payments:reconcile") ||
+      !!user?.permissions.includes("users:manage"))
 
   useEffect(() => {
     if (!user) return
@@ -97,10 +114,19 @@ const RegistrationDetailPage = () => {
     }
 
     const load = async () => {
-      const res = await authFetch(`/api/registrations/${id}`)
-      if (res.ok) {
-        const data = await res.json()
+      const [regRes, notesRes] = await Promise.all([
+        authFetch(`/api/registrations/${id}`),
+        authFetch(`/api/registrations/${id}/notes`),
+      ])
+      if (regRes.ok) {
+        const data = await regRes.json()
         setRegistration(data.registration)
+        setPaymentAmountPaid(String(data.registration?.amount_paid ?? 0))
+        setPaymentStatus(String(data.registration?.payment_status ?? "pending"))
+      }
+      if (notesRes.ok) {
+        const data = await notesRes.json()
+        setNotes(data.notes ?? [])
       }
       setIsLoading(false)
     }
@@ -137,6 +163,59 @@ const RegistrationDetailPage = () => {
     setError("")
     setSuccess("")
     setFormKey((k) => k + 1)
+  }
+
+  const handleSavePayment = async () => {
+    if (!registration || !canManagePayment) return
+    const confirmed = window.confirm(
+      "Update payment status and amount paid for this registration?"
+    )
+    if (!confirmed) return
+
+    setError("")
+    setSuccess("")
+    setIsSavingPayment(true)
+    const res = await authFetch(`/api/registrations/${id}/payment`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        amount_paid: Number(paymentAmountPaid),
+        payment_status: paymentStatus,
+      }),
+    })
+    if (!res.ok) {
+      const data = await res.json()
+      setError(data.error ?? "Payment update failed")
+    } else {
+      const data = await res.json()
+      setRegistration(data.registration)
+      setPaymentAmountPaid(String(data.registration?.amount_paid ?? 0))
+      setPaymentStatus(String(data.registration?.payment_status ?? "pending"))
+      setSuccess("Payment updated successfully.")
+    }
+    setIsSavingPayment(false)
+  }
+
+  const handleAddNote = async () => {
+    if (!canAddNotes || !noteBody.trim()) return
+    setError("")
+    setSuccess("")
+    setIsSavingNote(true)
+    const res = await authFetch(`/api/registrations/${id}/notes`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ body: noteBody.trim() }),
+    })
+    if (!res.ok) {
+      const data = await res.json()
+      setError(data.error ?? "Could not add note")
+    } else {
+      const data = await res.json()
+      setNotes((prev) => [data.note, ...prev])
+      setNoteBody("")
+      setSuccess("Note added.")
+    }
+    setIsSavingNote(false)
   }
 
   const handleSave = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -390,7 +469,7 @@ const RegistrationDetailPage = () => {
             </CardHeader>
             <CardContent className="grid gap-4 text-sm md:grid-cols-2">
               <div>
-                <strong>Payment Reference:</strong>{" "}
+                <strong>Unique Code:</strong>{" "}
                 <span className="font-mono font-bold text-red-600">
                   {str("participant_reference") || "—"}
                 </span>
@@ -399,18 +478,142 @@ const RegistrationDetailPage = () => {
                 <strong>Registration No:</strong> {str("registration_no")}
               </div>
               <div>
-                <strong>Status:</strong> {str("payment_status")}
-              </div>
-              <div>
                 <strong>Amount Due:</strong> {formatCurrency(Number(reg.amount_due ?? 0))}
               </div>
               <div>
-                <strong>Amount Paid:</strong> {formatCurrency(Number(reg.amount_paid ?? 0))}
+                <strong>Remaining balance:</strong>{" "}
+                {formatCurrency(
+                  Math.max(0, Number(reg.amount_due ?? 0) - Number(reg.amount_paid ?? 0))
+                )}
               </div>
               <div>
                 <strong>Submitted:</strong>{" "}
                 {reg.submitted_at ? new Date(String(reg.submitted_at)).toLocaleString() : "Draft"}
               </div>
+              <div className="md:col-span-2 rounded-md border border-gray-200 bg-gray-50 p-3 text-sm">
+                <strong>Last payment update:</strong>{" "}
+                {reg.payment_last_updated_at ? (
+                  <>
+                    {String(reg.payment_last_updated_source) === "manual"
+                      ? "Manually by admin"
+                      : String(reg.payment_last_updated_source) === "bank_reconcile"
+                        ? "By bank reconciliation"
+                        : "Updated"}
+                    {" — "}
+                    {str("payment_last_updated_by_name") || "Unknown"}
+                    {" on "}
+                    {new Date(String(reg.payment_last_updated_at)).toLocaleString()}
+                  </>
+                ) : (
+                  "No payment updates recorded yet"
+                )}
+              </div>
+
+              {canManagePayment ? (
+                <>
+                  <div className="space-y-2">
+                    <Label htmlFor="admin_amount_paid">Amount paid</Label>
+                    <Input
+                      id="admin_amount_paid"
+                      type="number"
+                      min={0}
+                      step="0.01"
+                      value={paymentAmountPaid}
+                      onChange={(e) => setPaymentAmountPaid(e.target.value)}
+                      disabled={isSavingPayment}
+                      aria-label="Amount paid"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="admin_payment_status">Payment status</Label>
+                    <select
+                      id="admin_payment_status"
+                      value={paymentStatus}
+                      onChange={(e) => setPaymentStatus(e.target.value)}
+                      disabled={isSavingPayment}
+                      className="flex h-10 w-full rounded-md border border-gray-300 px-3 text-sm"
+                      aria-label="Payment status"
+                    >
+                      <option value="pending">pending</option>
+                      <option value="partial">partial</option>
+                      <option value="paid">paid</option>
+                      <option value="overpaid">overpaid</option>
+                    </select>
+                  </div>
+                  <div className="md:col-span-2">
+                    <Button
+                      type="button"
+                      onClick={handleSavePayment}
+                      isLoading={isSavingPayment}
+                      loadingText="Updating payment..."
+                      disabled={isSavingPayment}
+                      aria-label="Update payment"
+                    >
+                      Update payment
+                    </Button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div>
+                    <strong>Status:</strong> {str("payment_status")}
+                  </div>
+                  <div>
+                    <strong>Amount Paid:</strong> {formatCurrency(Number(reg.amount_paid ?? 0))}
+                  </div>
+                </>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Admin notes</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {canAddNotes && (
+                <div className="space-y-2">
+                  <Label htmlFor="admin_note">Add note</Label>
+                  <textarea
+                    id="admin_note"
+                    value={noteBody}
+                    onChange={(e) => setNoteBody(e.target.value)}
+                    rows={3}
+                    disabled={isSavingNote}
+                    className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+                    aria-label="Admin note"
+                    placeholder="Add an internal comment about this registrant..."
+                  />
+                  <Button
+                    type="button"
+                    onClick={handleAddNote}
+                    isLoading={isSavingNote}
+                    loadingText="Adding note..."
+                    disabled={isSavingNote || !noteBody.trim()}
+                    aria-label="Add admin note"
+                  >
+                    Add note
+                  </Button>
+                </div>
+              )}
+              {notes.length === 0 ? (
+                <p className="text-sm text-gray-500">No admin notes yet.</p>
+              ) : (
+                <ul className="space-y-3">
+                  {notes.map((note) => (
+                    <li
+                      key={note.id}
+                      className="rounded-md border border-gray-200 bg-white p-3 text-sm"
+                    >
+                      <p className="whitespace-pre-wrap text-gray-900">{note.body}</p>
+                      <p className="mt-2 text-xs text-gray-500">
+                        {note.created_by_name} ·{" "}
+                        {new Date(note.created_at).toLocaleString()}
+                      </p>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </CardContent>
           </Card>
 

@@ -131,7 +131,7 @@ export const RegistrationReviewSummary = ({
         </div>
         {participantReference && (
           <div className="md:col-span-2">
-            <dt className="font-medium">Your unique payment reference</dt>
+            <dt className="font-medium">Your Unique Code</dt>
             <dd className="font-mono text-base font-bold text-red-600">{participantReference}</dd>
           </div>
         )}

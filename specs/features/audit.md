@@ -23,12 +23,13 @@ Record security- and data-sensitive actions with datetime, user, action, previou
 
 - Table `audit_log`: `created_at`, `user_id`, `action`, `previous_value`, `updated_value`, metadata, IP, user agent.
 - Sensitive fields redacted (`password_hash`, tokens).
-- Instrumented: login/logout/signup, password change/reset, registration create/update/submit, user admin, payment reconcile/record.
+- Instrumented: login/logout/signup, password change/reset, registration create/update/submit, user admin, payment reconcile/record/manual_update, registration note create.
 - Admin UI `/dashboard/audit` requires `users:manage`.
 
 ## Acceptance criteria
 
 - [ ] Mutations of interest write an audit row
+- [ ] Manual payment updates and admin notes are audited
 - [ ] Passwords never stored in clear text in audit JSON
 
 ## Related specs

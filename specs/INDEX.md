@@ -15,7 +15,7 @@ Use this index to find the right document. Specs are the source of truth; keep `
 
 | ID | Spec | Owns |
 |----|------|------|
-| `features.home` | [home.md](./features/home.md) | Landing / Register Now |
+| `features.home` | [home.md](./features/home.md) | `/` is the registration form |
 | `features.registration` | [registration.md](./features/registration.md) | Public multi-step form, email uniqueness, transport/accommodation |
 | `features.registration-complete` | [registration-complete.md](./features/registration-complete.md) | Congrats + optional account |
 | `features.magic-link-view` | [magic-link-view.md](./features/magic-link-view.md) | `/r/[token]` read-only view |

@@ -54,7 +54,7 @@ const MyRegistrationPage = () => {
     return (
       <Alert variant="info">
         You haven&apos;t started a registration yet.{" "}
-        <Link href="/register" className="text-blue-600 underline">Start registration</Link>
+        <Link href="/" className="text-blue-600 underline">Start registration</Link>
       </Alert>
     )
   }
@@ -63,7 +63,7 @@ const MyRegistrationPage = () => {
     <div className="mx-auto max-w-3xl space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold">My Registration</h1>
-        <Link href="/register">
+        <Link href="/">
           <Button variant="outline" aria-label="Edit registration">Edit</Button>
         </Link>
       </div>
@@ -79,7 +79,7 @@ const MyRegistrationPage = () => {
           <div><strong>State:</strong> {registration.state}</div>
           {registration.participant_reference && (
             <div className="md:col-span-2">
-              <strong>Payment Reference:</strong>{" "}
+              <strong>Unique Code:</strong>{" "}
               <span className="font-bold text-red-600">{registration.participant_reference}</span>
             </div>
           )}
@@ -93,6 +93,12 @@ const MyRegistrationPage = () => {
           <div><strong>Payment Status:</strong> {registration.payment_status}</div>
           <div><strong>Amount Due:</strong> {formatCurrency(Number(registration.amount_due))}</div>
           <div><strong>Amount Paid:</strong> {formatCurrency(Number(registration.amount_paid))}</div>
+          <div>
+            <strong>Remaining balance:</strong>{" "}
+            {formatCurrency(
+              Math.max(0, Number(registration.amount_due) - Number(registration.amount_paid))
+            )}
+          </div>
           {registration.accommodation_type && (
             <div>
               <strong>Accommodation:</strong> {getAccommodationLabel(registration.accommodation_type)}

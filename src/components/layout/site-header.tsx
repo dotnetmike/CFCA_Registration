@@ -52,8 +52,8 @@ export const SiteHeader = () => {
           ) : (
             <>
               <Link href="/login" className="hover:text-blue-600">Login</Link>
-              <Link href="/signup">
-                <Button size="sm">Sign Up</Button>
+              <Link href="/">
+                <Button size="sm">Register</Button>
               </Link>
             </>
           )}

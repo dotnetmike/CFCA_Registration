@@ -1,5 +1,7 @@
-import RegistrationForm from "@/components/registrations/registration-form"
+import { redirect } from "next/navigation"
 
-const RegisterPage = () => <RegistrationForm />
+const RegisterPage = () => {
+  redirect("/")
+}
 
 export default RegisterPage

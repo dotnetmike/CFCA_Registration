@@ -187,6 +187,9 @@ CREATE TABLE IF NOT EXISTS public.registrations (
   payment_status public.payment_status NOT NULL DEFAULT 'pending',
   amount_due numeric(10,2) NOT NULL DEFAULT 0,
   amount_paid numeric(10,2) NOT NULL DEFAULT 0,
+  payment_last_updated_source public.payment_source,
+  payment_last_updated_at timestamptz,
+  payment_last_updated_by uuid REFERENCES public.users(id),
   is_early_bird boolean NOT NULL DEFAULT false,
   early_bird_slot public.early_bird_slot NOT NULL DEFAULT 'none',
   submitted_at timestamptz,
@@ -204,6 +207,17 @@ CREATE TABLE IF NOT EXISTS public.registration_attendees (
   needs_kids_supervision boolean NOT NULL DEFAULT false,
   sort_order integer NOT NULL DEFAULT 0
 );
+
+CREATE TABLE IF NOT EXISTS public.registration_admin_notes (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  registration_id uuid NOT NULL REFERENCES public.registrations(id) ON DELETE CASCADE,
+  body text NOT NULL,
+  created_by uuid NOT NULL REFERENCES public.users(id),
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_registration_admin_notes_registration_id
+  ON public.registration_admin_notes(registration_id, created_at DESC);
 
 CREATE TABLE IF NOT EXISTS public.early_bird_counters (
   id integer PRIMARY KEY DEFAULT 1 CHECK (id = 1),

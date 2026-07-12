@@ -91,8 +91,10 @@ const LoginForm = () => {
           </fieldset>
         </form>
         <p className="mt-4 text-center text-sm text-gray-600">
-          Don&apos;t have an account?{" "}
-          <Link href="/signup" className="text-blue-600 hover:underline">Sign up</Link>
+          Haven&apos;t registered yet?{" "}
+          <Link href="/" className="text-blue-600 hover:underline">
+            Click here to register
+          </Link>
         </p>
       </CardContent>
     </Card>

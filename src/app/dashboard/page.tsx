@@ -7,7 +7,9 @@ import { useAuth } from "@/lib/auth/context"
 import { isManager } from "@/lib/auth/permissions-client"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import { formatCurrency } from "@/lib/pricing/calculate"
+import { AUSTRALIAN_STATES } from "@/lib/registrations/schema"
 import {
   booleansToTransportOption,
   getTransportOptionLabel,
@@ -22,6 +24,7 @@ type RegistrationRow = {
   state: string
   payment_status: string
   amount_due: number
+  amount_paid: number
   submitted_at: string | null
   accommodation_type: string | null
   pickup_melbourne_airport: boolean | null
@@ -33,6 +36,8 @@ type RegistrationRow = {
   dropoff_transport_contact_name: string | null
   dropoff_transport_contact_phone: string | null
 }
+
+const PAYMENT_STATUSES = ["pending", "partial", "paid", "overpaid"] as const
 
 const formatContact = (name?: string | null, phone?: string | null) => {
   const parts = [name?.trim(), phone?.trim()].filter(Boolean)
@@ -88,11 +93,18 @@ const formatTranspoContacts = (r: RegistrationRow) => {
   )
 }
 
+const selectClass =
+  "flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 text-sm"
+
 const DashboardPage = () => {
   const { user, authFetch } = useAuth()
   const router = useRouter()
   const [registrations, setRegistrations] = useState<RegistrationRow[]>([])
   const [search, setSearch] = useState("")
+  const [paymentFilter, setPaymentFilter] = useState("")
+  const [accommodationFilter, setAccommodationFilter] = useState("")
+  const [transpoFilter, setTranspoFilter] = useState("")
+  const [stateFilter, setStateFilter] = useState("")
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
@@ -115,7 +127,8 @@ const DashboardPage = () => {
 
   const filtered = registrations.filter((r) => {
     const q = search.toLowerCase()
-    return (
+    const matchesSearch =
+      !q ||
       r.registration_no?.toLowerCase().includes(q) ||
       r.surname?.toLowerCase().includes(q) ||
       r.given_name?.toLowerCase().includes(q) ||
@@ -124,7 +137,28 @@ const DashboardPage = () => {
       r.accommodation_contact_name?.toLowerCase().includes(q) ||
       r.pickup_transport_contact_name?.toLowerCase().includes(q) ||
       r.dropoff_transport_contact_name?.toLowerCase().includes(q)
-    )
+
+    if (!matchesSearch) return false
+
+    if (paymentFilter && r.payment_status !== paymentFilter) return false
+
+    if (accommodationFilter === "yes" && r.accommodation_type !== "billet") return false
+    if (accommodationFilter === "no" && r.accommodation_type !== "own") return false
+
+    if (transpoFilter) {
+      const option = booleansToTransportOption(
+        r.pickup_melbourne_airport,
+        r.dropoff_melbourne_airport
+      )
+      if (transpoFilter === "none" && option !== "own") return false
+      if (transpoFilter === "pickup" && option !== "pickup") return false
+      if (transpoFilter === "dropoff" && option !== "dropoff") return false
+      if (transpoFilter === "both" && option !== "pickup_dropoff") return false
+    }
+
+    if (stateFilter && r.state !== stateFilter) return false
+
+    return true
   })
 
   if (isLoading) return <p className="text-center text-gray-500">Loading dashboard...</p>
@@ -153,6 +187,69 @@ const DashboardPage = () => {
         onChange={(e) => setSearch(e.target.value)}
         aria-label="Search registrations"
       />
+
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="space-y-1">
+          <Label htmlFor="filter-payment">Payment status</Label>
+          <select
+            id="filter-payment"
+            value={paymentFilter}
+            onChange={(e) => setPaymentFilter(e.target.value)}
+            className={selectClass}
+            aria-label="Filter by payment status"
+          >
+            <option value="">All</option>
+            {PAYMENT_STATUSES.map((s) => (
+              <option key={s} value={s}>{s}</option>
+            ))}
+          </select>
+        </div>
+        <div className="space-y-1">
+          <Label htmlFor="filter-accommodation">Accommodation</Label>
+          <select
+            id="filter-accommodation"
+            value={accommodationFilter}
+            onChange={(e) => setAccommodationFilter(e.target.value)}
+            className={selectClass}
+            aria-label="Filter by accommodation required"
+          >
+            <option value="">All</option>
+            <option value="yes">Required (Yes)</option>
+            <option value="no">Self arranged (No)</option>
+          </select>
+        </div>
+        <div className="space-y-1">
+          <Label htmlFor="filter-transpo">Transpo</Label>
+          <select
+            id="filter-transpo"
+            value={transpoFilter}
+            onChange={(e) => setTranspoFilter(e.target.value)}
+            className={selectClass}
+            aria-label="Filter by transport required"
+          >
+            <option value="">All</option>
+            <option value="none">No</option>
+            <option value="pickup">Pickup</option>
+            <option value="dropoff">Drop-off</option>
+            <option value="both">Both</option>
+          </select>
+        </div>
+        <div className="space-y-1">
+          <Label htmlFor="filter-state">State</Label>
+          <select
+            id="filter-state"
+            value={stateFilter}
+            onChange={(e) => setStateFilter(e.target.value)}
+            className={selectClass}
+            aria-label="Filter by state"
+          >
+            <option value="">All</option>
+            {AUSTRALIAN_STATES.map((s) => (
+              <option key={s} value={s}>{s}</option>
+            ))}
+          </select>
+        </div>
+      </div>
 
       <Card>
         <CardHeader>

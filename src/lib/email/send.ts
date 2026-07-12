@@ -121,7 +121,7 @@ const buildSubmittedDetails = (reg: RegistrationEmailRecord, viewUrl?: string) =
     "",
     "=== Registration ===",
     `Registration No: ${reg.registration_no}`,
-    `Payment Reference (Unique Code): ${ref}`,
+    `Unique Code: ${ref}`,
     `Name: ${name}`,
     `Email: ${reg.email}`,
     `Mobile: ${reg.mobile ?? "—"}`,

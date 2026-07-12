@@ -104,8 +104,8 @@ const MagicRegistrationPage = () => {
   )
   const paymentRef = registration.participant_reference || registration.registration_no
   const editHref = hasAccount
-    ? `/login?redirect=${encodeURIComponent("/register")}`
-    : `/signup?email=${encodeURIComponent(registration.email)}&redirect=${encodeURIComponent("/register")}`
+    ? `/login?redirect=${encodeURIComponent("/")}`
+    : `/signup?email=${encodeURIComponent(registration.email)}&redirect=${encodeURIComponent("/")}`
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
@@ -152,7 +152,7 @@ const MagicRegistrationPage = () => {
             <strong>Registration No:</strong> {registration.registration_no}
           </div>
           <div className="md:col-span-2">
-            <strong>Payment Reference:</strong>{" "}
+            <strong>Unique Code:</strong>{" "}
             <span className="font-bold text-red-600">{paymentRef}</span>
           </div>
           {(registration.address_line1 || registration.suburb) && (

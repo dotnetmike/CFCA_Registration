@@ -3,7 +3,7 @@ id: global.database
 title: Database and migrations
 status: active
 synced_commit: working-tree
-synced_at: 2026-07-11
+synced_at: 2026-07-13
 owners: [team]
 files:
   - supabase/migrations/
@@ -28,9 +28,9 @@ Postgres via Supabase; schema changes only through numbered SQL migrations.
   - `008_public_registration.sql` ? nullable `user_id`, view/signup tokens
   - `009_unique_registration_email.sql` ? unique `lower(email)` for non-empty emails
   - `010_transport_contacts.sql` ? pickup/dropoff transport contact name + phone
-- One registration per user when `user_id` set (partial unique index). Guest regs may have `user_id` null.
-- Accommodation place fields remain `hotel_name` / `hotel_address` in DB; UI labels say Accommodation name/address.
-- Transport contacts: `pickup_transport_contact_name`, `pickup_transport_contact_phone`, `dropoff_transport_contact_name`, `dropoff_transport_contact_phone`.
+  - `011_payment_attribution_and_notes.sql` ? payment last-update attribution + `registration_admin_notes`
+- Payment attribution: `payment_last_updated_source` (`manual` | `bank_reconcile`), `payment_last_updated_at`, `payment_last_updated_by`.
+- Admin notes table: `registration_admin_notes`.
 
 ## Acceptance criteria
 
@@ -42,3 +42,4 @@ Postgres via Supabase; schema changes only through numbered SQL migrations.
 - `features.registration`
 - `features.audit`
 - `features.password-reset`
+- `features.dashboard`

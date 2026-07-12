@@ -70,7 +70,23 @@ export const GET = async (request: NextRequest, { params }: RouteParams) => {
     return jsonError("Forbidden", 403)
   }
 
-  return NextResponse.json({ registration })
+  let paymentLastUpdatedByName: string | null = null
+  if (canReadAll && registration.payment_last_updated_by) {
+    const admin = createAdminClient()
+    const { data: updater } = await admin
+      .from("users")
+      .select("name")
+      .eq("id", registration.payment_last_updated_by)
+      .maybeSingle()
+    paymentLastUpdatedByName = updater?.name ?? null
+  }
+
+  return NextResponse.json({
+    registration: {
+      ...registration,
+      payment_last_updated_by_name: paymentLastUpdatedByName,
+    },
+  })
 }
 
 export const PUT = async (request: NextRequest, { params }: RouteParams) => {

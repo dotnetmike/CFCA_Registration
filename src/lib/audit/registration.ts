@@ -18,6 +18,9 @@ export const REGISTRATION_AUDIT_FIELDS = [
   "amount_due",
   "amount_paid",
   "payment_status",
+  "payment_last_updated_source",
+  "payment_last_updated_at",
+  "payment_last_updated_by",
   "submitted_at",
 ] as const
 

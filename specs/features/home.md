@@ -1,26 +1,33 @@
 ---
 id: features.home
-title: Home
+title: Home (registration entry)
 status: active
 synced_commit: working-tree
-synced_at: 2026-07-11
+synced_at: 2026-07-13
 owners: [team]
 files:
   - src/app/page.tsx
+  - src/app/register/page.tsx
 ---
 
-# Home
+# Home (registration entry)
 
 ## Purpose
 
-Public landing page; primary CTA to start registration.
+Public entry is the registration form itself (no separate marketing landing).
 
 ## Behavior
 
-- **Register Now** â†?`/register` (public).
-- Payment Info â†?`/payment` (protected; redirects to login if needed).
-- Manage Details â†?`/register`.
+- `/` renders the multi-step registration form (`RegistrationForm`).
+- `/register` redirects to `/` (same form).
+- Guests can complete registration without an account.
 
 ## Acceptance criteria
 
-- [ ] Unauthenticated users can open Register Now without logging in first
+- [ ] Unauthenticated users open `/` and see the registration form
+- [ ] `/register` redirects to `/`
+
+## Related specs
+
+- `features.registration`
+- `global.layout-and-navigation`

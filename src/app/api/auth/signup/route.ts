@@ -6,7 +6,6 @@ import { hashPassword } from "@/lib/auth/tokens"
 import { createSession, getRequestMeta } from "@/lib/auth/session"
 import { applySessionCookies } from "@/lib/auth/cookies"
 import { jsonError } from "@/lib/auth/api"
-import { createDraftRegistrationForUser } from "@/lib/registrations/create-draft"
 import {
   findUnlinkedRegistrationByEmail,
   linkRegistrationToUser,
@@ -34,6 +33,14 @@ export const POST = async (request: NextRequest) => {
     .maybeSingle()
 
   if (existing) return jsonError("Email already registered", 409)
+
+  const unlinked = await findUnlinkedRegistrationByEmail(email)
+  if (!unlinked) {
+    return jsonError(
+      "Account setup is only available after you have registered. Please register first.",
+      400
+    )
+  }
 
   const passwordHash = await hashPassword(parsed.data.password)
 
@@ -63,19 +70,11 @@ export const POST = async (request: NextRequest) => {
     })
   }
 
-  const unlinked = await findUnlinkedRegistrationByEmail(email)
-  if (unlinked) {
-    try {
-      await linkRegistrationToUser(unlinked.id, user.id)
-    } catch (err) {
-      console.error("[signup] Failed to link existing registration:", err)
-    }
-  } else {
-    try {
-      await createDraftRegistrationForUser(user.id, email, parsed.data.name)
-    } catch (err) {
-      console.error("[signup] Failed to create draft registration:", err)
-    }
+  try {
+    await linkRegistrationToUser(unlinked.id, user.id)
+  } catch (err) {
+    console.error("[signup] Failed to link existing registration:", err)
+    return jsonError("Could not link your registration. Please contact support.", 500)
   }
 
   const { accessToken, refreshToken, user: authUser } = await createSession(
@@ -92,7 +91,7 @@ export const POST = async (request: NextRequest) => {
       groups: authUser.groups,
       permissions: authUser.permissions,
     },
-    linkedExistingRegistration: !!unlinked,
+    linkedExistingRegistration: true,
   })
 
   applySessionCookies(response, accessToken, refreshToken)
@@ -103,7 +102,7 @@ export const POST = async (request: NextRequest) => {
     updatedValue: {
       email,
       name: parsed.data.name,
-      linked_registration_id: unlinked?.id ?? null,
+      linked_registration_id: unlinked.id,
     },
     request,
   })

@@ -43,7 +43,7 @@ const PaymentPage = () => {
   if (!registration || !paymentReference) {
     return (
       <Alert variant="warning">
-        Please complete your personal details (step 1) to receive your unique payment reference.
+        Please complete your personal details (step 1) to receive your Unique Code.
       </Alert>
     )
   }
@@ -60,7 +60,7 @@ const PaymentPage = () => {
           <CardTitle>Your Registration</CardTitle>
         </CardHeader>
         <CardContent className="space-y-2 text-sm">
-          <p><strong>Payment Reference:</strong>{" "}
+          <p><strong>Unique Code:</strong>{" "}
             <span className="font-bold text-red-600">{paymentReference}</span>
           </p>
           {registration.registration_no && !registration.registration_no.startsWith("DRAFT") && (
@@ -68,12 +68,12 @@ const PaymentPage = () => {
           )}
           <p><strong>Amount Due:</strong> {formatCurrency(Number(registration.amount_due))}</p>
           <p><strong>Amount Paid:</strong> {formatCurrency(Number(registration.amount_paid))}</p>
+          <p><strong>Remaining balance:</strong>{" "}
+            <span className={outstanding > 0 ? "font-semibold text-amber-700" : ""}>
+              {formatCurrency(Math.max(0, outstanding))}
+            </span>
+          </p>
           <p><strong>Status:</strong> {registration.payment_status}</p>
-          {outstanding > 0 && (
-            <p className="font-semibold text-amber-700">
-              Outstanding: {formatCurrency(outstanding)}
-            </p>
-          )}
         </CardContent>
       </Card>
 
