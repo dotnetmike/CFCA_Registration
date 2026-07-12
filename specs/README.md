@@ -50,6 +50,10 @@ files:
 - **`synced_commit`**: short git SHA of the commit that last verified this spec against code. Use `working-tree` only while changes are uncommitted.
 - **`files`**: paths this spec owns. Cursor and humans use this list for sync checks.
 
+## Engineering handbook
+
+Architecture, sequence diagrams, data model, debugging, and contributing guides live in [`docs/`](../docs/README.md). They **link** to specs and must stay in sync with code — see [`docs/_meta/SYNC-WITH-SPECS.md`](../docs/_meta/SYNC-WITH-SPECS.md).
+
 ## Cursor AI expectations
 
 When you prompt Cursor on this repo:
@@ -57,9 +61,10 @@ When you prompt Cursor on this repo:
 1. **Read relevant specs first** (INDEX → feature/global).
 2. If the user asks for a product change → **update spec, then code**.
 3. If code was changed manually → **update the matching spec** (behavior + `files` + `synced_commit`).
-4. Do not leave specs and code disagreeing.
+4. If architecture or flows changed → update matching pages under `docs/`.
+5. Do not leave specs and code disagreeing.
 
-See [`.cursor/rules/spec-driven-development.mdc`](../.cursor/rules/spec-driven-development.mdc).
+See [`.cursor/rules/spec-driven-development.mdc`](../.cursor/rules/spec-driven-development.mdc) and [`.cursor/rules/system-documentation.mdc`](../.cursor/rules/system-documentation.mdc).
 
 ## Adding a new feature
 

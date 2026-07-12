@@ -12,11 +12,14 @@ files:
   - src/components/registrations/registration-review-summary.tsx
   - src/components/registrations/transport-schedule-alert.tsx
   - src/lib/registrations/schema.ts
+  - src/lib/registrations/souvenirs.ts
   - src/lib/registrations/transport.ts
   - src/lib/registrations/email-unique.ts
   - src/lib/registrations/service.ts
   - src/lib/registrations/view-token.ts
   - src/lib/registrations/rate-limit.ts
+  - src/lib/registrations/compare.ts
+  - src/lib/pricing/calculate.ts
   - src/app/api/registrations/route.ts
   - src/app/api/registrations/[id]/route.ts
   - src/app/api/registrations/check-email/route.ts
@@ -38,51 +41,53 @@ Single continuous conference registration page. Guests complete without login; l
   1. Your details
   2. Other people attending (optional)
   3. Accommodation & transport
-  4. Review & submit
+  4. Souvenir pre-order (optional)
+  5. Review & submit
 - Short intro: fill in the form, then press Submit once at the bottom.
 - Required fields marked with `*`; selects use plain-language placeholders.
 - Controls use comfortable sizing (`text-base` / taller inputs) for readability and touch.
 
+### Souvenir pre-order (optional)
+
+- Managed by **Love In Action**; note that all proceeds support a fund for future projects sharing love and help to others.
+- Item: conference **t-shirt**, **$30** each.
+- Registrant may pre-order multiple lines by **size** and **quantity** (e.g. 1× Medium + 3× Large).
+- Stored as `souvenir_orders` JSON on the registration; total added to `amount_due`.
+
 ### Accessibility
 
-- Semantic `fieldset` + `legend` (or equivalent section headings) per block.
-- Error summary at top with `role="alert"` / `aria-live`; on failed submit, focus moves to the first invalid field.
+- Semantic section headings; error summary at top with focus to first invalid field.
 - Labels associated with inputs; checkboxes have accessible names.
 - Login link for people who already registered.
 
 ### Guest (not logged in)
 
 - ?Already registered? Login? ? `/login?redirect=/my-registration`.
-- Email uniqueness checked on email blur and on submit (`/api/registrations/check-email`).
-- If email already used: error + **Login here** (`EMAIL_IN_USE` / 409).
-- Accommodation and airport transport have **no default**; both required on submit.
-- Selecting accommodation `own` / `billet` and transport options shows plain-language info alerts.
-- Submit ? public `POST /api/registrations` with `submit: true` ? confirmation email ? `/register/complete?token=&view=`.
+- Email uniqueness checked on email blur and on submit.
+- Accommodation and airport transport mandatory with no default.
+- Submit ? public `POST /api/registrations` ? `/register/complete`.
 
 ### Logged in
 
-- Load via `authFetch`; submit saves and goes to `/my-registration`.
-- After prior submit, primary button is **Submit Changes**.
+- Load/save via `authFetch`; submit ? `/my-registration`.
+- No-op saves skipped when nothing changed.
 
 ### API
 
-- Public POST: rate-limited; assigns `registration_no`, `participant_reference`, view/signup tokens; `user_id` null.
-- Authenticated PUT for edits.
-- Unique email: DB index + app checks.
+- Public POST rate-limited; unique email enforced.
+- Authenticated PUT; unchanged payloads return `unchanged: true`.
 
 ## Acceptance criteria
 
-- [ ] Registration is one scrollable page (no step tabs / Next wizard)
-- [ ] Guest can register without an account
-- [ ] Duplicate email blocked with login prompt
-- [ ] Accommodation and transport mandatory with no pre-selected value
-- [ ] Submit focuses first error when validation fails
-- [ ] Confirmation email includes details + `/r/{token}` link
+- [ ] Continuous single-page registration
+- [ ] Optional t-shirt pre-order with size/qty at $30 each
+- [ ] Love In Action proceeds note shown
+- [ ] Souvenir total included in amount due
+- [ ] No-op saves do not write empty audits
 
 ## Related specs
 
+- `features.dashboard`
+- `features.payment`
 - `features.registration-complete`
-- `features.magic-link-view`
-- `features.home`
-- `features.login`
 - `global.database`

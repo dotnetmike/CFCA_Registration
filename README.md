@@ -11,15 +11,18 @@ Next.js app for CFCA conference registration, payments, and staff dashboard.
 | [specs/README.md](./specs/README.md) | How the team works with specs |
 | [specs/INDEX.md](./specs/INDEX.md) | Catalog of all specs |
 | [specs/_meta/SYNC-PROTOCOL.md](./specs/_meta/SYNC-PROTOCOL.md) | Sync rules + commit hashes |
+| [docs/README.md](./docs/README.md) | Engineering handbook (architecture, flows, ops) |
+| [docs/_meta/SYNC-WITH-SPECS.md](./docs/_meta/SYNC-WITH-SPECS.md) | Keep docs ↔ specs ↔ code aligned |
 
 **Workflow**
 
 1. Find or create a spec under `specs/global/` or `specs/features/`.
 2. Update the spec for the intended behavior.
 3. Implement code to match.
-4. After commit: `npm run specs:stamp` to write `synced_commit` / `synced_at`.
+4. If sequences or architecture changed, update the matching page under [`docs/`](./docs/).
+5. After commit: `npm run specs:stamp` to write `synced_commit` / `synced_at`.
 
-In Cursor, ask the agent to read specs first, e.g. *“Follow specs/features/registration.md”* or *“Update the payment spec from the current code”*.
+In Cursor, ask the agent to read specs first, e.g. *“Follow specs/features/registration.md”* or *“Update the payment spec from the current code”*. New joiners: start at [docs/onboarding/01-welcome.md](./docs/onboarding/01-welcome.md).
 
 ## Getting started
 
@@ -59,14 +62,16 @@ Open [http://localhost:3000](http://localhost:3000).
 
 ```
 specs/           Product specs (source of truth)
+docs/            Engineering handbook (diagrams, debugging, contributing)
 src/app/         Pages + API routes
 src/components/  UI + feature components
 src/lib/         Auth, registrations, email, audit, db
 supabase/        SQL migrations
-.cursor/rules/   Cursor AI rules (incl. spec-driven)
+.cursor/rules/   Cursor AI rules (spec-driven + system docs)
 ```
 
 ## Learn more
 
+- [System documentation](./docs/README.md) — mind maps, sequences, data model, how to change the system
 - [Next.js docs](https://nextjs.org/docs)
 - Repo agent notes: [AGENTS.md](./AGENTS.md)

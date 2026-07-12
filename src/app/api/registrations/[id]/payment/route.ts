@@ -38,6 +38,15 @@ export const PATCH = async (request: NextRequest, { params }: RouteParams) => {
   const amountPaid = Number(parsed.data.amount_paid)
   const paymentStatus = parsed.data.payment_status
   const previousPaid = Number(existing.amount_paid)
+
+  if (
+    previousPaid === amountPaid &&
+    existing.payment_status === paymentStatus
+  ) {
+    const registration = await getRegistrationWithAttendees(id)
+    return NextResponse.json({ registration, unchanged: true })
+  }
+
   const delta = amountPaid - previousPaid
   const now = new Date().toISOString()
 

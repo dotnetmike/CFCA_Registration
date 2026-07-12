@@ -41,6 +41,18 @@ export const attendeeSchema = z.object({
   needs_kids_supervision: z.boolean().optional(),
 })
 
+export const souvenirOrderLineSchema = z.object({
+  size: z.enum(["S", "M", "L", "XL", "2XL"]),
+  quantity: z.preprocess(
+    (value) => {
+      if (value === "" || value == null) return 0
+      const n = Number(value)
+      return Number.isFinite(n) ? n : 0
+    },
+    z.number().int().min(0).max(50)
+  ),
+})
+
 export const registrationBaseSchema = z.object({
   surname: z.string().min(1, "Surname is required"),
   given_name: z.string().min(1, "Name is required"),
@@ -76,6 +88,7 @@ export const registrationBaseSchema = z.object({
   pickup_transport_contact_phone: optionalString,
   dropoff_transport_contact_name: optionalString,
   dropoff_transport_contact_phone: optionalString,
+  souvenir_orders: z.array(souvenirOrderLineSchema).optional().default([]),
   attendees: z.array(attendeeSchema),
   submit: z.boolean(),
 })
@@ -141,6 +154,7 @@ export const REGISTRATION_FIELDS = {
     "surname", "given_name", "email", "mobile", "address_line1",
     "suburb", "address_state", "postcode", "cfca_position", "state",
     "spouse_surname", "spouse_given_name", "spouse_attending", "spouse_email", "spouse_mobile",
+    "souvenir_orders",
   ],
   accommodation: [
     "accommodation_type", "pickup_melbourne_airport", "dropoff_melbourne_airport",

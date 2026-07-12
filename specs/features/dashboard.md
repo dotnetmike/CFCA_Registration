@@ -7,6 +7,7 @@ synced_at: 2026-07-13
 owners: [team]
 files:
   - src/app/dashboard/page.tsx
+  - src/lib/dashboard/registrations-list-cache.ts
   - src/app/dashboard/users/page.tsx
   - src/app/dashboard/reports/page.tsx
   - src/app/dashboard/payments/reconcile/page.tsx
@@ -29,7 +30,9 @@ Staff tools: list registrations, users, reports, payment reconcile.
 - Protected; non-managers redirected away.
 - Nav links: Reports, Payment Reconcile (permission), Users + Audit Log (`users:manage`).
 - Registration list searchable; detail at `/dashboard/registrations/[id]`.
-- **Filters** on the list: payment status, accommodation required, transpo required, state (combinable with search).
+- **Filters** on the list: payment status, accommodation required, transpo required, state, **souvenir pre-order** (combinable with search). Filters apply to the **full** loaded set, then results are paginated.
+- **Paging**: default **100** rows per page; prev/next and page indicator.
+- **Client cache**: dashboard list uses an in-browser cache (slim list rows only, TTL + max row cap) to avoid repeat fetches when navigating back; **Refresh** forces a re-fetch and replaces the cache.
 - Registration list columns include: Reg No, Name, State, Payment, Amount, Submitted, plus:
   - **Accommodation required** (`billet` → Yes, `own` → No)
   - **Transpo required** (none / pickup / dropoff / both, from airport flags)
@@ -43,6 +46,7 @@ Staff tools: list registrations, users, reports, payment reconcile.
 - **Default: read-only** for registration fields.
 - **Edit** button (when user has `registrations:write_all` and/or `accommodation:write_all`) enables editing for permitted sections.
 - Entering edit mode shows a **warning**; **Save** requires confirmation.
+- If Save detects **no field changes**, do not call the API; show “No changes to save”.
 
 ### Payment (admin)
 
@@ -68,6 +72,9 @@ Staff tools: list registrations, users, reports, payment reconcile.
 - [ ] Remaining balance displayed
 - [ ] Admin notes can be added and are audited
 - [ ] Unique Code label used for payment code
+- [ ] Dashboard pages at 100 per page; filters apply before paging
+- [ ] List cache with TTL/cap and force-refresh control
+- [ ] Filter for registrants who pre-ordered souvenirs
 
 ## Related specs
 

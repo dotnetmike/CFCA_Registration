@@ -7,6 +7,11 @@ import {
   getAccommodationLabel,
   getTransportOptionLabel,
 } from "@/lib/registrations/transport"
+import {
+  formatSouvenirOrdersSummary,
+  hasSouvenirPreOrder,
+  souvenirTotalAmount,
+} from "@/lib/registrations/souvenirs"
 import { getSiteUrl } from "@/lib/site-url"
 
 type EmailType =
@@ -57,6 +62,7 @@ export type RegistrationEmailRecord = {
   pickup_transport_contact_phone?: string
   dropoff_transport_contact_name?: string
   dropoff_transport_contact_phone?: string
+  souvenir_orders?: { size?: string; quantity?: number }[] | null
   amount_due: number
   amount_paid: number
   payment_status: string
@@ -180,6 +186,15 @@ const buildSubmittedDetails = (reg: RegistrationEmailRecord, viewUrl?: string) =
     lines.push(
       `Accommodation name: ${reg.hotel_name || "—"}`,
       `Accommodation address: ${reg.hotel_address || "—"}`
+    )
+  }
+
+  if (hasSouvenirPreOrder(reg.souvenir_orders)) {
+    lines.push(
+      "",
+      "=== Souvenir pre-order (Love In Action) ===",
+      `T-shirts: ${formatSouvenirOrdersSummary(reg.souvenir_orders)}`,
+      `Souvenir total: ${formatCurrency(souvenirTotalAmount(reg.souvenir_orders))}`
     )
   }
 

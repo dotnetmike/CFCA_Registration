@@ -21,11 +21,24 @@ import {
   TRANSPORT_OPTIONS,
   type TransportOption,
 } from "@/lib/registrations/transport"
+import {
+  formatSouvenirOrdersSummary,
+  normalizeSouvenirOrders,
+  souvenirTotalAmount,
+  souvenirTotalQuantity,
+  TSHIRT_SIZE_LABELS,
+  TSHIRT_SIZES,
+  TSHIRT_UNIT_PRICE,
+} from "@/lib/registrations/souvenirs"
 import { TransportScheduleAlert } from "@/components/registrations/transport-schedule-alert"
 import { AustralianAddressAutocomplete } from "@/components/address/australian-address-autocomplete"
 import { RegistrationReviewSummary } from "@/components/registrations/registration-review-summary"
 import type { AustralianAddress } from "@/lib/address/parse"
+import {
+  snapshotFromFormValues,
+} from "@/lib/registrations/compare"
 import { useBusyCursor } from "@/hooks/use-busy-cursor"
+import { formatCurrency } from "@/lib/pricing/calculate"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -74,6 +87,8 @@ const RegistrationForm = () => {
   const [registrationId, setRegistrationId] = useState<string | null>(null)
   const [participantReference, setParticipantReference] = useState<string | null>(null)
   const [submitted, setSubmitted] = useState(false)
+  const [baselineSnapshot, setBaselineSnapshot] = useState<string | null>(null)
+  const [info, setInfo] = useState("")
 
   const form = useForm<RegistrationFormInput>({
     resolver: zodResolver(registrationSchema),
@@ -87,6 +102,13 @@ const RegistrationForm = () => {
       accommodation_type: "",
       spouse_attending: false,
       attendees: [],
+      souvenir_orders: [
+        { size: "S", quantity: 0 },
+        { size: "M", quantity: 0 },
+        { size: "L", quantity: 0 },
+        { size: "XL", quantity: 0 },
+        { size: "2XL", quantity: 0 },
+      ],
       transport_option: "",
       submit: false,
     },
@@ -99,6 +121,8 @@ const RegistrationForm = () => {
   const transportOption = watchAll.transport_option as TransportOption | "" | undefined
   const { showArrival, showDeparture } = getTransportFlightSections(transportOption)
   const needsAirportTransport = showArrival || showDeparture
+  const souvenirQty = souvenirTotalQuantity(watchAll.souvenir_orders)
+  const souvenirAmount = souvenirTotalAmount(watchAll.souvenir_orders)
 
   const loadRegistration = useCallback(async () => {
     if (!user) {
@@ -151,6 +175,11 @@ const RegistrationForm = () => {
           departure_flight_no: data.registration.departure_flight_no,
           hotel_name: data.registration.hotel_name,
           hotel_address: data.registration.hotel_address,
+          souvenir_orders: TSHIRT_SIZES.map((size) => {
+            const existing = normalizeSouvenirOrders(data.registration.souvenir_orders)
+              .find((line) => line.size === size)
+            return { size, quantity: existing?.quantity ?? 0 }
+          }),
           attendees: (data.registration.registration_attendees ?? data.registration.attendees ?? []).map(
             (a: { surname: string; given_name: string; age: number; needs_kids_supervision?: boolean }) => ({
               surname: a.surname,
@@ -161,6 +190,13 @@ const RegistrationForm = () => {
           ),
           submit: false,
         })
+        setBaselineSnapshot(
+          JSON.stringify(
+            snapshotFromFormValues({
+              ...form.getValues(),
+            })
+          )
+        )
       }
     }
     setIsLoading(false)
@@ -256,6 +292,11 @@ const RegistrationForm = () => {
     if (data.registration.participant_reference) {
       setParticipantReference(data.registration.participant_reference)
     }
+    if (data.unchanged) {
+      setInfo("No changes to save.")
+      setSaveAction(null)
+      return true
+    }
     if (submit) {
       setSubmitted(true)
       router.push("/my-registration")
@@ -319,6 +360,7 @@ const RegistrationForm = () => {
   }
 
   const handleSubmit = async () => {
+    setInfo("")
     const accommodation = form.getValues("accommodation_type") as string | null | undefined
     const transport = form.getValues("transport_option") as string | null | undefined
     let hasLocalError = false
@@ -348,6 +390,15 @@ const RegistrationForm = () => {
       return
     }
 
+    if (user && submitted && baselineSnapshot) {
+      const current = JSON.stringify(snapshotFromFormValues(form.getValues() as Record<string, unknown>))
+      if (current === baselineSnapshot) {
+        setError("")
+        setInfo("No changes to save. Update a field before submitting again.")
+        return
+      }
+    }
+
     const emailOk = await checkEmailUnique(form.getValues("email"))
     if (!emailOk) return
 
@@ -361,7 +412,12 @@ const RegistrationForm = () => {
       return
     }
 
-    await saveAuthenticated(true)
+    const saved = await saveAuthenticated(true)
+    if (saved) {
+      setBaselineSnapshot(
+        JSON.stringify(snapshotFromFormValues(form.getValues() as Record<string, unknown>))
+      )
+    }
   }
 
   if (authLoading || (user && isLoading)) {
@@ -392,7 +448,7 @@ const RegistrationForm = () => {
         </p>
       </div>
 
-      <div ref={errorBannerRef} tabIndex={-1} className="outline-none">
+      <div ref={errorBannerRef} tabIndex={-1} className="outline-none space-y-3">
         {error && (
           <Alert variant="error">
             {error}
@@ -409,6 +465,7 @@ const RegistrationForm = () => {
             )}
           </Alert>
         )}
+        {info && <Alert variant="info">{info}</Alert>}
       </div>
 
       {submitted && (
@@ -798,6 +855,57 @@ const RegistrationForm = () => {
             <CardHeader>
               <SectionHeading
                 number={4}
+                title="Souvenir pre-order (optional)"
+                description="Pre-order conference t-shirts if you would like. You can skip this section."
+              />
+            </CardHeader>
+            <CardContent className="space-y-5">
+              <Alert variant="info">
+                Souvenirs are managed by <strong>Love In Action</strong>. All proceeds go into the
+                fund to help future projects in sharing the love and help to other people.
+              </Alert>
+              <p className="text-base text-gray-700">
+                Conference t-shirt — <strong>{formatCurrency(TSHIRT_UNIT_PRICE)}</strong> each.
+                Enter how many you want for each size (leave as 0 if you do not want that size).
+              </p>
+              <div className="grid gap-4 sm:grid-cols-2">
+                {TSHIRT_SIZES.map((size, index) => (
+                  <div key={size} className="space-y-2 rounded-md border border-gray-200 p-4">
+                    <input
+                      type="hidden"
+                      {...form.register(`souvenir_orders.${index}.size`)}
+                      defaultValue={size}
+                    />
+                    <Label htmlFor={`souvenir-${size}`} className="text-base">
+                      {TSHIRT_SIZE_LABELS[size]}
+                    </Label>
+                    <Input
+                      id={`souvenir-${size}`}
+                      type="number"
+                      min={0}
+                      max={50}
+                      className="h-12 text-base"
+                      {...form.register(`souvenir_orders.${index}.quantity`, {
+                        valueAsNumber: true,
+                      })}
+                      aria-label={`Quantity for ${TSHIRT_SIZE_LABELS[size]} t-shirts`}
+                    />
+                  </div>
+                ))}
+              </div>
+              {souvenirQty > 0 && (
+                <p className="text-base font-medium text-gray-900">
+                  Pre-order: {formatSouvenirOrdersSummary(watchAll.souvenir_orders)} —{" "}
+                  {formatCurrency(souvenirAmount)}
+                </p>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <SectionHeading
+                number={5}
                 title="Review & submit"
                 description="Check your answers, then submit. You can scroll up to change anything."
               />

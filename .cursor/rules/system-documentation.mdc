@@ -1,0 +1,38 @@
+---
+description: Keep docs/ engineering handbook in sync with code and specs; update diagrams when architecture or flows change
+alwaysApply: true
+---
+
+# System documentation (handbook)
+
+Engineering docs live under [`docs/`](docs/). Product behavior lives under [`specs/`](specs/). Both must stay aligned with **code**.
+
+## Relationship
+
+- **Specs** = what the product does (acceptance criteria).
+- **Docs** = how the system is built, sequenced, operated, and extended (architecture, Mermaid flows, debugging, contributing).
+- Docs **link** to specs; they must not invent conflicting product rules.
+
+See [`docs/_meta/SYNC-WITH-SPECS.md`](docs/_meta/SYNC-WITH-SPECS.md) and [`docs/INDEX.md`](docs/INDEX.md).
+
+## When implementing product or architecture changes
+
+1. Update the matching **spec** (per spec-driven rule).
+2. Update **code**.
+3. If routes, tables, permissions, or sequences changed → update the matching doc under `docs/flows/`, `docs/data/`, `docs/architecture/`, or `docs/operations/` in the **same change set**.
+4. If you add a new handbook page → add a row to `docs/INDEX.md` and a link from `docs/README.md` when it is a primary entry.
+
+## When debugging or explaining the system
+
+Prefer pointing teammates (and yourself) at:
+
+- `docs/architecture/overview.md` + `folder-map.md` for “where”
+- `docs/flows/*` for sequences
+- `docs/operations/debugging.md` for triage
+- `specs/` for intended behavior
+
+## Do not
+
+- Leave Mermaid diagrams naming deleted routes/tables/permissions.
+- Fork product acceptance criteria into `docs/` instead of updating `specs/`.
+- Add a second parallel “architecture” tree outside `docs/`.

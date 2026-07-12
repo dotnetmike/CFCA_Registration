@@ -9,6 +9,12 @@ import {
   getRegistrationWithAttendees,
   mapFormToDb,
 } from "@/lib/registrations/service"
+import {
+  hasRegistrationChanges,
+  normalizeComparableAttendees,
+  snapshotFromFormValues,
+  snapshotFromRegistration,
+} from "@/lib/registrations/compare"
 import { assignParticipantReferenceIfNeeded } from "@/lib/registrations/participant-reference"
 import { createViewAndSignupTokens } from "@/lib/registrations/view-token"
 import { sendRegistrationEmail } from "@/lib/email/send"
@@ -176,11 +182,35 @@ export const PUT = async (request: NextRequest, { params }: RouteParams) => {
   }
 
   const merged = { ...existing, ...updateData }
+  const wasSubmitted = !!existing.submitted_at
+  const isSubmitting = parsed.data.submit && !wasSubmitted
+
+  const existingFull = await getRegistrationWithAttendees(id)
+  const beforeSnapshot = snapshotFromRegistration(
+    existing as Record<string, unknown>,
+    existingFull?.attendees
+  )
+  const afterSnapshot = snapshotFromFormValues({
+    ...merged,
+    attendees: parsed.data.attendees ?? existingFull?.attendees ?? [],
+    transport_option: parsed.data.transport_option,
+  })
+  const contentChanged = hasRegistrationChanges(beforeSnapshot, afterSnapshot)
+  const referenceWillChange =
+    !!participantReference && participantReference !== existing.participant_reference
+
+  if (!isSubmitting && !contentChanged && !referenceWillChange) {
+    return NextResponse.json({
+      registration: existingFull,
+      unchanged: true,
+    })
+  }
+
   const earlyBirdSlot = existing.is_early_bird
     ? (existing.early_bird_slot as "interstate" | "melbourne" | "none")
-    : parsed.data.submit && parsed.data.state
+    : isSubmitting && parsed.data.state
       ? await claimEarlyBirdSlot(parsed.data.state ?? existing.state)
-      : ("none" as const)
+      : ((existing.early_bird_slot as "interstate" | "melbourne" | "none") ?? "none")
 
   const formData = {
     ...merged,
@@ -192,9 +222,6 @@ export const PUT = async (request: NextRequest, { params }: RouteParams) => {
     formData as Parameters<typeof computeAmountDue>[0],
     earlyBirdSlot
   )
-
-  const wasSubmitted = !!existing.submitted_at
-  const isSubmitting = parsed.data.submit && !wasSubmitted
 
   let registrationNo = existing.registration_no as string
   if (isSubmitting && String(registrationNo).startsWith("DRAFT")) {
@@ -265,17 +292,37 @@ export const PUT = async (request: NextRequest, { params }: RouteParams) => {
     [...REGISTRATION_AUDIT_FIELDS]
   )
 
-  await writeAuditLog({
-    userId: auth.sub,
-    action: isSubmitting ? "registration.submit" : "registration.update",
-    previousValue: previous,
-    updatedValue: updated,
-    metadata: {
-      registration_id: id,
-      attendees_updated: !!parsed.data.attendees,
-    },
-    request,
-  })
+  const attendeesChanged =
+    !!parsed.data.attendees &&
+    JSON.stringify(beforeSnapshot.attendees) !==
+      JSON.stringify(normalizeComparableAttendees(parsed.data.attendees))
+
+  if (
+    isSubmitting ||
+    Object.keys(previous).length > 0 ||
+    Object.keys(updated).length > 0 ||
+    attendeesChanged
+  ) {
+    await writeAuditLog({
+      userId: auth.sub,
+      action: isSubmitting ? "registration.submit" : "registration.update",
+      previousValue: {
+        ...previous,
+        ...(attendeesChanged ? { attendees: beforeSnapshot.attendees } : {}),
+      },
+      updatedValue: {
+        ...updated,
+        ...(attendeesChanged
+          ? { attendees: normalizeComparableAttendees(parsed.data.attendees) }
+          : {}),
+      },
+      metadata: {
+        registration_id: id,
+        attendees_updated: attendeesChanged,
+      },
+      request,
+    })
+  }
 
   return NextResponse.json({ registration: full })
 }

@@ -190,6 +190,7 @@ CREATE TABLE IF NOT EXISTS public.registrations (
   payment_last_updated_source public.payment_source,
   payment_last_updated_at timestamptz,
   payment_last_updated_by uuid REFERENCES public.users(id),
+  souvenir_orders jsonb NOT NULL DEFAULT '[]'::jsonb,
   is_early_bird boolean NOT NULL DEFAULT false,
   early_bird_slot public.early_bird_slot NOT NULL DEFAULT 'none',
   submitted_at timestamptz,

@@ -3,6 +3,7 @@ import { getRegistrationCodePrefix } from "@/lib/supabase/env"
 import { calculateTotal, isEarlyBirdWindow, type AttendeeInput } from "@/lib/pricing/calculate"
 import type { RegistrationFormData } from "./schema"
 import { transportOptionToBooleans } from "./transport"
+import { normalizeSouvenirOrders, souvenirTotalAmount } from "./souvenirs"
 
 export const buildAttendeesForPricing = (data: RegistrationFormData): AttendeeInput[] => {
   const attendees: AttendeeInput[] = [{ age: 18, isPrimary: true }]
@@ -14,7 +15,9 @@ export const buildAttendeesForPricing = (data: RegistrationFormData): AttendeeIn
 export const computeAmountDue = (
   data: RegistrationFormData,
   earlyBirdSlot: "interstate" | "melbourne" | "none"
-) => calculateTotal({ attendees: buildAttendeesForPricing(data), earlyBirdSlot })
+) =>
+  calculateTotal({ attendees: buildAttendeesForPricing(data), earlyBirdSlot }) +
+  souvenirTotalAmount(data.souvenir_orders)
 
 export const claimEarlyBirdSlot = async (
   state: string
@@ -90,6 +93,7 @@ export const mapFormToDb = (data: RegistrationFormData, extras: {
   pickup_transport_contact_phone: data.pickup_transport_contact_phone ?? "",
   dropoff_transport_contact_name: data.dropoff_transport_contact_name ?? "",
   dropoff_transport_contact_phone: data.dropoff_transport_contact_phone ?? "",
+  souvenir_orders: normalizeSouvenirOrders(data.souvenir_orders),
   updated_at: new Date().toISOString(),
   }
 }

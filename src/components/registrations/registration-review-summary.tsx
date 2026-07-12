@@ -7,6 +7,12 @@ import {
 } from "@/lib/pricing/calculate"
 import { buildAttendeesForPricing } from "@/lib/registrations/service"
 import type { RegistrationFormData } from "@/lib/registrations/schema"
+import {
+  formatSouvenirOrdersSummary,
+  souvenirTotalAmount,
+  souvenirTotalQuantity,
+  TSHIRT_UNIT_PRICE,
+} from "@/lib/registrations/souvenirs"
 import { Alert } from "@/components/ui/alert"
 import { PaymentReferenceMockup } from "@/components/registrations/payment-reference-mockup"
 
@@ -100,6 +106,9 @@ export const RegistrationReviewSummary = ({
     buildAttendeeDescriptions(formData)
   )
   const total = lineItems.reduce((sum, item) => sum + item.amount, 0)
+  const souvenirAmount = souvenirTotalAmount(formData.souvenir_orders)
+  const souvenirQty = souvenirTotalQuantity(formData.souvenir_orders)
+  const grandTotal = total + souvenirAmount
   const totalEarlyBirdSaving = lineItems.reduce(
     (sum, item) => sum + (item.earlyBirdSaving ?? 0),
     0
@@ -129,6 +138,14 @@ export const RegistrationReviewSummary = ({
           <dt className="font-medium">Attendees</dt>
           <dd>{attendeeCount}</dd>
         </div>
+        <div className="md:col-span-2">
+          <dt className="font-medium">Souvenir t-shirts</dt>
+          <dd>
+            {souvenirQty > 0
+              ? `${formatSouvenirOrdersSummary(formData.souvenir_orders)} (${formatCurrency(souvenirAmount)})`
+              : "None"}
+          </dd>
+        </div>
         {participantReference && (
           <div className="md:col-span-2">
             <dt className="font-medium">Your Unique Code</dt>
@@ -150,6 +167,20 @@ export const RegistrationReviewSummary = ({
           total={total}
           totalEarlyBirdSaving={totalEarlyBirdSaving}
         />
+        {souvenirQty > 0 && (
+          <div className="rounded-md border p-3 text-sm">
+            <div className="flex justify-between gap-4">
+              <span>
+                Love In Action t-shirts ({souvenirQty} × {formatCurrency(TSHIRT_UNIT_PRICE)})
+              </span>
+              <span className="font-medium">{formatCurrency(souvenirAmount)}</span>
+            </div>
+            <div className="mt-2 flex justify-between gap-4 border-t pt-2 text-base font-bold">
+              <span>Grand total due</span>
+              <span>{formatCurrency(grandTotal)}</span>
+            </div>
+          </div>
+        )}
       </div>
 
       {participantReference && (
@@ -166,7 +197,7 @@ export const RegistrationReviewSummary = ({
             matched with your registration.
           </Alert>
 
-          <PaymentReferenceMockup uniqueCode={participantReference} amount={total} />
+          <PaymentReferenceMockup uniqueCode={participantReference} amount={grandTotal} />
         </div>
       )}
     </div>

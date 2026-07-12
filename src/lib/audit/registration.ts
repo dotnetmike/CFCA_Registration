@@ -15,6 +15,7 @@ export const REGISTRATION_AUDIT_FIELDS = [
   "pickup_transport_contact_phone",
   "dropoff_transport_contact_name",
   "dropoff_transport_contact_phone",
+  "souvenir_orders",
   "amount_due",
   "amount_paid",
   "payment_status",

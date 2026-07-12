@@ -1,42 +1,30 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/lib/auth/context"
 import { isManager } from "@/lib/auth/permissions-client"
+import { useBusyCursor } from "@/hooks/use-busy-cursor"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Button } from "@/components/ui/button"
 import { formatCurrency } from "@/lib/pricing/calculate"
 import { AUSTRALIAN_STATES } from "@/lib/registrations/schema"
 import {
   booleansToTransportOption,
   getTransportOptionLabel,
 } from "@/lib/registrations/transport"
+import {
+  clearDashboardRegistrationsCache,
+  formatCacheAge,
+  getDashboardRegistrationsCache,
+  setDashboardRegistrationsCache,
+  type DashboardRegistrationRow,
+} from "@/lib/dashboard/registrations-list-cache"
 
-type RegistrationRow = {
-  id: string
-  registration_no: string
-  surname: string
-  given_name: string
-  email: string
-  state: string
-  payment_status: string
-  amount_due: number
-  amount_paid: number
-  submitted_at: string | null
-  accommodation_type: string | null
-  pickup_melbourne_airport: boolean | null
-  dropoff_melbourne_airport: boolean | null
-  accommodation_contact_name: string | null
-  accommodation_contact_phone: string | null
-  pickup_transport_contact_name: string | null
-  pickup_transport_contact_phone: string | null
-  dropoff_transport_contact_name: string | null
-  dropoff_transport_contact_phone: string | null
-}
-
+const PAGE_SIZE = 100
 const PAYMENT_STATUSES = ["pending", "partial", "paid", "overpaid"] as const
 
 const formatContact = (name?: string | null, phone?: string | null) => {
@@ -62,7 +50,7 @@ const getTranspoRequiredLabel = (
   return "Both"
 }
 
-const formatTranspoContacts = (r: RegistrationRow) => {
+const formatTranspoContacts = (r: DashboardRegistrationRow) => {
   const option = booleansToTransportOption(
     r.pickup_melbourne_airport,
     r.dropoff_melbourne_airport
@@ -99,13 +87,64 @@ const selectClass =
 const DashboardPage = () => {
   const { user, authFetch } = useAuth()
   const router = useRouter()
-  const [registrations, setRegistrations] = useState<RegistrationRow[]>([])
+  const [registrations, setRegistrations] = useState<DashboardRegistrationRow[]>([])
+  const [fetchedAt, setFetchedAt] = useState<number | null>(null)
   const [search, setSearch] = useState("")
   const [paymentFilter, setPaymentFilter] = useState("")
   const [accommodationFilter, setAccommodationFilter] = useState("")
   const [transpoFilter, setTranspoFilter] = useState("")
   const [stateFilter, setStateFilter] = useState("")
+  const [souvenirFilter, setSouvenirFilter] = useState("")
+  const [page, setPage] = useState(1)
   const [isLoading, setIsLoading] = useState(true)
+  const [isRefreshing, setIsRefreshing] = useState(false)
+  const [loadError, setLoadError] = useState("")
+  useBusyCursor(isRefreshing)
+
+  const loadRegistrations = useCallback(
+    async (forceRefresh: boolean) => {
+      if (!forceRefresh) {
+        const cached = getDashboardRegistrationsCache()
+        if (cached?.isFresh) {
+          setRegistrations(cached.rows)
+          setFetchedAt(cached.fetchedAt)
+          setIsLoading(false)
+          return
+        }
+        if (cached) {
+          setRegistrations(cached.rows)
+          setFetchedAt(cached.fetchedAt)
+          setIsLoading(false)
+        }
+      } else {
+        clearDashboardRegistrationsCache()
+      }
+
+      if (forceRefresh) setIsRefreshing(true)
+      else if (!getDashboardRegistrationsCache()) setIsLoading(true)
+
+      setLoadError("")
+      try {
+        const res = await authFetch("/api/registrations")
+        if (!res.ok) {
+          setLoadError("Could not load registrations.")
+          return
+        }
+        const data = await res.json()
+        const entry = setDashboardRegistrationsCache(
+          (data.registrations ?? []) as Record<string, unknown>[]
+        )
+        setRegistrations(entry.rows)
+        setFetchedAt(entry.fetchedAt)
+      } catch {
+        setLoadError("Could not load registrations.")
+      } finally {
+        setIsLoading(false)
+        setIsRefreshing(false)
+      }
+    },
+    [authFetch]
+  )
 
   useEffect(() => {
     if (!user) return
@@ -113,53 +152,70 @@ const DashboardPage = () => {
       router.push("/")
       return
     }
+    void loadRegistrations(false)
+  }, [user, router, loadRegistrations])
 
-    const load = async () => {
-      const res = await authFetch("/api/registrations")
-      if (res.ok) {
-        const data = await res.json()
-        setRegistrations(data.registrations ?? [])
+  useEffect(() => {
+    setPage(1)
+  }, [search, paymentFilter, accommodationFilter, transpoFilter, stateFilter, souvenirFilter])
+
+  const filtered = useMemo(() => {
+    return registrations.filter((r) => {
+      const q = search.toLowerCase()
+      const matchesSearch =
+        !q ||
+        r.registration_no?.toLowerCase().includes(q) ||
+        r.surname?.toLowerCase().includes(q) ||
+        r.given_name?.toLowerCase().includes(q) ||
+        r.email?.toLowerCase().includes(q) ||
+        r.state?.toLowerCase().includes(q) ||
+        r.accommodation_contact_name?.toLowerCase().includes(q) ||
+        r.pickup_transport_contact_name?.toLowerCase().includes(q) ||
+        r.dropoff_transport_contact_name?.toLowerCase().includes(q)
+
+      if (!matchesSearch) return false
+      if (paymentFilter && r.payment_status !== paymentFilter) return false
+      if (accommodationFilter === "yes" && r.accommodation_type !== "billet") return false
+      if (accommodationFilter === "no" && r.accommodation_type !== "own") return false
+
+      if (transpoFilter) {
+        const option = booleansToTransportOption(
+          r.pickup_melbourne_airport,
+          r.dropoff_melbourne_airport
+        )
+        if (transpoFilter === "none" && option !== "own") return false
+        if (transpoFilter === "pickup" && option !== "pickup") return false
+        if (transpoFilter === "dropoff" && option !== "dropoff") return false
+        if (transpoFilter === "both" && option !== "pickup_dropoff") return false
       }
-      setIsLoading(false)
-    }
-    load()
-  }, [user, authFetch, router])
 
-  const filtered = registrations.filter((r) => {
-    const q = search.toLowerCase()
-    const matchesSearch =
-      !q ||
-      r.registration_no?.toLowerCase().includes(q) ||
-      r.surname?.toLowerCase().includes(q) ||
-      r.given_name?.toLowerCase().includes(q) ||
-      r.email?.toLowerCase().includes(q) ||
-      r.state?.toLowerCase().includes(q) ||
-      r.accommodation_contact_name?.toLowerCase().includes(q) ||
-      r.pickup_transport_contact_name?.toLowerCase().includes(q) ||
-      r.dropoff_transport_contact_name?.toLowerCase().includes(q)
+      if (stateFilter && r.state !== stateFilter) return false
 
-    if (!matchesSearch) return false
+      if (souvenirFilter === "yes" && !(r.souvenir_quantity > 0)) return false
+      if (souvenirFilter === "no" && r.souvenir_quantity > 0) return false
 
-    if (paymentFilter && r.payment_status !== paymentFilter) return false
+      return true
+    })
+  }, [
+    registrations,
+    search,
+    paymentFilter,
+    accommodationFilter,
+    transpoFilter,
+    stateFilter,
+    souvenirFilter,
+  ])
 
-    if (accommodationFilter === "yes" && r.accommodation_type !== "billet") return false
-    if (accommodationFilter === "no" && r.accommodation_type !== "own") return false
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
+  const currentPage = Math.min(page, totalPages)
+  const pageStart = (currentPage - 1) * PAGE_SIZE
+  const pageRows = filtered.slice(pageStart, pageStart + PAGE_SIZE)
+  const rangeStart = filtered.length === 0 ? 0 : pageStart + 1
+  const rangeEnd = Math.min(pageStart + PAGE_SIZE, filtered.length)
 
-    if (transpoFilter) {
-      const option = booleansToTransportOption(
-        r.pickup_melbourne_airport,
-        r.dropoff_melbourne_airport
-      )
-      if (transpoFilter === "none" && option !== "own") return false
-      if (transpoFilter === "pickup" && option !== "pickup") return false
-      if (transpoFilter === "dropoff" && option !== "dropoff") return false
-      if (transpoFilter === "both" && option !== "pickup_dropoff") return false
-    }
-
-    if (stateFilter && r.state !== stateFilter) return false
-
-    return true
-  })
+  const handleRefresh = () => {
+    void loadRegistrations(true)
+  }
 
   if (isLoading) return <p className="text-center text-gray-500">Loading dashboard...</p>
 
@@ -167,19 +223,42 @@ const DashboardPage = () => {
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <h1 className="text-3xl font-bold">Registrations Dashboard</h1>
-        <nav className="flex gap-4 text-sm">
-          <Link href="/dashboard/reports" className="text-blue-600 hover:underline">Reports</Link>
-          {user?.permissions.includes("payments:reconcile") && (
-            <Link href="/dashboard/payments/reconcile" className="text-blue-600 hover:underline">Payment Reconcile</Link>
-          )}
-          {user?.permissions.includes("users:manage") && (
-            <>
-              <Link href="/dashboard/users" className="text-blue-600 hover:underline">Users</Link>
-              <Link href="/dashboard/audit" className="text-blue-600 hover:underline">Audit Log</Link>
-            </>
-          )}
-        </nav>
+        <div className="flex flex-wrap items-center gap-3">
+          <nav className="flex gap-4 text-sm">
+            <Link href="/dashboard/reports" className="text-blue-600 hover:underline">Reports</Link>
+            {user?.permissions.includes("payments:reconcile") && (
+              <Link href="/dashboard/payments/reconcile" className="text-blue-600 hover:underline">Payment Reconcile</Link>
+            )}
+            {user?.permissions.includes("users:manage") && (
+              <>
+                <Link href="/dashboard/users" className="text-blue-600 hover:underline">Users</Link>
+                <Link href="/dashboard/audit" className="text-blue-600 hover:underline">Audit Log</Link>
+              </>
+            )}
+          </nav>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={handleRefresh}
+            isLoading={isRefreshing}
+            loadingText="Refreshing..."
+            disabled={isRefreshing}
+            aria-label="Refresh registrations list"
+          >
+            Refresh
+          </Button>
+        </div>
       </div>
+
+      {fetchedAt != null && (
+        <p className="text-sm text-gray-500">
+          List data cached · updated {formatCacheAge(fetchedAt)}
+          {" · "}
+          {registrations.length} loaded
+        </p>
+      )}
+      {loadError && <p className="text-sm text-red-600" role="alert">{loadError}</p>}
 
       <Input
         placeholder="Search by name, email, registration no, state, contact..."
@@ -188,7 +267,7 @@ const DashboardPage = () => {
         aria-label="Search registrations"
       />
 
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
         <div className="space-y-1">
           <Label htmlFor="filter-payment">Payment status</Label>
           <select
@@ -249,13 +328,37 @@ const DashboardPage = () => {
             ))}
           </select>
         </div>
+        <div className="space-y-1">
+          <Label htmlFor="filter-souvenir">Souvenir pre-order</Label>
+          <select
+            id="filter-souvenir"
+            value={souvenirFilter}
+            onChange={(e) => setSouvenirFilter(e.target.value)}
+            className={selectClass}
+            aria-label="Filter by souvenir pre-order"
+          >
+            <option value="">All</option>
+            <option value="yes">Has pre-order</option>
+            <option value="no">No pre-order</option>
+          </select>
+        </div>
       </div>
 
       <Card>
-        <CardHeader>
-          <CardTitle>{filtered.length} Registrations</CardTitle>
+        <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <CardTitle>
+            {filtered.length} matching
+            {filtered.length !== registrations.length
+              ? ` (of ${registrations.length} loaded)`
+              : " registrations"}
+          </CardTitle>
+          <p className="text-sm text-gray-600" aria-live="polite">
+            Showing {rangeStart}–{rangeEnd} · Page {currentPage} of {totalPages}
+            {" · "}
+            {PAGE_SIZE} per page
+          </p>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-4">
           <div className="overflow-x-auto">
             <table className="w-full min-w-[1100px] text-left text-sm">
               <thead>
@@ -267,53 +370,89 @@ const DashboardPage = () => {
                   <th className="p-2">Transpo required</th>
                   <th className="p-2">Accommodation contact</th>
                   <th className="p-2">Transpo contact</th>
+                  <th className="p-2">Souvenir</th>
                   <th className="p-2">Payment</th>
                   <th className="p-2">Amount</th>
                   <th className="p-2">Submitted</th>
                 </tr>
               </thead>
               <tbody>
-                {filtered.map((r) => (
-                  <tr key={r.id} className="border-b hover:bg-gray-50">
-                    <td className="p-2">
-                      <Link
-                        href={`/dashboard/registrations/${r.id}`}
-                        className="text-blue-600 hover:underline"
-                        title={getTransportOptionLabel(
-                          booleansToTransportOption(
-                            r.pickup_melbourne_airport,
-                            r.dropoff_melbourne_airport
-                          )
-                        )}
-                      >
-                        {r.registration_no}
-                      </Link>
-                    </td>
-                    <td className="p-2">{r.given_name} {r.surname}</td>
-                    <td className="p-2">{r.state}</td>
-                    <td className="p-2">{getAccommodationRequiredLabel(r.accommodation_type)}</td>
-                    <td className="p-2">
-                      {getTranspoRequiredLabel(
-                        r.pickup_melbourne_airport,
-                        r.dropoff_melbourne_airport
-                      )}
-                    </td>
-                    <td className="p-2">
-                      {formatContact(
-                        r.accommodation_contact_name,
-                        r.accommodation_contact_phone
-                      )}
-                    </td>
-                    <td className="p-2">{formatTranspoContacts(r)}</td>
-                    <td className="p-2">{r.payment_status}</td>
-                    <td className="p-2">{formatCurrency(Number(r.amount_due))}</td>
-                    <td className="p-2">
-                      {r.submitted_at ? new Date(r.submitted_at).toLocaleDateString() : "Draft"}
+                {pageRows.length === 0 ? (
+                  <tr>
+                    <td className="p-4 text-gray-500" colSpan={11}>
+                      No registrations match the current filters.
                     </td>
                   </tr>
-                ))}
+                ) : (
+                  pageRows.map((r) => (
+                    <tr key={r.id} className="border-b hover:bg-gray-50">
+                      <td className="p-2">
+                        <Link
+                          href={`/dashboard/registrations/${r.id}`}
+                          className="text-blue-600 hover:underline"
+                          title={getTransportOptionLabel(
+                            booleansToTransportOption(
+                              r.pickup_melbourne_airport,
+                              r.dropoff_melbourne_airport
+                            )
+                          )}
+                        >
+                          {r.registration_no}
+                        </Link>
+                      </td>
+                      <td className="p-2">{r.given_name} {r.surname}</td>
+                      <td className="p-2">{r.state}</td>
+                      <td className="p-2">{getAccommodationRequiredLabel(r.accommodation_type)}</td>
+                      <td className="p-2">
+                        {getTranspoRequiredLabel(
+                          r.pickup_melbourne_airport,
+                          r.dropoff_melbourne_airport
+                        )}
+                      </td>
+                      <td className="p-2">
+                        {formatContact(
+                          r.accommodation_contact_name,
+                          r.accommodation_contact_phone
+                        )}
+                      </td>
+                      <td className="p-2">{formatTranspoContacts(r)}</td>
+                      <td className="p-2">
+                        {r.souvenir_quantity > 0 ? `${r.souvenir_quantity} shirt(s)` : "—"}
+                      </td>
+                      <td className="p-2">{r.payment_status}</td>
+                      <td className="p-2">{formatCurrency(Number(r.amount_due))}</td>
+                      <td className="p-2">
+                        {r.submitted_at ? new Date(r.submitted_at).toLocaleDateString() : "Draft"}
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
+          </div>
+
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={currentPage <= 1 || isRefreshing}
+              aria-label="Previous page"
+            >
+              Previous
+            </Button>
+            <p className="text-sm text-gray-600">
+              Page {currentPage} of {totalPages}
+            </p>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              disabled={currentPage >= totalPages || isRefreshing}
+              aria-label="Next page"
+            >
+              Next
+            </Button>
           </div>
         </CardContent>
       </Card>

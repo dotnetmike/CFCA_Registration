@@ -26,6 +26,11 @@ import {
   getTransportOptionLabel,
   transportOptionToBooleans,
 } from "@/lib/registrations/transport"
+import {
+  hasRegistrationChanges,
+  snapshotFromFormValues,
+  snapshotFromRegistration,
+} from "@/lib/registrations/compare"
 
 type Attendee = {
   surname?: string
@@ -167,6 +172,16 @@ const RegistrationDetailPage = () => {
 
   const handleSavePayment = async () => {
     if (!registration || !canManagePayment) return
+
+    if (
+      Number(paymentAmountPaid) === Number(registration.amount_paid ?? 0) &&
+      paymentStatus === String(registration.payment_status ?? "pending")
+    ) {
+      setError("")
+      setSuccess("No payment changes to save.")
+      return
+    }
+
     const confirmed = window.confirm(
       "Update payment status and amount paid for this registration?"
     )
@@ -188,10 +203,14 @@ const RegistrationDetailPage = () => {
       setError(data.error ?? "Payment update failed")
     } else {
       const data = await res.json()
-      setRegistration(data.registration)
-      setPaymentAmountPaid(String(data.registration?.amount_paid ?? 0))
-      setPaymentStatus(String(data.registration?.payment_status ?? "pending"))
-      setSuccess("Payment updated successfully.")
+      if (data.unchanged) {
+        setSuccess("No payment changes to save.")
+      } else {
+        setRegistration(data.registration)
+        setPaymentAmountPaid(String(data.registration?.amount_paid ?? 0))
+        setPaymentStatus(String(data.registration?.payment_status ?? "pending"))
+        setSuccess("Payment updated successfully.")
+      }
     }
     setIsSavingPayment(false)
   }
@@ -222,14 +241,8 @@ const RegistrationDetailPage = () => {
     e.preventDefault()
     if (!registration || !isEditing) return
 
-    const confirmed = window.confirm(
-      "Are you sure you want to update this registration? The registrant’s record will be changed and they may receive an update email."
-    )
-    if (!confirmed) return
-
     setError("")
     setSuccess("")
-    setIsSaving(true)
 
     const formData = new FormData(e.currentTarget)
     const payload: Record<string, unknown> = {}
@@ -297,7 +310,6 @@ const RegistrationDetailPage = () => {
       }
     }
 
-    // Preserve attendees from loaded registration (not edited in this form)
     const attendees =
       (registration.registration_attendees as Attendee[] | undefined) ??
       (registration.attendees as Attendee[] | undefined) ??
@@ -308,6 +320,22 @@ const RegistrationDetailPage = () => {
       age: Number(a.age ?? 0),
       needs_kids_supervision: !!a.needs_kids_supervision,
     }))
+    payload.transport_option = selectedTransport
+
+    const before = snapshotFromRegistration(registration, attendees)
+    const after = snapshotFromFormValues(payload)
+    if (!hasRegistrationChanges(before, after)) {
+      setSuccess("No changes to save.")
+      setIsEditing(false)
+      return
+    }
+
+    const confirmed = window.confirm(
+      "Are you sure you want to update this registration? The registrant’s record will be changed and they may receive an update email."
+    )
+    if (!confirmed) return
+
+    setIsSaving(true)
 
     const res = await authFetch(`/api/registrations/${id}`, {
       method: "PUT",
@@ -320,8 +348,12 @@ const RegistrationDetailPage = () => {
       setError(data.error ?? "Save failed")
     } else {
       const data = await res.json()
-      setRegistration(data.registration)
-      setSuccess("Registration updated successfully.")
+      if (data.unchanged) {
+        setSuccess("No changes to save.")
+      } else {
+        setRegistration(data.registration)
+        setSuccess("Registration updated successfully.")
+      }
       setIsEditing(false)
       setFormKey((k) => k + 1)
     }
@@ -568,57 +600,6 @@ const RegistrationDetailPage = () => {
 
           <Card>
             <CardHeader>
-              <CardTitle>Admin notes</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {canAddNotes && (
-                <div className="space-y-2">
-                  <Label htmlFor="admin_note">Add note</Label>
-                  <textarea
-                    id="admin_note"
-                    value={noteBody}
-                    onChange={(e) => setNoteBody(e.target.value)}
-                    rows={3}
-                    disabled={isSavingNote}
-                    className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
-                    aria-label="Admin note"
-                    placeholder="Add an internal comment about this registrant..."
-                  />
-                  <Button
-                    type="button"
-                    onClick={handleAddNote}
-                    isLoading={isSavingNote}
-                    loadingText="Adding note..."
-                    disabled={isSavingNote || !noteBody.trim()}
-                    aria-label="Add admin note"
-                  >
-                    Add note
-                  </Button>
-                </div>
-              )}
-              {notes.length === 0 ? (
-                <p className="text-sm text-gray-500">No admin notes yet.</p>
-              ) : (
-                <ul className="space-y-3">
-                  {notes.map((note) => (
-                    <li
-                      key={note.id}
-                      className="rounded-md border border-gray-200 bg-white p-3 text-sm"
-                    >
-                      <p className="whitespace-pre-wrap text-gray-900">{note.body}</p>
-                      <p className="mt-2 text-xs text-gray-500">
-                        {note.created_by_name} ·{" "}
-                        {new Date(note.created_at).toLocaleString()}
-                      </p>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
               <CardTitle>Additional Attendees</CardTitle>
             </CardHeader>
             <CardContent>
@@ -847,6 +828,57 @@ const RegistrationDetailPage = () => {
                     readOnly={readOnly || !canEditAccommodation}
                   />
                 </>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Admin notes</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {canAddNotes && (
+                <div className="space-y-2">
+                  <Label htmlFor="admin_note">Add note</Label>
+                  <textarea
+                    id="admin_note"
+                    value={noteBody}
+                    onChange={(e) => setNoteBody(e.target.value)}
+                    rows={3}
+                    disabled={isSavingNote}
+                    className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+                    aria-label="Admin note"
+                    placeholder="Add an internal comment about this registrant..."
+                  />
+                  <Button
+                    type="button"
+                    onClick={handleAddNote}
+                    isLoading={isSavingNote}
+                    loadingText="Adding note..."
+                    disabled={isSavingNote || !noteBody.trim()}
+                    aria-label="Add admin note"
+                  >
+                    Add note
+                  </Button>
+                </div>
+              )}
+              {notes.length === 0 ? (
+                <p className="text-sm text-gray-500">No admin notes yet.</p>
+              ) : (
+                <ul className="space-y-3">
+                  {notes.map((note) => (
+                    <li
+                      key={note.id}
+                      className="rounded-md border border-gray-200 bg-white p-3 text-sm"
+                    >
+                      <p className="whitespace-pre-wrap text-gray-900">{note.body}</p>
+                      <p className="mt-2 text-xs text-gray-500">
+                        {note.created_by_name} ·{" "}
+                        {new Date(note.created_at).toLocaleString()}
+                      </p>
+                    </li>
+                  ))}
+                </ul>
               )}
             </CardContent>
           </Card>

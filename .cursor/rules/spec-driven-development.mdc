@@ -28,9 +28,9 @@ This repo is **spec-driven**. Product behavior lives under `specs/`. Specs and c
 ## Do not
 
 - Implement product behavior that contradicts an active spec without updating the spec.
-- Invent parallel docs outside `specs/` for the same feature (link from README only).
+- Invent a second product-behavior tree outside `specs/` (engineering handbook under `docs/` is allowed; it must **link** specs, not fork acceptance criteria).
 - Leave `synced_commit` pointing at an old SHA after intentional behavior changes.
 
 ## New features
 
-Copy `specs/_meta/TEMPLATE.md` → `specs/features/<name>.md`, add a row to `specs/INDEX.md`, then code.
+Copy `specs/_meta/TEMPLATE.md` → `specs/features/<name>.md`, add a row to `specs/INDEX.md`, then code. Update `docs/` flows/architecture when sequences or structure change (see `system-documentation` rule).

@@ -35,3 +35,4 @@ Use this index to find the right document. Specs are the source of truth; keep `
 | [README.md](./README.md) | How the team works with specs |
 | [SYNC-PROTOCOL.md](./_meta/SYNC-PROTOCOL.md) | Sync rules + commit hashes |
 | [TEMPLATE.md](./_meta/TEMPLATE.md) | New spec template |
+| [../docs/README.md](../docs/README.md) | Engineering handbook (architecture, flows, ops) |

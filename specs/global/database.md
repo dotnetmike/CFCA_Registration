@@ -24,13 +24,9 @@ Postgres via Supabase; schema changes only through numbered SQL migrations.
 - `npm run dev` / `npm run start` / `npm run db:deploy` apply pending migrations.
 - App tables use service-role client; RLS disabled; authorization in API layer.
 - Important recent migrations:
-  - `007_password_reset_and_audit.sql` ? password reset tokens, `audit_log`
-  - `008_public_registration.sql` ? nullable `user_id`, view/signup tokens
-  - `009_unique_registration_email.sql` ? unique `lower(email)` for non-empty emails
-  - `010_transport_contacts.sql` ? pickup/dropoff transport contact name + phone
-  - `011_payment_attribution_and_notes.sql` ? payment last-update attribution + `registration_admin_notes`
-- Payment attribution: `payment_last_updated_source` (`manual` | `bank_reconcile`), `payment_last_updated_at`, `payment_last_updated_by`.
-- Admin notes table: `registration_admin_notes`.
+  - `010_transport_contacts.sql` ? pickup/dropoff transport contacts
+  - `011_payment_attribution_and_notes.sql` ? payment attribution + admin notes
+  - `012_souvenir_orders.sql` ? `souvenir_orders` JSONB (t-shirt size/qty pre-orders)
 
 ## Acceptance criteria
 
@@ -41,5 +37,4 @@ Postgres via Supabase; schema changes only through numbered SQL migrations.
 
 - `features.registration`
 - `features.audit`
-- `features.password-reset`
 - `features.dashboard`
