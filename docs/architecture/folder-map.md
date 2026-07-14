@@ -36,6 +36,8 @@ CFCA_Registration/
 | Manual payment / notes | `src/app/api/registrations/[id]/payment`, `.../notes` | `features.dashboard` |
 | Reconcile | `src/app/api/payments/reconcile/route.ts` | `features.dashboard` |
 | Dashboard list/cache | `src/app/dashboard/page.tsx`, `src/lib/dashboard/*` | `features.dashboard` |
+| Users / audit / reports cache | `users-list-cache.ts`, `audit-list-cache.ts`, `reports-cache.ts`, `list-cache.ts` | `features.dashboard` / `features.audit` |
+| Detailed CSV export | `src/app/api/admin/reports/route.ts` | `features.dashboard` |
 | Admin detail | `src/app/dashboard/registrations/[id]/page.tsx` | `features.dashboard` |
 | Audit write / UI | `src/lib/audit/*`, `src/app/dashboard/audit` | `features.audit` |
 | Email content | `src/lib/email/send.ts` | related feature + registration |

@@ -1,4 +1,11 @@
 import { souvenirTotalQuantity } from "@/lib/registrations/souvenirs"
+import {
+  DASHBOARD_LIST_CACHE_MAX_ROWS,
+  DASHBOARD_LIST_CACHE_TTL_MS,
+  formatCacheAge,
+} from "@/lib/dashboard/list-cache"
+
+export { DASHBOARD_LIST_CACHE_MAX_ROWS, DASHBOARD_LIST_CACHE_TTL_MS, formatCacheAge }
 
 export type DashboardRegistrationRow = {
   id: string
@@ -30,10 +37,6 @@ type CacheEntry = {
 }
 
 const CACHE_KEY = "cfca.dashboard.registrations.v2"
-/** Soft TTL — after this, next visit refetches unless force refresh already did */
-export const DASHBOARD_LIST_CACHE_TTL_MS = 5 * 60 * 1000
-/** Hard cap so we never persist an oversized list in sessionStorage */
-export const DASHBOARD_LIST_CACHE_MAX_ROWS = 1500
 
 let memoryCache: CacheEntry | null = null
 
@@ -137,13 +140,4 @@ export const clearDashboardRegistrationsCache = () => {
   } catch {
     // ignore
   }
-}
-
-export const formatCacheAge = (fetchedAt: number, now = Date.now()) => {
-  const seconds = Math.max(0, Math.floor((now - fetchedAt) / 1000))
-  if (seconds < 60) return `${seconds}s ago`
-  const minutes = Math.floor(seconds / 60)
-  if (minutes < 60) return `${minutes}m ago`
-  const hours = Math.floor(minutes / 60)
-  return `${hours}h ago`
 }

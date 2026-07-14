@@ -2,6 +2,16 @@ import { NextRequest, NextResponse } from "next/server"
 import { createAdminClient } from "@/lib/supabase/admin"
 import { requireAuth, requirePermission, jsonError } from "@/lib/auth/api"
 
+/** Never export token / secret columns even if present on the row. */
+const CSV_EXCLUDED_KEYS = new Set([
+  "view_token_hash",
+  "view_token_created_at",
+  "signup_token_hash",
+  "signup_token_expires_at",
+])
+
+const NESTED_RELATION_KEY = "registration_attendees"
+
 export const GET = async (request: NextRequest) => {
   const auth = await requireAuth(request)
   if (auth instanceof NextResponse) return auth
@@ -20,7 +30,10 @@ export const GET = async (request: NextRequest) => {
 
   if (error) return jsonError(error.message, 500)
 
-  const summary: Record<string, { attendees: number; spouses: number; kids: number; registrations: number }> = {}
+  const summary: Record<
+    string,
+    { attendees: number; spouses: number; kids: number; registrations: number }
+  > = {}
 
   for (const reg of registrations ?? []) {
     const state = reg.state ?? "Unknown"
@@ -30,48 +43,65 @@ export const GET = async (request: NextRequest) => {
     summary[state].registrations += 1
     summary[state].attendees += 1
     if (reg.spouse_attending) summary[state].spouses += 1
-    const kids = (reg.registration_attendees as { age: number }[] ?? []).filter((a) => a.age < 18).length
+    const kids = (
+      (reg.registration_attendees as { age: number }[] | null) ?? []
+    ).filter((a) => a.age < 18).length
     summary[state].kids += kids
   }
 
   if (format === "csv") {
-    const headers = [
-      "registration_no", "surname", "given_name", "email", "mobile", "state",
-      "cfca_position", "spouse_attending", "payment_status", "amount_due", "amount_paid",
-      "accommodation_type", "pickup_melbourne_airport", "dropoff_melbourne_airport",
-      "submitted_at", "kids_count",
-    ]
-
-    const rows = (registrations ?? []).map((r) => [
-      r.registration_no,
-      r.surname,
-      r.given_name,
-      r.email,
-      r.mobile,
-      r.state,
-      r.cfca_position,
-      r.spouse_attending,
-      r.payment_status,
-      r.amount_due,
-      r.amount_paid,
-      r.accommodation_type,
-      r.pickup_melbourne_airport,
-      r.dropoff_melbourne_airport,
-      r.submitted_at,
-      (r.registration_attendees as unknown[] ?? []).length,
-    ])
-
-    const csv = [headers.join(","), ...rows.map((row) => row.map(csvEscape).join(","))].join("\n")
-
+    const csv = buildDetailedRegistrationsCsv(registrations ?? [])
     return new NextResponse(csv, {
       headers: {
-        "Content-Type": "text/csv",
+        "Content-Type": "text/csv; charset=utf-8",
         "Content-Disposition": 'attachment; filename="registrations.csv"',
       },
     })
   }
 
   return NextResponse.json({ registrations, summary })
+}
+
+/**
+ * Dynamic detailed CSV: union of all non-secret registration columns
+ * so newly added registrant attributes appear automatically.
+ */
+export const buildDetailedRegistrationsCsv = (
+  registrations: Record<string, unknown>[]
+) => {
+  const columnSet = new Set<string>()
+  for (const reg of registrations) {
+    for (const key of Object.keys(reg)) {
+      if (CSV_EXCLUDED_KEYS.has(key)) continue
+      if (key === NESTED_RELATION_KEY) continue
+      columnSet.add(key)
+    }
+  }
+
+  const baseColumns = [...columnSet].sort((a, b) => a.localeCompare(b))
+  const headers = [...baseColumns, "registration_attendees_json", "kids_count", "attendees_count"]
+
+  const rows = registrations.map((reg) => {
+    const attendees = (reg[NESTED_RELATION_KEY] as unknown[] | null) ?? []
+    const kidsCount = attendees.filter(
+      (a) => typeof a === "object" && a && Number((a as { age?: number }).age) < 18
+    ).length
+
+    return [
+      ...baseColumns.map((col) => serializeCsvCell(reg[col])),
+      serializeCsvCell(attendees),
+      String(kidsCount),
+      String(attendees.length),
+    ]
+  })
+
+  return [headers.join(","), ...rows.map((row) => row.join(","))].join("\n")
+}
+
+const serializeCsvCell = (val: unknown) => {
+  if (val == null) return csvEscape("")
+  if (typeof val === "object") return csvEscape(JSON.stringify(val))
+  return csvEscape(val)
 }
 
 const csvEscape = (val: unknown) => {
