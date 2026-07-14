@@ -43,34 +43,48 @@ const SignupForm = () => {
 
   if (!hasLinkContext) {
     return (
-      <Card className="mx-auto max-w-md">
-        <CardHeader>
-          <CardTitle>Set up your account</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <Alert variant="info">
-            Account setup is only available after you have registered for the conference.
-            Register first, then create a password from the confirmation page or magic link.
-          </Alert>
-          <Link href="/">
-            <Button className="w-full" aria-label="Go to registration">
-              Go to registration
-            </Button>
-          </Link>
-          <p className="text-center text-sm text-gray-600">
-            Already have an account?{" "}
-            <Link href="/login" className="text-blue-600 hover:underline">Login</Link>
+      <div className="cfca-auth-shell">
+        <div className="mb-6 space-y-2 text-center">
+          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-accent-ink">
+            Account
           </p>
-        </CardContent>
-      </Card>
+          <h1 className="font-display text-4xl font-semibold text-ink">Set up your account</h1>
+        </div>
+        <Card>
+          <CardContent className="space-y-4 pt-6">
+            <Alert variant="info">
+              Account setup is only available after you have registered for the conference.
+              Register first, then create a password from the confirmation page or magic link.
+            </Alert>
+            <Link href="/">
+              <Button className="w-full" aria-label="Go to registration">
+                Go to registration
+              </Button>
+            </Link>
+            <p className="text-center text-sm text-ink-soft">
+              Already have an account?{" "}
+              <Link href="/login" className="font-semibold text-ink underline-offset-4 hover:underline">
+                Login
+              </Link>
+            </p>
+          </CardContent>
+        </Card>
+      </div>
     )
   }
 
   return (
-    <Card className="mx-auto max-w-md">
-      <CardHeader>
-        <CardTitle>Set up your account</CardTitle>
-      </CardHeader>
+    <div className="cfca-auth-shell">
+      <div className="mb-6 space-y-2 text-center">
+        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-accent-ink">
+          Account
+        </p>
+        <h1 className="font-display text-4xl font-semibold text-ink">Set up your account</h1>
+      </div>
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-xl">Create password</CardTitle>
+        </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
           <fieldset disabled={isLoading} className="m-0 min-w-0 space-y-4 border-0 p-0">
@@ -99,7 +113,7 @@ const SignupForm = () => {
                 autoComplete="email"
                 aria-label="Email address"
                 readOnly={!!emailFromQuery}
-                className={emailFromQuery ? "bg-gray-50" : undefined}
+                className={emailFromQuery ? "bg-surface-muted" : undefined}
               />
             </div>
             <div className="space-y-2">
@@ -126,22 +140,23 @@ const SignupForm = () => {
             </Button>
           </fieldset>
         </form>
-        <p className="mt-4 text-center text-sm text-gray-600">
+        <p className="mt-4 text-center text-sm text-ink-soft">
           Already have an account?{" "}
           <Link
             href={`/login?redirect=${encodeURIComponent(redirect)}`}
-            className="text-blue-600 hover:underline"
+            className="font-semibold text-ink underline-offset-4 hover:underline"
           >
             Login
           </Link>
         </p>
       </CardContent>
     </Card>
+    </div>
   )
 }
 
 const SignupPage = () => (
-  <Suspense fallback={<p className="text-center text-gray-500">Loading...</p>}>
+  <Suspense fallback={<p className="text-center text-ink-soft">Loading...</p>}>
     <SignupForm />
   </Suspense>
 )

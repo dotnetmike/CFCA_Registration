@@ -92,28 +92,46 @@ export const SiteHeader = () => {
   const visibleDashLinks = dashLinks.filter((link) => link.show)
 
   return (
-    <header className="border-b border-gray-200 bg-white">
-      <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4">
-        <Link href="/" className="text-lg font-bold text-blue-700" aria-label="CFCA Conference Home">
-          CFCA Conference Registration
+    <header className="sticky top-0 z-40 border-b border-[color:var(--line)] bg-mist/80 backdrop-blur-xl animate-fade">
+      <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3.5 md:py-4">
+        <Link href="/" className="cfca-brand-mark group" aria-label="CFCA Conference Home">
+          <span className="cfca-brand-mark__primary transition-colors group-hover:text-ink-soft">
+            CFCA
+          </span>
+          <span className="cfca-brand-mark__secondary">Conference Registration</span>
         </Link>
-        <nav className="flex items-center gap-4 text-sm" aria-label="Main navigation">
+        <nav
+          className="flex flex-wrap items-center justify-end gap-x-5 gap-y-2"
+          aria-label="Main navigation"
+        >
           {!isLoading && user ? (
             <>
-              <Link href="/my-registration" className="hover:text-blue-600">
+              <Link
+                href="/my-registration"
+                className="cfca-nav-link"
+                aria-current={pathname.startsWith("/my-registration") ? "page" : undefined}
+              >
                 My Registration
               </Link>
-              <Link href="/payment" className="hover:text-blue-600">
+              <Link
+                href="/payment"
+                className="cfca-nav-link"
+                aria-current={pathname.startsWith("/payment") ? "page" : undefined}
+              >
                 Payment
               </Link>
-              <Link href="/account" className="hover:text-blue-600">
+              <Link
+                href="/account"
+                className="cfca-nav-link"
+                aria-current={pathname.startsWith("/account") ? "page" : undefined}
+              >
                 Account
               </Link>
               {isManager(user) && (
                 <div className="relative" ref={dashRef}>
                   <button
                     type="button"
-                    className="inline-flex items-center gap-1 hover:text-blue-600"
+                    className="cfca-nav-link inline-flex items-center gap-1"
                     aria-haspopup="menu"
                     aria-expanded={isDashOpen}
                     aria-controls="dashboard-submenu"
@@ -122,7 +140,10 @@ export const SiteHeader = () => {
                     onKeyDown={handleDashKeyDown}
                   >
                     Dashboard
-                    <span aria-hidden className="text-xs">
+                    <span
+                      aria-hidden
+                      className={`text-[0.65rem] transition-transform duration-200 ${isDashOpen ? "rotate-180" : ""}`}
+                    >
                       ▾
                     </span>
                   </button>
@@ -131,14 +152,14 @@ export const SiteHeader = () => {
                       id="dashboard-submenu"
                       role="menu"
                       aria-label="Dashboard submenu"
-                      className="absolute right-0 z-30 mt-2 min-w-[12rem] rounded-md border border-gray-200 bg-white py-1"
+                      className="absolute right-0 z-30 mt-3 min-w-[13rem] overflow-hidden rounded-lg border border-[color:var(--line)] bg-surface/95 py-1 shadow-[0_18px_40px_-24px_rgba(11,31,51,0.45)] backdrop-blur-md animate-rise"
                     >
                       {visibleDashLinks.map((link) => (
                         <Link
                           key={link.href}
                           href={link.href}
                           role="menuitem"
-                          className="block px-3 py-2 text-sm text-gray-800 hover:bg-blue-50 hover:text-blue-800"
+                          className="block px-3.5 py-2.5 text-sm text-ink-soft transition-colors hover:bg-surface-muted hover:text-ink"
                           onClick={() => setIsDashOpen(false)}
                         >
                           {link.label}
@@ -148,7 +169,7 @@ export const SiteHeader = () => {
                   )}
                 </div>
               )}
-              <span className="text-gray-500">{user.name}</span>
+              <span className="hidden text-sm text-ink-soft/80 sm:inline">{user.name}</span>
               <Button
                 variant="outline"
                 size="sm"
@@ -163,11 +184,17 @@ export const SiteHeader = () => {
             </>
           ) : (
             <>
-              <Link href="/login" className="hover:text-blue-600">
+              <Link
+                href="/login"
+                className="cfca-nav-link"
+                aria-current={pathname === "/login" ? "page" : undefined}
+              >
                 Login
               </Link>
               <Link href="/">
-                <Button size="sm">Register</Button>
+                <Button size="sm" aria-label="Register for conference">
+                  Register
+                </Button>
               </Link>
             </>
           )}

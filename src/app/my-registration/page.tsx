@@ -100,9 +100,14 @@ const MyRegistrationPage = () => {
     registration.dropoff_melbourne_airport
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6">
+    <div className="cfca-page mx-auto max-w-3xl space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold">My Registration</h1>
+        <div className="space-y-2">
+          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-accent-ink">
+            Your record
+          </p>
+          <h1 className="font-display text-4xl font-semibold text-ink">My Registration</h1>
+        </div>
         <Link href="/">
           <Button variant="outline" aria-label="Edit registration">
             Edit
@@ -130,7 +135,7 @@ const MyRegistrationPage = () => {
           {registration.participant_reference && (
             <div className="md:col-span-2">
               <strong>Unique Code:</strong>{" "}
-              <span className="font-bold text-red-600">
+              <span className="font-bold text-[color:var(--danger)]">
                 {registration.participant_reference}
               </span>
             </div>

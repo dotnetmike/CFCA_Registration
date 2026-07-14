@@ -6,7 +6,7 @@
 |-------|--------|-------|
 | Framework | **Next.js 16** (App Router) | See `AGENTS.md` — read `node_modules/next/dist/docs/` for this version |
 | Language | TypeScript | |
-| UI | React + Tailwind | Prefer existing `components/ui/*` |
+| UI | React + Tailwind v4 | Prestige institutional theme (`globals.css` tokens); Cormorant + Source Sans 3 |
 | DB | Supabase Postgres | Migrations in `supabase/migrations/` |
 | Auth | Custom JWT | Cookies `cfca_access_token`, `cfca_refresh_token` |
 | Email | Resend | Optional locally if key missing |

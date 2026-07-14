@@ -58,7 +58,7 @@ export const DashboardSubnav = () => {
   return (
     <nav
       aria-label="Dashboard submenu"
-      className="flex flex-wrap gap-1 border-b border-gray-200 pb-3"
+      className="flex flex-wrap gap-1 rounded-lg border border-[color:var(--line)] bg-surface/70 p-1.5 backdrop-blur-sm"
     >
       {visible.map((item) => {
         const isActive = item.match(pathname)
@@ -69,8 +69,8 @@ export const DashboardSubnav = () => {
             aria-current={isActive ? "page" : undefined}
             className={
               isActive
-                ? "rounded-md bg-blue-50 px-3 py-2 text-sm font-semibold text-blue-800"
-                : "rounded-md px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-blue-700"
+                ? "rounded-md bg-ink px-3.5 py-2 text-sm font-semibold text-white transition-colors"
+                : "rounded-md px-3.5 py-2 text-sm font-medium text-ink-soft transition-colors hover:bg-surface-muted hover:text-ink"
             }
           >
             {item.label}

@@ -44,16 +44,23 @@ const ForgotPasswordPage = () => {
   }
 
   return (
-    <Card className="mx-auto max-w-md">
-      <CardHeader>
-        <CardTitle>Forgot Password</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <fieldset disabled={isLoading} className="space-y-4 border-0 p-0 m-0 min-w-0">
-            <p className="text-sm text-gray-600">
-              Enter your email address and we will send you a link to reset your password.
-            </p>
+    <div className="cfca-auth-shell">
+      <div className="mb-6 space-y-2 text-center">
+        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-accent-ink">
+          Security
+        </p>
+        <h1 className="font-display text-4xl font-semibold text-ink">Forgot Password</h1>
+      </div>
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-xl">Reset link</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <fieldset disabled={isLoading} className="m-0 min-w-0 space-y-4 border-0 p-0">
+              <p className="text-sm text-ink-soft">
+                Enter your email address and we will send you a link to reset your password.
+              </p>
             {error && <Alert variant="error">{error}</Alert>}
             {message && <Alert variant="success">{message}</Alert>}
 
@@ -82,13 +89,14 @@ const ForgotPasswordPage = () => {
           </fieldset>
         </form>
 
-        <p className="mt-4 text-center text-sm text-gray-600">
-          <Link href="/login" className="text-blue-600 hover:underline">
+        <p className="mt-4 text-center text-sm text-ink-soft">
+          <Link href="/login" className="font-semibold text-ink underline-offset-4 hover:underline">
             Back to login
           </Link>
         </p>
       </CardContent>
     </Card>
+    </div>
   )
 }
 

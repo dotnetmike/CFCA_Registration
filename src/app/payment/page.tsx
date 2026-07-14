@@ -31,7 +31,7 @@ const PaymentPage = () => {
   }, [authFetch])
 
   if (isLoading) {
-    return <p className="text-center text-gray-500">Loading...</p>
+    return <p className="text-center text-ink-soft">Loading...</p>
   }
 
   const paymentReference =
@@ -52,8 +52,14 @@ const PaymentPage = () => {
   const paymentAmount = outstanding > 0 ? outstanding : Number(registration.amount_due)
 
   return (
-    <div className="mx-auto max-w-2xl space-y-6">
-      <h1 className="text-3xl font-bold">Payment Information</h1>
+    <div className="cfca-page mx-auto max-w-2xl">
+      <div className="space-y-3">
+        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-accent-ink">
+          Bank transfer
+        </p>
+        <h1 className="font-display text-4xl font-semibold text-ink">Payment Information</h1>
+        <div className="accent-rule" aria-hidden />
+      </div>
 
       <Card>
         <CardHeader>
@@ -61,7 +67,7 @@ const PaymentPage = () => {
         </CardHeader>
         <CardContent className="space-y-2 text-sm">
           <p><strong>Unique Code:</strong>{" "}
-            <span className="font-bold text-red-600">{paymentReference}</span>
+            <span className="font-bold text-[color:var(--danger)]">{paymentReference}</span>
           </p>
           {registration.registration_no && !registration.registration_no.startsWith("DRAFT") && (
             <p><strong>Registration No:</strong> {registration.registration_no}</p>
@@ -69,7 +75,7 @@ const PaymentPage = () => {
           <p><strong>Amount Due:</strong> {formatCurrency(Number(registration.amount_due))}</p>
           <p><strong>Amount Paid:</strong> {formatCurrency(Number(registration.amount_paid))}</p>
           <p><strong>Remaining balance:</strong>{" "}
-            <span className={outstanding > 0 ? "font-semibold text-amber-700" : ""}>
+            <span className={outstanding > 0 ? "font-semibold text-accent-ink" : ""}>
               {formatCurrency(Math.max(0, outstanding))}
             </span>
           </p>

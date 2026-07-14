@@ -1,19 +1,215 @@
 @import "tailwindcss";
 
 :root {
-  --background: #f9fafb;
-  --foreground: #111827;
+  --background: #eef2f5;
+  --foreground: #0b1f33;
+  --ink: #0b1f33;
+  --ink-soft: #1a3348;
+  --mist: #f7f9fb;
+  --surface: #ffffff;
+  --surface-muted: #f1f5f8;
+  --accent: #a6874e;
+  --accent-soft: #c4a86a;
+  --accent-ink: #6e552c;
+  --line: rgba(11, 31, 51, 0.1);
+  --line-strong: rgba(11, 31, 51, 0.18);
+  --ring: rgba(166, 135, 78, 0.45);
+  --success: #1f6b4a;
+  --warning: #8a5a12;
+  --danger: #9b2c2c;
+  --info: #1d4f72;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-ink: var(--ink);
+  --color-ink-soft: var(--ink-soft);
+  --color-mist: var(--mist);
+  --color-surface: var(--surface);
+  --color-surface-muted: var(--surface-muted);
+  --color-accent: var(--accent);
+  --color-accent-soft: var(--accent-soft);
+  --color-accent-ink: var(--accent-ink);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --font-sans: var(--font-source-sans);
+  --font-display: var(--font-cormorant);
+  --font-mono: var(--font-source-sans);
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: var(--font-sans), system-ui, sans-serif;
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@layer base {
+  * {
+    border-color: var(--line);
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    min-height: 100vh;
+    color: var(--foreground);
+    font-family: var(--font-sans), "Segoe UI", sans-serif;
+    background-color: var(--background);
+    background-image:
+      radial-gradient(ellipse 900px 480px at 12% -8%, rgba(166, 135, 78, 0.14), transparent 55%),
+      radial-gradient(ellipse 800px 520px at 92% 0%, rgba(29, 79, 114, 0.1), transparent 50%),
+      linear-gradient(180deg, #f7f9fb 0%, #eef2f5 42%, #e8eef3 100%),
+      linear-gradient(rgba(11, 31, 51, 0.035) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(11, 31, 51, 0.035) 1px, transparent 1px);
+    background-size:
+      auto,
+      auto,
+      auto,
+      48px 48px,
+      48px 48px;
+    background-attachment: fixed;
+  }
+
+  ::selection {
+    background: rgba(166, 135, 78, 0.28);
+    color: var(--ink);
+  }
+
+  h1,
+  h2,
+  .font-display {
+    font-family: var(--font-display), Georgia, "Times New Roman", serif;
+    letter-spacing: -0.02em;
+  }
+}
+
+@layer components {
+  .cfca-main {
+    @apply relative z-10 mx-auto w-full max-w-6xl px-4 py-8 md:py-10;
+  }
+
+  .cfca-page {
+    @apply space-y-8;
+    animation: rise-in 560ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  .cfca-brand-mark {
+    @apply inline-flex flex-col leading-none;
+  }
+
+  .cfca-brand-mark__primary {
+    font-family: var(--font-display), Georgia, serif;
+    @apply text-3xl font-semibold tracking-tight text-ink;
+  }
+
+  .cfca-brand-mark__secondary {
+    @apply mt-0.5 text-[0.68rem] font-semibold uppercase tracking-[0.22em] text-accent-ink;
+  }
+
+  .cfca-section-panel {
+    @apply overflow-hidden rounded-xl border border-[color:var(--line)] bg-surface/95 shadow-[0_1px_0_rgba(255,255,255,0.7)_inset];
+    backdrop-filter: blur(8px);
+  }
+
+  .cfca-auth-shell {
+    @apply relative mx-auto max-w-md;
+    animation: rise-in 560ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  .cfca-auth-shell::before {
+    content: "";
+    position: absolute;
+    inset: -1.25rem -1rem auto;
+    height: 7rem;
+    border-radius: 999px;
+    background: radial-gradient(circle, rgba(166, 135, 78, 0.22), transparent 70%);
+    filter: blur(12px);
+    pointer-events: none;
+    z-index: -1;
+  }
+
+  .cfca-nav-link {
+    @apply relative text-sm font-medium text-ink-soft transition-colors duration-200 hover:text-ink;
+  }
+
+  .cfca-nav-link::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    bottom: -0.35rem;
+    width: 100%;
+    height: 1px;
+    transform: scaleX(0);
+    transform-origin: left;
+    background: var(--accent);
+    transition: transform 220ms ease;
+  }
+
+  .cfca-nav-link:hover::after,
+  .cfca-nav-link[aria-current="page"]::after {
+    transform: scaleX(1);
+  }
+}
+
+@layer utilities {
+  .animate-rise {
+    animation: rise-in 560ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  .animate-rise-delay-1 {
+    animation: rise-in 560ms cubic-bezier(0.22, 1, 0.36, 1) 80ms both;
+  }
+
+  .animate-rise-delay-2 {
+    animation: rise-in 560ms cubic-bezier(0.22, 1, 0.36, 1) 160ms both;
+  }
+
+  .animate-rise-delay-3 {
+    animation: rise-in 560ms cubic-bezier(0.22, 1, 0.36, 1) 240ms both;
+  }
+
+  .animate-fade {
+    animation: fade-in 480ms ease both;
+  }
+
+  .accent-rule {
+    @apply h-px w-16 bg-accent;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  .cfca-page,
+  .cfca-auth-shell,
+  .animate-rise,
+  .animate-rise-delay-1,
+  .animate-rise-delay-2,
+  .animate-rise-delay-3,
+  .animate-fade {
+    animation: none !important;
+  }
+
+  .cfca-nav-link::after {
+    transition: none;
+  }
 }

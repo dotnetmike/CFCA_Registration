@@ -22,7 +22,8 @@ Shell of every page: header, main content width, and which routes require login.
 
 ## Behavior
 
-- Root layout wraps all pages with `AuthProvider`, `SiteHeader`, and `<main className="mx-auto max-w-6xl px-4 py-8">`.
+- Root layout wraps all pages with `AuthProvider`, `SiteHeader`, atmospheric body shell, and `<main className="cfca-main …">` (`mx-auto max-w-6xl` content width).
+- Header is a translucent/frosted prestige bar with display-font brand wordmark **CFCA** + supporting “Conference Registration” mark; primary nav links are restrained.
 - `RequireAuth` gates **protected** routes only (see `isProtectedPath`).
 - **Protected paths**: `/my-registration`, `/payment`, `/dashboard`, `/account` (and subpaths).
 - **Public paths** (examples): `/`, `/register` (redirects to `/`), `/register/complete`, `/r/[token]`, `/login`, `/signup` (post-registration only), `/forgot-password`, `/reset-password`.
@@ -37,10 +38,12 @@ Shell of every page: header, main content width, and which routes require login.
 - [ ] Logged-out header shows Login and Register (not Sign Up)
 - [ ] Brand link goes to `/`
 - [ ] Managers get a Dashboard submenu (header dropdown + in-dashboard subnav)
+- [ ] Brand uses display typography and feels primary in the header
 
 ## Related specs
 
 - `global.auth-security`
+- `global.theme-and-styles`
 - `features.home`
 - `features.login`
 - `features.signup`

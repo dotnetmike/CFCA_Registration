@@ -7,7 +7,12 @@ export const Card = ({
   className?: string
   children: React.ReactNode
 }) => (
-  <div className={cn("rounded-lg border border-gray-200 bg-white shadow-sm", className)}>
+  <div
+    className={cn(
+      "cfca-section-panel transition-[border-color,transform,box-shadow] duration-300 hover:border-[color:var(--line-strong)]",
+      className
+    )}
+  >
     {children}
   </div>
 )
@@ -19,7 +24,9 @@ export const CardHeader = ({
   className?: string
   children: React.ReactNode
 }) => (
-  <div className={cn("flex flex-col space-y-1.5 p-6", className)}>{children}</div>
+  <div className={cn("flex flex-col space-y-2 border-b border-[color:var(--line)] px-6 py-5", className)}>
+    {children}
+  </div>
 )
 
 export const CardTitle = ({
@@ -29,7 +36,7 @@ export const CardTitle = ({
   className?: string
   children: React.ReactNode
 }) => (
-  <h3 className={cn("text-xl font-semibold leading-none tracking-tight", className)}>
+  <h3 className={cn("font-display text-2xl font-semibold leading-tight tracking-tight text-ink", className)}>
     {children}
   </h3>
 )
@@ -40,4 +47,4 @@ export const CardContent = ({
 }: {
   className?: string
   children: React.ReactNode
-}) => <div className={cn("p-6 pt-0", className)}>{children}</div>
+}) => <div className={cn("p-6", className)}>{children}</div>

@@ -49,10 +49,10 @@ const EMAIL_IN_USE_FALLBACK =
   "This email is already registered. Please log in to your account instead."
 
 const selectClassName =
-  "flex h-12 w-full rounded-md border border-gray-300 bg-white px-3 text-base"
+  "flex h-12 w-full rounded-md border border-[color:var(--line-strong)] bg-mist/80 px-3 text-base text-ink transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--ring)]"
 
 const FieldError = ({ message }: { message?: string }) =>
-  message ? <p className="text-sm text-red-600" role="alert">{message}</p> : null
+  message ? <p className="text-sm text-[color:var(--danger)]" role="alert">{message}</p> : null
 
 const SectionHeading = ({
   number,
@@ -63,14 +63,14 @@ const SectionHeading = ({
   title: string
   description?: string
 }) => (
-  <div className="space-y-1">
-    <CardTitle className="text-xl md:text-2xl">
-      <span className="mr-2 inline-flex h-8 w-8 items-center justify-center rounded-full bg-blue-100 text-base font-bold text-blue-800">
+  <div className="space-y-2">
+    <CardTitle className="flex items-center gap-3 text-xl md:text-2xl">
+      <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-accent/40 bg-[rgba(166,135,78,0.12)] font-display text-lg font-semibold text-accent-ink">
         {number}
       </span>
-      {title}
+      <span>{title}</span>
     </CardTitle>
-    {description ? <p className="text-base text-gray-600">{description}</p> : null}
+    {description ? <p className="text-base text-ink-soft">{description}</p> : null}
   </div>
 )
 
@@ -421,30 +421,41 @@ const RegistrationForm = () => {
   }
 
   if (authLoading || (user && isLoading)) {
-    return <p className="text-center text-gray-500">Loading registration...</p>
+    return <p className="text-center text-ink-soft">Loading registration...</p>
   }
 
   return (
-    <div className="mx-auto max-w-3xl space-y-8">
-      <div className="space-y-3">
+    <div className="cfca-page mx-auto max-w-3xl">
+      <div className="animate-rise space-y-4">
         <div className="flex flex-wrap items-end justify-between gap-4">
-          <h1 className="text-3xl font-bold md:text-4xl">Conference Registration</h1>
+          <div className="space-y-3">
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-accent-ink">
+              Official registration
+            </p>
+            <h1 className="font-display text-4xl font-semibold text-ink md:text-5xl">
+              Conference Registration
+            </h1>
+            <div className="accent-rule" aria-hidden />
+          </div>
           {!user && (
-            <p className="text-base text-gray-600">
+            <p className="text-base text-ink-soft">
               Already registered?{" "}
               <Link
                 href="/login?redirect=/my-registration"
-                className="font-medium text-blue-600 hover:underline"
+                className="font-semibold text-ink underline-offset-4 hover:underline"
               >
                 Login
               </Link>
             </p>
           )}
         </div>
-        <p className="max-w-2xl text-base text-gray-700 md:text-lg">
+        <p className="max-w-2xl text-base leading-relaxed text-ink-soft md:text-lg">
           Fill in each section below. When you are finished, press{" "}
-          <strong>{submitted ? "Submit Changes" : "Submit Registration"}</strong> at the bottom
-          of the page. Fields marked with <strong>*</strong> are required.
+          <strong className="font-semibold text-ink">
+            {submitted ? "Submit Changes" : "Submit Registration"}
+          </strong>{" "}
+          at the bottom of the page. Fields marked with <strong className="text-ink">*</strong> are
+          required.
         </p>
       </div>
 
@@ -483,7 +494,7 @@ const RegistrationForm = () => {
         noValidate
       >
         <fieldset disabled={isBusy} className="m-0 min-w-0 space-y-8 border-0 p-0">
-          <Card>
+          <Card className="animate-rise-delay-1">
             <CardHeader>
               <SectionHeading
                 number={1}
@@ -647,7 +658,7 @@ const RegistrationForm = () => {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="animate-rise-delay-2">
             <CardHeader>
               <SectionHeading
                 number={2}
@@ -657,7 +668,7 @@ const RegistrationForm = () => {
             </CardHeader>
             <CardContent className="space-y-4">
               {fields.length === 0 && (
-                <p className="text-base text-gray-600">
+                <p className="text-base text-ink-soft">
                   No extra attendees yet. Press Add person if someone else is coming with you.
                 </p>
               )}
@@ -727,7 +738,7 @@ const RegistrationForm = () => {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="animate-rise-delay-2">
             <CardHeader>
               <SectionHeading
                 number={3}
@@ -851,7 +862,7 @@ const RegistrationForm = () => {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="animate-rise-delay-3">
             <CardHeader>
               <SectionHeading
                 number={4}
@@ -864,8 +875,8 @@ const RegistrationForm = () => {
                 Souvenirs are managed by <strong>Love In Action</strong>. All proceeds go into the
                 fund to help future projects in sharing the love and help to other people.
               </Alert>
-              <p className="text-base text-gray-700">
-                Conference t-shirt — <strong>{formatCurrency(TSHIRT_UNIT_PRICE)}</strong> each.
+              <p className="text-base text-ink-soft">
+                Conference t-shirt — <strong className="text-ink">{formatCurrency(TSHIRT_UNIT_PRICE)}</strong> each.
                 Enter how many you want for each size (leave as 0 if you do not want that size).
               </p>
               <div className="grid gap-4 sm:grid-cols-2">
@@ -894,7 +905,7 @@ const RegistrationForm = () => {
                 ))}
               </div>
               {souvenirQty > 0 && (
-                <p className="text-base font-medium text-gray-900">
+                <p className="text-base font-medium text-ink">
                   Pre-order: {formatSouvenirOrdersSummary(watchAll.souvenir_orders)} —{" "}
                   {formatCurrency(souvenirAmount)}
                 </p>
@@ -902,7 +913,7 @@ const RegistrationForm = () => {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="animate-rise-delay-3">
             <CardHeader>
               <SectionHeading
                 number={5}
@@ -915,7 +926,7 @@ const RegistrationForm = () => {
                 formData={watchAll as RegistrationFormData}
                 participantReference={participantReference}
               />
-              <div className="rounded-md border border-blue-100 bg-blue-50 p-4 text-base text-blue-900">
+              <div className="rounded-md border border-[color:rgba(166,135,78,0.35)] bg-[rgba(166,135,78,0.1)] p-4 text-base text-accent-ink">
                 When you are ready, press the button below. You only need to do this once.
               </div>
               <Button

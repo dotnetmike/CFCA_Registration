@@ -83,7 +83,7 @@ const formatTranspoContacts = (r: DashboardRegistrationRow) => {
 }
 
 const selectClass =
-  "flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 text-sm"
+  "flex h-10 w-full rounded-md border border-[color:var(--line-strong)] bg-mist/80 px-3 text-sm text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--ring)]"
 
 const DashboardPage = () => {
   const { user, authFetch } = useAuth()
@@ -218,13 +218,20 @@ const DashboardPage = () => {
     void loadRegistrations(true)
   }
 
-  if (isLoading) return <p className="text-center text-gray-500">Loading dashboard...</p>
+  if (isLoading) return <p className="text-center text-ink-soft">Loading dashboard...</p>
 
   return (
-    <div className="space-y-6">
+    <div className="cfca-page space-y-6">
       <DashboardSubnav />
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <h1 className="text-3xl font-bold">Registrations Dashboard</h1>
+        <div className="space-y-2">
+          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-accent-ink">
+            Staff workspace
+          </p>
+          <h1 className="font-display text-4xl font-semibold text-ink">
+            Registrations Dashboard
+          </h1>
+        </div>
         <div className="flex flex-wrap items-center gap-3">
           <Button
             type="button"
@@ -375,11 +382,11 @@ const DashboardPage = () => {
                   </tr>
                 ) : (
                   pageRows.map((r) => (
-                    <tr key={r.id} className="border-b hover:bg-gray-50">
+                    <tr key={r.id} className="border-b border-[color:var(--line)] transition-colors hover:bg-surface-muted/80">
                       <td className="p-2">
                         <Link
                           href={`/dashboard/registrations/${r.id}`}
-                          className="text-blue-600 hover:underline"
+                          className="font-semibold text-ink underline-offset-4 hover:text-accent-ink hover:underline"
                           title={getTransportOptionLabel(
                             booleansToTransportOption(
                               r.pickup_melbourne_airport,

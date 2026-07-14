@@ -10,13 +10,20 @@ export const Alert = ({
   variant?: "info" | "warning" | "success" | "error"
 }) => {
   const variants = {
-    info: "border-blue-200 bg-blue-50 text-blue-900",
-    warning: "border-amber-200 bg-amber-50 text-amber-900",
-    success: "border-green-200 bg-green-50 text-green-900",
-    error: "border-red-200 bg-red-50 text-red-900",
+    info: "border-[color:rgba(29,79,114,0.25)] bg-[rgba(29,79,114,0.08)] text-[color:var(--info)]",
+    warning: "border-[color:rgba(138,90,18,0.28)] bg-[rgba(166,135,78,0.12)] text-[color:var(--warning)]",
+    success: "border-[color:rgba(31,107,74,0.25)] bg-[rgba(31,107,74,0.08)] text-[color:var(--success)]",
+    error: "border-[color:rgba(155,44,44,0.28)] bg-[rgba(155,44,44,0.08)] text-[color:var(--danger)]",
   }
   return (
-    <div className={cn("rounded-md border p-4 text-sm", variants[variant], className)} role="alert">
+    <div
+      className={cn(
+        "rounded-md border px-4 py-3 text-sm leading-relaxed animate-fade",
+        variants[variant],
+        className
+      )}
+      role="alert"
+    >
       {children}
     </div>
   )

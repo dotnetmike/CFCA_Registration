@@ -1,18 +1,21 @@
 import type { Metadata } from "next"
-import { Geist, Geist_Mono } from "next/font/google"
+import { Cormorant_Garamond, Source_Sans_3 } from "next/font/google"
 import { AuthProvider } from "@/lib/auth/context"
 import { SiteHeader } from "@/components/layout/site-header"
 import { RequireAuth } from "@/components/auth/require-auth"
 import "./globals.css"
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const sourceSans = Source_Sans_3({
+  variable: "--font-source-sans",
   subsets: ["latin"],
+  display: "swap",
 })
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const cormorant = Cormorant_Garamond({
+  variable: "--font-cormorant",
   subsets: ["latin"],
+  weight: ["500", "600", "700"],
+  display: "swap",
 })
 
 export const metadata: Metadata = {
@@ -22,10 +25,12 @@ export const metadata: Metadata = {
 
 const RootLayout = ({ children }: { children: React.ReactNode }) => (
   <html lang="en">
-    <body className={`${geistSans.variable} ${geistMono.variable} min-h-screen bg-gray-50 antialiased`}>
+    <body
+      className={`${sourceSans.variable} ${cormorant.variable} min-h-screen antialiased`}
+    >
       <AuthProvider>
         <SiteHeader />
-        <main className="mx-auto max-w-6xl px-4 py-8">
+        <main className="cfca-main">
           <RequireAuth>{children}</RequireAuth>
         </main>
       </AuthProvider>
