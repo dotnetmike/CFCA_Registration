@@ -34,7 +34,7 @@ Use [debugging.md](../operations/debugging.md). Common hotspots:
 
 | Area | Files |
 |------|-------|
-| Auth | `src/lib/auth/*`, `middleware.ts`, `src/app/api/auth/*` |
+| Auth | `src/lib/auth/*`, `src/proxy.ts`, `src/app/api/auth/*` |
 | Registration | `registration-form.tsx`, `schema.ts`, `service.ts`, `api/registrations/*` |
 | Payment | `payment/page.tsx`, `api/.../payment`, `api/payments/reconcile` |
 | Dashboard | `dashboard/page.tsx`, list cache, detail page |

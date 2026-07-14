@@ -11,7 +11,7 @@ CFCA_Registration/
 │   ├── components/        # UI by feature
 │   ├── hooks/
 │   ├── lib/               # Domain logic
-│   └── middleware.ts      # Auth gate for protected pages
+│   └── proxy.ts           # Auth gate for protected pages
 ├── supabase/migrations/   # Numbered SQL only
 ├── scripts/db/            # deploy runner
 └── .cursor/rules/         # AI always-on rules
@@ -28,7 +28,7 @@ CFCA_Registration/
 | Guest vs auth submit API | `src/app/api/registrations/route.ts` | `features.registration` |
 | Update registration / no-op | `src/app/api/registrations/[id]/route.ts`, `compare.ts` | `features.registration` |
 | Login / cookies | `src/app/api/auth/*`, `src/lib/auth/*` | `global.auth-security`, `features.login` |
-| Protected routes | `src/lib/auth/paths.ts`, `middleware.ts` | `global.layout-and-navigation` |
+| Protected routes | `src/lib/auth/paths.ts`, `src/proxy.ts` | `global.layout-and-navigation` |
 | Header Login/Register | `src/components/layout/site-header.tsx` | `global.layout-and-navigation` |
 | Dashboard submenu | `src/components/layout/dashboard-subnav.tsx` + site header dropdown | `features.dashboard` / layout |
 | User roles / groups | `src/app/dashboard/users/page.tsx`, `src/app/api/admin/users/route.ts`, `src/lib/auth/user-groups.ts` | `features.dashboard` |

@@ -40,7 +40,7 @@ const trySilentRefresh = async (request: NextRequest): Promise<NextResponse | nu
   return response
 }
 
-export const middleware = async (request: NextRequest) => {
+export const proxy = async (request: NextRequest) => {
   const { pathname } = request.nextUrl
   if (!isProtectedPath(pathname)) return NextResponse.next()
 

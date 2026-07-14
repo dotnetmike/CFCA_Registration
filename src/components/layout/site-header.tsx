@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useRef, useState, type KeyboardEvent } from "react"
+import { useEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useAuth } from "@/lib/auth/context"
@@ -60,7 +60,7 @@ export const SiteHeader = () => {
     setIsDashOpen((open) => !open)
   }
 
-  const handleDashKeyDown = (event: KeyboardEvent<HTMLButtonElement>) => {
+  const handleDashKeyDown = (event: ReactKeyboardEvent<HTMLButtonElement>) => {
     if (event.key === "ArrowDown" || event.key === "Enter" || event.key === " ") {
       event.preventDefault()
       setIsDashOpen(true)

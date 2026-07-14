@@ -8,7 +8,7 @@ Use this index to find the right document. Specs are the source of truth; keep `
 |----|------|------|
 | `global.theme-and-styles` | [theme-and-styles.md](./global/theme-and-styles.md) | CSS variables, Tailwind usage, fonts, colors |
 | `global.layout-and-navigation` | [layout-and-navigation.md](./global/layout-and-navigation.md) | Root layout, header, public vs protected nav |
-| `global.auth-security` | [auth-security.md](./global/auth-security.md) | JWT, cookies, middleware, protected paths |
+| `global.auth-security` | [auth-security.md](./global/auth-security.md) | JWT, cookies, proxy, protected paths |
 | `global.database` | [database.md](./global/database.md) | Migrations, deploy, key tables |
 
 ## Features

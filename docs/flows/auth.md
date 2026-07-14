@@ -74,7 +74,7 @@ sequenceDiagram
   end
 ```
 
-## Middleware gate
+## Proxy gate
 
 Protected prefixes: `/my-registration`, `/payment`, `/dashboard`, `/account`.
 
@@ -83,5 +83,5 @@ Unauthenticated → `/login?redirect=<path>`.
 ## Debug tips
 
 - 401 on API after login → check cookies + `JWT_SECRET` mismatch between processes
-- Redirect loop → `paths.ts` / middleware matcher vs public routes
+- Redirect loop → `paths.ts` / proxy matcher vs public routes
 - Audit: `auth.login`, `auth.login_failed`, `auth.logout`, `auth.signup`

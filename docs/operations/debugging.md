@@ -7,7 +7,7 @@ Use this when something “should work” but doesn’t. Prefer **reproduce → 
 ```mermaid
 flowchart TB
   UI[Browser UI / Network tab]
-  MW[middleware.ts]
+  MW[proxy.ts]
   API[App Router API route]
   Lib[src/lib domain]
   DB[(Postgres)]
@@ -19,7 +19,7 @@ flowchart TB
   Lib --> Ext
 ```
 
-Ask: Is it **UI state**, **auth/middleware**, **API validation**, **DB data**, or **external** (email/PDF)?
+Ask: Is it **UI state**, **auth/proxy**, **API validation**, **DB data**, or **external** (email/PDF)?
 
 ## Quick triage table
 
@@ -40,7 +40,7 @@ Ask: Is it **UI state**, **auth/middleware**, **API validation**, **DB data**, o
 
 1. Confirm cookies present (Application → Cookies) after login.
 2. Decode access JWT expiry (do not paste secrets into chat logs carelessly).
-3. Hit a protected page: middleware should redirect with `?redirect=`.
+3. Hit a protected page: proxy should redirect with `?redirect=`.
 4. Check audit: `auth.login` / `auth.login_failed`.
 
 Sequence reference: [flows/auth.md](../flows/auth.md).

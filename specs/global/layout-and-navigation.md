@@ -11,7 +11,7 @@ files:
   - src/components/layout/dashboard-subnav.tsx
   - src/components/auth/require-auth.tsx
   - src/lib/auth/paths.ts
-  - src/middleware.ts
+  - src/proxy.ts
 ---
 
 # Layout and navigation
@@ -33,7 +33,7 @@ Shell of every page: header, main content width, and which routes require login.
 
 ## Acceptance criteria
 
-- [ ] Unauthenticated users cannot open protected pages (middleware + RequireAuth)
+- [ ] Unauthenticated users cannot open protected pages (proxy + RequireAuth)
 - [ ] Logged-out header shows Login and Register (not Sign Up)
 - [ ] Brand link goes to `/`
 - [ ] Managers get a Dashboard submenu (header dropdown + in-dashboard subnav)

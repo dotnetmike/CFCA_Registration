@@ -1,6 +1,6 @@
 ---
 description: Supabase + Next.js integration — clients, auth, auto-migrations, seeding, env keys, and pitfalls
-globs: supabase/**/*,src/lib/supabase/**/*,src/lib/db/**/*,scripts/db/**/*,.env*,next.config.ts,src/middleware.ts,src/lib/auth/**/*
+globs: supabase/**/*,src/lib/supabase/**/*,src/lib/db/**/*,scripts/db/**/*,.env*,next.config.ts,src/proxy.ts,src/lib/auth/**/*
 alwaysApply: false
 ---
 
@@ -33,7 +33,7 @@ SEED_ADMIN_PASSWORD="your-password"
 - `client.ts` — `createBrowserClient` via `@supabase/ssr`
 - `server.ts` — `createServerClient` with cookies (Server Components / actions)
 - `admin.ts` — `createClient(url, serviceRoleKey)` for seeds and admin APIs
-- `middleware.ts` — session refresh; read env directly (no throw if missing during edge init)
+- `proxy.ts` — session refresh; read env directly (no throw if missing during edge init)
 
 ```typescript
 // admin.ts — server-only
@@ -47,7 +47,7 @@ export const createAdminClient = () =>
 
 - Use **server actions** or route handlers with `createClient()` from `server.ts`
 - Normalize email: `email.trim().toLowerCase()` on sign-in/sign-up
-- Role lives in `public.profiles.role`; middleware redirects `/dashboard` by role
+- Role lives in `public.profiles.role`; proxy redirects `/dashboard` by role
 - **Admin seed:** always call `admin.updateUserById` with `password` when user already exists (otherwise login fails after password change in `.env`)
 
 ## Auto-migration system (required pattern)

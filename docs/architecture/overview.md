@@ -31,7 +31,7 @@ flowchart TB
     UI[React pages / components]
   end
   subgraph Next["Next.js 16 App Router"]
-    MW[middleware.ts]
+    Proxy[src/proxy.ts]
     Pages[app/*/page.tsx]
     API[app/api/*/route.ts]
     Lib[src/lib domain]
@@ -42,7 +42,7 @@ flowchart TB
   end
   UI --> Pages
   UI --> API
-  Pages --> MW
+  Pages --> Proxy
   API --> Lib
   Lib --> PG
   Lib --> Storage

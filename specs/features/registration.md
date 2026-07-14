@@ -80,7 +80,7 @@ Single continuous conference registration page. Guests complete without login; l
 ### Participant emails (`src/lib/email/send.ts`)
 
 - **Submitted** (`registration_submitted`): full registration summary + magic-link view URL (`/r/{token}`).
-- **Updated** (`registration_updated` / `accommodation_updated`): full registration summary including accommodation name/address and accommodation/transport contacts when set; includes a portal link to `/my-registration` (login required via middleware redirect).
+- **Updated** (`registration_updated` / `accommodation_updated`): full registration summary including accommodation name/address and accommodation/transport contacts when set; includes a portal link to `/my-registration` (login required via proxy redirect).
 - Accommodation/transport contact lines appear only when applicable (values present / transport flags).
 
 ## Acceptance criteria
