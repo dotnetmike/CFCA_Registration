@@ -77,6 +77,12 @@ Single continuous conference registration page. Guests complete without login; l
 - Public POST rate-limited; unique email enforced.
 - Authenticated PUT; unchanged payloads return `unchanged: true`.
 
+### Participant emails (`src/lib/email/send.ts`)
+
+- **Submitted** (`registration_submitted`): full registration summary + magic-link view URL (`/r/{token}`).
+- **Updated** (`registration_updated` / `accommodation_updated`): full registration summary including accommodation name/address and accommodation/transport contacts when set; includes a portal link to `/my-registration` (login required via middleware redirect).
+- Accommodation/transport contact lines appear only when applicable (values present / transport flags).
+
 ## Acceptance criteria
 
 - [ ] Continuous single-page registration
@@ -84,10 +90,13 @@ Single continuous conference registration page. Guests complete without login; l
 - [ ] Love In Action proceeds note shown
 - [ ] Souvenir total included in amount due
 - [ ] No-op saves do not write empty audits
+- [ ] Update notification emails include full registration details and contacts when applicable
+- [ ] Update emails include a link that leads to My Registration after login
 
 ## Related specs
 
 - `features.dashboard`
 - `features.payment`
 - `features.registration-complete`
+- `features.my-registration`
 - `global.database`

@@ -6,6 +6,7 @@ import { hashPassword } from "@/lib/auth/tokens"
 import { normalizeEmail } from "@/lib/utils"
 import { revokeAllSessions } from "@/lib/auth/session"
 import { writeAuditLog } from "@/lib/audit/log"
+import { USER_GROUP_NAMES, type UserGroupName } from "@/lib/auth/user-groups"
 
 export const GET = async (request: NextRequest) => {
   const auth = await requireAuth(request)
@@ -36,11 +37,22 @@ export const GET = async (request: NextRequest) => {
   return NextResponse.json({ users: mapped })
 }
 
+const groupNameSchema = z.enum(
+  USER_GROUP_NAMES as [UserGroupName, ...UserGroupName[]]
+)
+
 const createUserSchema = z.object({
   email: z.string().email(),
   name: z.string().min(1),
   password: z.string().min(8),
-  groups: z.array(z.string()).min(1),
+  groups: z.array(groupNameSchema).min(1),
+})
+
+const updateUserSchema = z.object({
+  userId: z.string().uuid(),
+  password: z.string().min(8).optional(),
+  is_active: z.boolean().optional(),
+  groups: z.array(groupNameSchema).min(1).optional(),
 })
 
 export const POST = async (request: NextRequest) => {
@@ -105,10 +117,10 @@ export const PATCH = async (request: NextRequest) => {
   if (forbidden) return forbidden
 
   const body = await request.json().catch(() => null)
-  const { userId, password, groups, is_active } = body ?? {}
+  const parsed = updateUserSchema.safeParse(body)
+  if (!parsed.success) return jsonError("Invalid user update data")
 
-  if (!userId) return jsonError("userId required")
-
+  const { userId, password, groups, is_active } = parsed.data
   const admin = createAdminClient()
 
   const { data: existingUser } = await admin
@@ -117,41 +129,47 @@ export const PATCH = async (request: NextRequest) => {
     .eq("id", userId)
     .maybeSingle()
 
-  const previousValue = existingUser
-    ? {
-        email: existingUser.email,
-        name: existingUser.name,
-        is_active: existingUser.is_active,
-        groups: ((existingUser.user_user_groups as unknown as { user_groups: { name: string } | null }[]) ?? [])
-          .map((g) => g.user_groups?.name)
-          .filter((name): name is string => !!name),
-      }
-    : null
+  if (!existingUser) return jsonError("User not found", 404)
+
+  const previousValue = {
+    email: existingUser.email,
+    name: existingUser.name,
+    is_active: existingUser.is_active,
+    groups: ((existingUser.user_user_groups as unknown as { user_groups: { name: string } | null }[]) ?? [])
+      .map((g) => g.user_groups?.name)
+      .filter((name): name is string => !!name),
+  }
 
   const updatedValue: Record<string, unknown> = { ...previousValue }
+  let shouldRevokeSessions = false
 
   if (password) {
     const passwordHash = await hashPassword(password)
     await admin.from("users").update({ password_hash: passwordHash }).eq("id", userId)
-    await revokeAllSessions(userId)
+    shouldRevokeSessions = true
     updatedValue.password_changed = true
   }
 
   if (typeof is_active === "boolean") {
     await admin.from("users").update({ is_active }).eq("id", userId)
-    if (!is_active) await revokeAllSessions(userId)
+    if (!is_active) shouldRevokeSessions = true
     updatedValue.is_active = is_active
   }
 
-  if (groups && Array.isArray(groups)) {
+  if (groups) {
     await admin.from("user_user_groups").delete().eq("user_id", userId)
     const { data: groupRows } = await admin.from("user_groups").select("id, name").in("name", groups)
-    if (groupRows) {
+    if (groupRows && groupRows.length > 0) {
       await admin.from("user_user_groups").insert(
         groupRows.map((g) => ({ user_id: userId, group_id: g.id }))
       )
     }
     updatedValue.groups = groups
+    shouldRevokeSessions = true
+  }
+
+  if (shouldRevokeSessions) {
+    await revokeAllSessions(userId)
   }
 
   await writeAuditLog({

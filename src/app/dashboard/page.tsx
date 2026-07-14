@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
+import { DashboardSubnav } from "@/components/layout/dashboard-subnav"
 import { formatCurrency } from "@/lib/pricing/calculate"
 import { AUSTRALIAN_STATES } from "@/lib/registrations/schema"
 import {
@@ -221,21 +222,10 @@ const DashboardPage = () => {
 
   return (
     <div className="space-y-6">
+      <DashboardSubnav />
       <div className="flex flex-wrap items-center justify-between gap-4">
         <h1 className="text-3xl font-bold">Registrations Dashboard</h1>
         <div className="flex flex-wrap items-center gap-3">
-          <nav className="flex gap-4 text-sm">
-            <Link href="/dashboard/reports" className="text-blue-600 hover:underline">Reports</Link>
-            {user?.permissions.includes("payments:reconcile") && (
-              <Link href="/dashboard/payments/reconcile" className="text-blue-600 hover:underline">Payment Reconcile</Link>
-            )}
-            {user?.permissions.includes("users:manage") && (
-              <>
-                <Link href="/dashboard/users" className="text-blue-600 hover:underline">Users</Link>
-                <Link href="/dashboard/audit" className="text-blue-600 hover:underline">Audit Log</Link>
-              </>
-            )}
-          </nav>
           <Button
             type="button"
             variant="outline"

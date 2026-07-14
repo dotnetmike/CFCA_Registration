@@ -1,10 +1,10 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/lib/auth/context"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { DashboardSubnav } from "@/components/layout/dashboard-subnav"
 
 type AuditLogRow = {
   id: string
@@ -52,12 +52,8 @@ const AuditLogPage = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold">Audit Log</h1>
-        <Link href="/dashboard" className="text-sm text-blue-600 hover:underline">
-          Back to Dashboard
-        </Link>
-      </div>
+      <DashboardSubnav />
+      <h1 className="text-3xl font-bold">Audit Log</h1>
 
       <Card>
         <CardHeader>

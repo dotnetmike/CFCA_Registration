@@ -58,6 +58,8 @@ export type RegistrationEmailRecord = {
   departure_flight_no?: string
   hotel_name?: string
   hotel_address?: string
+  accommodation_contact_name?: string
+  accommodation_contact_phone?: string
   pickup_transport_contact_name?: string
   pickup_transport_contact_phone?: string
   dropoff_transport_contact_name?: string
@@ -68,6 +70,12 @@ export type RegistrationEmailRecord = {
   payment_status: string
   attendees?: AttendeeRow[]
   registration_attendees?: AttendeeRow[]
+}
+
+type DetailEmailOptions = {
+  introLines: string[]
+  viewUrl?: string
+  portalUrl?: string
 }
 
 const getResend = () => {
@@ -109,7 +117,12 @@ const formatAttendees = (reg: RegistrationEmailRecord) => {
     .join("\n")
 }
 
-const buildSubmittedDetails = (reg: RegistrationEmailRecord, viewUrl?: string) => {
+const hasText = (value?: string | null) => Boolean(value && value.trim())
+
+const buildFullRegistrationDetails = (
+  reg: RegistrationEmailRecord,
+  options: DetailEmailOptions
+) => {
   const name = `${reg.given_name} ${reg.surname}`.trim()
   const ref = paymentRef(reg)
   const transport = booleansToTransportOption(
@@ -117,14 +130,13 @@ const buildSubmittedDetails = (reg: RegistrationEmailRecord, viewUrl?: string) =
     reg.dropoff_melbourne_airport
   )
   const position = reg.cfca_position
-    ? CFCA_POSITION_LABELS[reg.cfca_position as keyof typeof CFCA_POSITION_LABELS] ?? reg.cfca_position
+    ? CFCA_POSITION_LABELS[reg.cfca_position as keyof typeof CFCA_POSITION_LABELS] ??
+      reg.cfca_position
     : "—"
 
-  const lines = [
-    `Dear ${name},`,
-    "",
-    "Thank you for registering for the CFCA Conference. Here is a summary of your registration:",
-    "",
+  const lines = [...options.introLines, ""]
+
+  lines.push(
     "=== Registration ===",
     `Registration No: ${reg.registration_no}`,
     `Unique Code: ${ref}`,
@@ -132,12 +144,14 @@ const buildSubmittedDetails = (reg: RegistrationEmailRecord, viewUrl?: string) =
     `Email: ${reg.email}`,
     `Mobile: ${reg.mobile ?? "—"}`,
     `Conference State: ${reg.state ?? "—"}`,
-    `CFCA Position: ${position}`,
-  ]
+    `CFCA Position: ${position}`
+  )
 
   if (reg.address_line1 || reg.suburb || reg.postcode) {
     lines.push(
-      `Address: ${[reg.address_line1, reg.suburb, reg.address_state, reg.postcode].filter(Boolean).join(", ")}`
+      `Address: ${[reg.address_line1, reg.suburb, reg.address_state, reg.postcode]
+        .filter(Boolean)
+        .join(", ")}`
     )
   }
 
@@ -149,7 +163,7 @@ const buildSubmittedDetails = (reg: RegistrationEmailRecord, viewUrl?: string) =
 
   if (reg.spouse_attending) {
     lines.push(
-      `Spouse name: ${reg.spouse_given_name ?? ""} ${reg.spouse_surname ?? ""}`.trim(),
+      `Spouse name: ${`${reg.spouse_given_name ?? ""} ${reg.spouse_surname ?? ""}`.trim()}`,
       `Spouse email: ${reg.spouse_email || "—"}`,
       `Spouse mobile: ${reg.spouse_mobile || "—"}`
     )
@@ -164,29 +178,49 @@ const buildSubmittedDetails = (reg: RegistrationEmailRecord, viewUrl?: string) =
     `Transport: ${getTransportOptionLabel(transport)}`
   )
 
+  if (hasText(reg.hotel_name) || hasText(reg.hotel_address)) {
+    lines.push(
+      `Accommodation name: ${reg.hotel_name || "—"}`,
+      `Accommodation address: ${reg.hotel_address || "—"}`
+    )
+  }
+
+  if (hasText(reg.accommodation_contact_name) || hasText(reg.accommodation_contact_phone)) {
+    lines.push(
+      `Accommodation contact: ${reg.accommodation_contact_name || "—"} (${reg.accommodation_contact_phone || "—"})`
+    )
+  }
+
   if (reg.pickup_melbourne_airport) {
     lines.push(
       `Arrival date: ${reg.arrival_date || "—"}`,
       `Arrival airport: ${reg.arrival_airport || "—"}`,
-      `Arrival flight: ${reg.arrival_flight_no || "—"}`,
-      `Pickup contact: ${reg.pickup_transport_contact_name || "—"} (${reg.pickup_transport_contact_phone || "—"})`
+      `Arrival flight: ${reg.arrival_flight_no || "—"}`
     )
+    if (
+      hasText(reg.pickup_transport_contact_name) ||
+      hasText(reg.pickup_transport_contact_phone)
+    ) {
+      lines.push(
+        `Pickup transport contact: ${reg.pickup_transport_contact_name || "—"} (${reg.pickup_transport_contact_phone || "—"})`
+      )
+    }
   }
 
   if (reg.dropoff_melbourne_airport) {
     lines.push(
       `Departure date: ${reg.departure_date || "—"}`,
       `Departure airport: ${reg.departure_airport || "—"}`,
-      `Departure flight: ${reg.departure_flight_no || "—"}`,
-      `Drop-off contact: ${reg.dropoff_transport_contact_name || "—"} (${reg.dropoff_transport_contact_phone || "—"})`
+      `Departure flight: ${reg.departure_flight_no || "—"}`
     )
-  }
-
-  if (reg.hotel_name || reg.hotel_address) {
-    lines.push(
-      `Accommodation name: ${reg.hotel_name || "—"}`,
-      `Accommodation address: ${reg.hotel_address || "—"}`
-    )
+    if (
+      hasText(reg.dropoff_transport_contact_name) ||
+      hasText(reg.dropoff_transport_contact_phone)
+    ) {
+      lines.push(
+        `Drop-off transport contact: ${reg.dropoff_transport_contact_name || "—"} (${reg.dropoff_transport_contact_phone || "—"})`
+      )
+    }
   }
 
   if (hasSouvenirPreOrder(reg.souvenir_orders)) {
@@ -202,39 +236,77 @@ const buildSubmittedDetails = (reg: RegistrationEmailRecord, viewUrl?: string) =
     "",
     "=== Payment ===",
     `Amount Due: ${formatCurrency(Number(reg.amount_due))}`,
+    `Amount Paid: ${formatCurrency(Number(reg.amount_paid))}`,
     `Status: ${reg.payment_status}`,
     "",
     `IMPORTANT: Include your Unique Code (${ref}) in both Message and Ref. when paying via your bank app.`,
     ""
   )
 
-  if (viewUrl) {
+  if (options.viewUrl) {
     lines.push(
       "View your registration details (no login required):",
-      viewUrl,
+      options.viewUrl,
       "",
       "To edit your registration later, create an account or log in on the registration portal.",
       ""
     )
   }
 
-  lines.push("If you have already paid and receive this in error, please contact the registration team.")
+  if (options.portalUrl) {
+    lines.push(
+      "View your registration online (log in required):",
+      options.portalUrl,
+      "",
+      "If you do not have an account yet, create one using the same email as this registration, then open the link again.",
+      ""
+    )
+  }
+
+  lines.push(
+    "If you have already paid and receive this in error, please contact the registration team."
+  )
 
   return lines.join("\n")
 }
 
-const buildBody = (type: EmailType, reg: RegistrationEmailRecord, viewUrl?: string) => {
+const buildBody = (
+  type: EmailType,
+  reg: RegistrationEmailRecord,
+  links: { viewUrl?: string; portalUrl?: string }
+) => {
   const name = `${reg.given_name} ${reg.surname}`.trim()
   const ref = paymentRef(reg)
   const base = `Dear ${name},\n\n`
 
   switch (type) {
     case "registration_submitted":
-      return buildSubmittedDetails(reg, viewUrl)
+      return buildFullRegistrationDetails(reg, {
+        introLines: [
+          `Dear ${name},`,
+          "",
+          "Thank you for registering for the CFCA Conference. Here is a summary of your registration:",
+        ],
+        viewUrl: links.viewUrl,
+      })
     case "registration_updated":
-      return `${base}Your registration (${ref}) has been updated. Please review your details on the registration portal.`
+      return buildFullRegistrationDetails(reg, {
+        introLines: [
+          `Dear ${name},`,
+          "",
+          `Your registration (${ref}) has been updated. Please review the full details below.`,
+        ],
+        portalUrl: links.portalUrl,
+      })
     case "accommodation_updated":
-      return `${base}Your transport and accommodation details (${ref}) have been updated.`
+      return buildFullRegistrationDetails(reg, {
+        introLines: [
+          `Dear ${name},`,
+          "",
+          `Your transport and/or accommodation details (${ref}) have been updated. Please review the full details below.`,
+        ],
+        portalUrl: links.portalUrl,
+      })
     case "payment_received":
       return `${base}We have received your payment for registration ${ref}.
 
@@ -254,17 +326,22 @@ export const sendRegistrationEmail = async (
   type: EmailType,
   options?: { viewToken?: string }
 ) => {
+  const siteUrl = getSiteUrl()
   const viewUrl = options?.viewToken
-    ? `${getSiteUrl()}/r/${encodeURIComponent(options.viewToken)}`
+    ? `${siteUrl}/r/${encodeURIComponent(options.viewToken)}`
     : undefined
+  const portalUrl = `${siteUrl}/my-registration`
 
   const resend = getResend()
   const subject = buildSubject(type, registration)
-  const body = buildBody(type, registration, viewUrl)
+  const body = buildBody(type, registration, { viewUrl, portalUrl })
 
   if (!resend) {
     console.log(`[email] (dev) ${type} to ${registration.email}: ${subject}`)
     if (viewUrl) console.log(`[email] (dev) view link: ${viewUrl}`)
+    if (type === "registration_updated" || type === "accommodation_updated") {
+      console.log(`[email] (dev) portal link: ${portalUrl}`)
+    }
     await logEmail(registration, type, registration.email, subject, null)
     return
   }

@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert } from "@/components/ui/alert"
+import { DashboardSubnav } from "@/components/layout/dashboard-subnav"
 import { formatCurrency } from "@/lib/pricing/calculate"
 import {
   AUSTRALIAN_STATES,
@@ -386,10 +387,11 @@ const RegistrationDetailPage = () => {
 
   return (
     <div className="space-y-6">
+      <DashboardSubnav />
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-4">
           <Link href="/dashboard" className="text-blue-600 hover:underline">
-            ← Back
+            ← Back to list
           </Link>
           <h1 className="text-2xl font-bold">{str("registration_no")}</h1>
         </div>

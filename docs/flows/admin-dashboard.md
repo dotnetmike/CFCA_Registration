@@ -53,9 +53,33 @@ Empty registration updates should **not** write rows (no-op guards).
 | Reconcile / manual payment | `payments:reconcile` (and/or write_all) |
 | Users + audit UI | `users:manage` |
 
+## Navigation submenu
+
+```mermaid
+flowchart LR
+  Header[Header Dashboard dropdown]
+  Subnav[DashboardSubnav on /dashboard pages]
+  Header --> Reg[/dashboard]
+  Header --> Reports[/dashboard/reports]
+  Header --> Recon[/dashboard/payments/reconcile]
+  Header --> Users[/dashboard/users]
+  Header --> Audit[/dashboard/audit]
+  Subnav --> Reg
+  Subnav --> Reports
+  Subnav --> Recon
+  Subnav --> Users
+  Subnav --> Audit
+```
+
+Role editor: Users page → Edit roles → `PATCH /api/admin/users` → audit `user.update` + revoke sessions.
+
 ## Key files
 
+- `src/components/layout/dashboard-subnav.tsx`
+- `src/components/layout/site-header.tsx`
 - `src/app/dashboard/page.tsx`
+- `src/app/dashboard/users/page.tsx`
+- `src/lib/auth/user-groups.ts`
 - `src/lib/dashboard/registrations-list-cache.ts`
 - `src/app/dashboard/registrations/[id]/page.tsx`
 - `src/app/dashboard/audit/page.tsx`

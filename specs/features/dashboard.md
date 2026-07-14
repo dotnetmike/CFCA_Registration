@@ -3,20 +3,23 @@ id: features.dashboard
 title: Manager dashboard
 status: active
 synced_commit: working-tree
-synced_at: 2026-07-13
+synced_at: 2026-07-14
 owners: [team]
 files:
   - src/app/dashboard/page.tsx
+  - src/components/layout/dashboard-subnav.tsx
   - src/lib/dashboard/registrations-list-cache.ts
   - src/app/dashboard/users/page.tsx
   - src/app/dashboard/reports/page.tsx
   - src/app/dashboard/payments/reconcile/page.tsx
   - src/app/dashboard/registrations/[id]/page.tsx
+  - src/app/dashboard/audit/page.tsx
   - src/app/api/admin/users/route.ts
   - src/app/api/admin/reports/route.ts
   - src/app/api/payments/reconcile/route.ts
   - src/app/api/registrations/[id]/payment/route.ts
   - src/app/api/registrations/[id]/notes/route.ts
+  - src/lib/auth/user-groups.ts
 ---
 
 # Manager dashboard
@@ -28,7 +31,14 @@ Staff tools: list registrations, users, reports, payment reconcile.
 ## Behavior
 
 - Protected; non-managers redirected away.
-- Nav links: Reports, Payment Reconcile (permission), Users + Audit Log (`users:manage`).
+- **Dashboard submenu** (`DashboardSubnav`) appears on all `/dashboard/**` staff pages for consistent navigation:
+  - Registrations (`/dashboard`)
+  - Reports (`/dashboard/reports`)
+  - Payment Reconcile (`/dashboard/payments/reconcile`) when `payments:reconcile`
+  - Users (`/dashboard/users`) when `users:manage`
+  - Audit Log (`/dashboard/audit`) when `users:manage`
+- Active item is highlighted from the current path.
+- Site header also exposes a **Dashboard** dropdown submenu (managers) with the same permission-gated links.
 - Registration list searchable; detail at `/dashboard/registrations/[id]`.
 - **Filters** on the list: payment status, accommodation required, transpo required, state, **souvenir pre-order** (combinable with search). Filters apply to the **full** loaded set, then results are paginated.
 - **Paging**: default **100** rows per page; prev/next and page indicator.
@@ -38,6 +48,13 @@ Staff tools: list registrations, users, reports, payment reconcile.
   - **Transpo required** (none / pickup / dropoff / both, from airport flags)
   - **Accommodation contact** (name + phone)
   - **Transpo contact** (pickup and/or dropoff name + phone)
+
+### User management (`/dashboard/users`, `users:manage`)
+
+- Admins can create users and assign one or more **roles/groups**: `admin`, `registration_manager`, `accommodation_manager`, `participant`.
+- Admins can **update an existing user’s roles** via `PATCH /api/admin/users` (`userId` + `groups`).
+- Role changes are audited (`user.update`) and **revoke all sessions** for that user so new permissions apply on next login.
+- UI: per-user role editor (checkboxes) with Save; loading disables the trigger.
 
 ### Registration detail (`/dashboard/registrations/[id]`)
 
@@ -75,11 +92,15 @@ Staff tools: list registrations, users, reports, payment reconcile.
 - [ ] Dashboard pages at 100 per page; filters apply before paging
 - [ ] List cache with TTL/cap and force-refresh control
 - [ ] Filter for registrants who pre-ordered souvenirs
+- [ ] Admin can update user roles/groups from Users page
+- [ ] Role update is audited and revokes target user sessions
+- [ ] Dashboard submenu (and header Dashboard dropdown) for staff navigation
 
 ## Related specs
 
 - `features.audit`
 - `features.payment`
 - `global.auth-security`
+- `global.layout-and-navigation`
 - `features.registration`
 - `global.database`

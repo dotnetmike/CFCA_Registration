@@ -58,6 +58,25 @@ flowchart LR
   LoginOrSignup -->|no| Signup[/signup?email=]
 ```
 
+## Update notification email
+
+```mermaid
+sequenceDiagram
+  actor S as Staff / participant save
+  participant API as PUT /api/registrations/id
+  participant Mail as registration_updated email
+  actor P as Participant
+  participant Portal as /my-registration
+  S->>API: save changes
+  API->>Mail: full details + portal link
+  Mail->>P: email with accommodation/transpo contacts
+  P->>Portal: click link
+  alt not logged in
+    Portal-->>P: /login?redirect=/my-registration
+  end
+  P->>Portal: after login see registration
+```
+
 ## Amount due composition
 
 ```mermaid

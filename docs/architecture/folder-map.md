@@ -30,6 +30,8 @@ CFCA_Registration/
 | Login / cookies | `src/app/api/auth/*`, `src/lib/auth/*` | `global.auth-security`, `features.login` |
 | Protected routes | `src/lib/auth/paths.ts`, `middleware.ts` | `global.layout-and-navigation` |
 | Header Login/Register | `src/components/layout/site-header.tsx` | `global.layout-and-navigation` |
+| Dashboard submenu | `src/components/layout/dashboard-subnav.tsx` + site header dropdown | `features.dashboard` / layout |
+| User roles / groups | `src/app/dashboard/users/page.tsx`, `src/app/api/admin/users/route.ts`, `src/lib/auth/user-groups.ts` | `features.dashboard` |
 | Payment page | `src/app/payment/page.tsx` | `features.payment` |
 | Manual payment / notes | `src/app/api/registrations/[id]/payment`, `.../notes` | `features.dashboard` |
 | Reconcile | `src/app/api/payments/reconcile/route.ts` | `features.dashboard` |

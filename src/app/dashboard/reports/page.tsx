@@ -2,12 +2,12 @@
 
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
-import Link from "next/link"
 import { useAuth } from "@/lib/auth/context"
 import { isManager } from "@/lib/auth/permissions-client"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { useBusyCursor } from "@/hooks/use-busy-cursor"
 import { Button } from "@/components/ui/button"
+import { DashboardSubnav } from "@/components/layout/dashboard-subnav"
 
 type Summary = Record<string, { attendees: number; spouses: number; kids: number; registrations: number }>
 
@@ -60,10 +60,8 @@ const ReportsPage = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold">Reports</h1>
-        <Link href="/dashboard" className="text-blue-600 hover:underline">← Dashboard</Link>
-      </div>
+      <DashboardSubnav />
+      <h1 className="text-3xl font-bold">Reports</h1>
 
       <Card>
         <CardHeader>

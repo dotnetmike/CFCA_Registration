@@ -2,12 +2,12 @@
 
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
-import Link from "next/link"
 import { useAuth } from "@/lib/auth/context"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { useBusyCursor } from "@/hooks/use-busy-cursor"
 import { Button } from "@/components/ui/button"
 import { Alert } from "@/components/ui/alert"
+import { DashboardSubnav } from "@/components/layout/dashboard-subnav"
 
 type ReconcileResult = {
   statementId: string
@@ -56,10 +56,8 @@ const ReconcilePage = () => {
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold">Payment Reconciliation</h1>
-        <Link href="/dashboard" className="text-blue-600 hover:underline">← Dashboard</Link>
-      </div>
+      <DashboardSubnav />
+      <h1 className="text-3xl font-bold">Payment Reconciliation</h1>
 
       <Card>
         <CardHeader>
