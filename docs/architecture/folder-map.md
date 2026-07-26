@@ -41,7 +41,7 @@ CFCA_Registration/
 | Admin detail | `src/app/dashboard/registrations/[id]/page.tsx` | `features.dashboard` |
 | Audit write / UI | `src/lib/audit/*`, `src/app/dashboard/audit` | `features.audit` |
 | Email content | `src/lib/email/send.ts` | related feature + registration |
-| Schema | `supabase/migrations/0xx_*.sql` | `global.database` |
+| Server DB client | `src/lib/supabase/admin.ts` (service role) | `global.database` / auth-security |
 
 ## API surface (App Router)
 

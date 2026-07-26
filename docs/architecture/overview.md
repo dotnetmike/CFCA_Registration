@@ -102,7 +102,7 @@ sequenceDiagram
 ## Design principles used here
 
 1. **Spec-first** product changes (`specs/` then code).
-2. **Authorization in API** (service-role Supabase; RLS disabled on app tables).
+2. **Authorization in API** (service-role Supabase; RLS on + no anon/authenticated table grants).
 3. **Audit sensitive mutations** (`audit_log`).
 4. **Unique Code** for payment matching (`participant_reference`).
 5. **No-op saves skipped** (client + server) to avoid empty audits.

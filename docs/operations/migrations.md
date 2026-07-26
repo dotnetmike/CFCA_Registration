@@ -36,7 +36,7 @@ sequenceDiagram
 | `002_registrations.sql` | Registrations + attendees |
 | `003_payments.sql` | Payments + bank tables |
 | `004_storage.sql` | Storage buckets |
-| `005_rls_grants.sql` | Grants / RLS |
+| `005_rls_grants.sql` | Historical open grants (superseded by `013`) |
 | `006_participant_reference.sql` | Unique Code |
 | `007_password_reset_and_audit.sql` | Reset + audit_log |
 | `008_public_registration.sql` | Guest registration support |
@@ -44,6 +44,7 @@ sequenceDiagram
 | `010_transport_contacts.sql` | Pickup/dropoff contacts |
 | `011_payment_attribution_and_notes.sql` | Attribution + admin notes |
 | `012_souvenir_orders.sql` | `souvenir_orders` JSONB |
+| `013_enable_rls_revoke_anon.sql` | Enable RLS; revoke anon/authenticated Data API grants |
 
 Re-check the folder when onboarding — this table can lag; **filesystem is authoritative**.
 
@@ -52,6 +53,7 @@ Re-check the folder when onboarding — this table can lag; **filesystem is auth
 - **Never** edit an already-applied migration on a shared database; add a new file.
 - Keep SQL idempotent where practical (`IF NOT EXISTS`).
 - Document enums / check constraints in the SQL file comments if non-obvious.
+- **Always enable RLS** on new `public` tables. Do not grant `anon` / `authenticated` table access. App DB access goes through the server **service role** client.
 
 ## Rollback mindset
 
@@ -63,4 +65,5 @@ There is no automatic down-migration. For production mistakes:
 ## Debug tips
 
 - Column missing in runtime → migration not applied or wrong project URL.
-- Permission denied on table → `005_rls_grants.sql` / service role vs anon misuse (app should use service role on server).
+- Permission denied / empty results after RLS harden → confirm `SUPABASE_SERVICE_ROLE_KEY` is set and `admin.ts` uses service role (not publishable/anon).
+- `rls_disabled_in_public` advisor alert → a new table was created without `ENABLE ROW LEVEL SECURITY`.

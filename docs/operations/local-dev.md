@@ -19,7 +19,7 @@ Required for a useful local run:
 | Variable | Why |
 |----------|-----|
 | `NEXT_PUBLIC_SUPABASE_URL` | DB + storage |
-| `SUPABASE_SERVICE_ROLE_KEY` | Server DB writes |
+| `SUPABASE_SERVICE_ROLE_KEY` | Server DB writes (must be the project **secret** / `service_role` key from Dashboard → API Keys — a stale key returns `Invalid API key`) |
 | `SUPABASE_ACCESS_TOKEN` | `npm run db:deploy` |
 | `JWT_ACCESS_SECRET` / `JWT_REFRESH_SECRET` | Auth cookies |
 | `SEED_ADMIN_EMAIL` / `SEED_ADMIN_PASSWORD` | First staff login |
