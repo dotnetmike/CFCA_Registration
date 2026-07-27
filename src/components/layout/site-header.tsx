@@ -90,18 +90,36 @@ export const SiteHeader = () => {
     : []
 
   const visibleDashLinks = dashLinks.filter((link) => link.show)
+  const isRegistrationPage = pathname === "/" || pathname === "/register"
 
   return (
-    <header className="sticky top-0 z-40 border-b border-[color:var(--line)] bg-mist/80 backdrop-blur-xl animate-fade">
-      <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3.5 md:py-4">
-        <Link href="/" className="cfca-brand-mark group" aria-label="CFCA Conference Home">
-          <span className="cfca-brand-mark__primary transition-colors group-hover:text-ink-soft">
-            CFCA
+    <header className="sticky top-0 z-40 border-b border-[color:var(--line)] bg-white/95 backdrop-blur-xl animate-fade">
+      <div className="mx-auto grid max-w-6xl grid-cols-[minmax(0,1.35fr)_auto_minmax(0,1fr)] items-center gap-3 px-4 py-3 md:gap-6 md:py-3.5">
+        <Link
+          href="/"
+          className="cfca-brand-mark group justify-self-start"
+          aria-label="Couples for Christ Australia — Conference Registration home"
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/brand/cfca-australia-mark.png"
+            alt=""
+            width={108}
+            height={113}
+            className="cfca-brand-mark__icon transition-opacity group-hover:opacity-90"
+          />
+          <span className="cfca-brand-mark__text">
+            <span className="cfca-brand-mark__primary">Couples for Christ</span>
+            <span className="cfca-brand-mark__secondary">Australia</span>
           </span>
-          <span className="cfca-brand-mark__secondary">Conference Registration</span>
         </Link>
+
+        <p className="cfca-header-title">
+          Conference Registration
+        </p>
+
         <nav
-          className="flex flex-wrap items-center justify-end gap-x-5 gap-y-2"
+          className="flex flex-wrap items-center justify-end gap-x-5 gap-y-2 justify-self-end"
           aria-label="Main navigation"
         >
           {!isLoading && user ? (
@@ -182,7 +200,7 @@ export const SiteHeader = () => {
                 Logout
               </Button>
             </>
-          ) : (
+          ) : !isRegistrationPage ? (
             <>
               <Link
                 href="/login"
@@ -197,7 +215,7 @@ export const SiteHeader = () => {
                 </Button>
               </Link>
             </>
-          )}
+          ) : null}
         </nav>
       </div>
     </header>

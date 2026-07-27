@@ -20,6 +20,7 @@ files:
   - src/app/dashboard/audit/page.tsx
   - src/app/api/admin/users/route.ts
   - src/app/api/admin/reports/route.ts
+  - src/lib/dashboard/reports-csv.ts
   - src/app/api/admin/audit-log/route.ts
   - src/app/api/payments/reconcile/route.ts
   - src/app/api/registrations/[id]/payment/route.ts

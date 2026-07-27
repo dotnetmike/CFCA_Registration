@@ -13,6 +13,12 @@ import {
   souvenirTotalAmount,
 } from "@/lib/registrations/souvenirs"
 import { getSiteUrl } from "@/lib/site-url"
+import {
+  paragraphHtml,
+  renderEmail,
+  getEmailLogoAttachment,
+  assertEmailIncludesLogo,
+} from "@/lib/email/template"
 
 type EmailType =
   | "registration_submitted"
@@ -78,6 +84,11 @@ type DetailEmailOptions = {
   portalUrl?: string
 }
 
+type EmailSection = {
+  title: string
+  rows: { label: string; value: string }[]
+}
+
 const getResend = () => {
   const key = process.env.RESEND_API_KEY
   if (!key) return null
@@ -118,6 +129,152 @@ const formatAttendees = (reg: RegistrationEmailRecord) => {
 }
 
 const hasText = (value?: string | null) => Boolean(value && value.trim())
+
+const buildRegistrationSections = (reg: RegistrationEmailRecord): EmailSection[] => {
+  const name = `${reg.given_name} ${reg.surname}`.trim()
+  const ref = paymentRef(reg)
+  const transport = booleansToTransportOption(
+    reg.pickup_melbourne_airport,
+    reg.dropoff_melbourne_airport
+  )
+  const position = reg.cfca_position
+    ? CFCA_POSITION_LABELS[reg.cfca_position as keyof typeof CFCA_POSITION_LABELS] ??
+      reg.cfca_position
+    : "—"
+
+  const sections: EmailSection[] = [
+    {
+      title: "Registration",
+      rows: [
+        { label: "Registration No", value: reg.registration_no },
+        { label: "Unique Code", value: ref },
+        { label: "Name", value: name },
+        { label: "Email", value: reg.email },
+        { label: "Mobile", value: reg.mobile ?? "—" },
+        { label: "Conference State", value: reg.state ?? "—" },
+        { label: "CFCA Position", value: position },
+      ],
+    },
+  ]
+
+  if (reg.address_line1 || reg.suburb || reg.postcode) {
+    sections[0].rows.push({
+      label: "Address",
+      value: [reg.address_line1, reg.suburb, reg.address_state, reg.postcode]
+        .filter(Boolean)
+        .join(", "),
+    })
+  }
+
+  const spouseRows: EmailSection["rows"] = [
+    { label: "Spouse attending", value: reg.spouse_attending ? "Yes" : "No" },
+  ]
+  if (reg.spouse_attending) {
+    spouseRows.push(
+      {
+        label: "Spouse name",
+        value: `${reg.spouse_given_name ?? ""} ${reg.spouse_surname ?? ""}`.trim() || "—",
+      },
+      { label: "Spouse email", value: reg.spouse_email || "—" },
+      { label: "Spouse mobile", value: reg.spouse_mobile || "—" }
+    )
+  }
+  sections.push({ title: "Spouse", rows: spouseRows })
+
+  sections.push({
+    title: "Additional Attendees",
+    rows: [{ label: "Attendees", value: formatAttendees(reg) }],
+  })
+
+  const transportRows: EmailSection["rows"] = [
+    {
+      label: "Accommodation",
+      value: getAccommodationLabel(reg.accommodation_type) || "—",
+    },
+    { label: "Transport", value: getTransportOptionLabel(transport) },
+  ]
+
+  if (hasText(reg.hotel_name) || hasText(reg.hotel_address)) {
+    transportRows.push(
+      { label: "Accommodation name", value: reg.hotel_name || "—" },
+      { label: "Accommodation address", value: reg.hotel_address || "—" }
+    )
+  }
+
+  if (hasText(reg.accommodation_contact_name) || hasText(reg.accommodation_contact_phone)) {
+    transportRows.push({
+      label: "Accommodation contact",
+      value: `${reg.accommodation_contact_name || "—"} (${reg.accommodation_contact_phone || "—"})`,
+    })
+  }
+
+  if (reg.pickup_melbourne_airport) {
+    transportRows.push(
+      { label: "Arrival date", value: reg.arrival_date || "—" },
+      { label: "Arrival airport", value: reg.arrival_airport || "—" },
+      { label: "Arrival flight", value: reg.arrival_flight_no || "—" }
+    )
+    if (
+      hasText(reg.pickup_transport_contact_name) ||
+      hasText(reg.pickup_transport_contact_phone)
+    ) {
+      transportRows.push({
+        label: "Pickup transport contact",
+        value: `${reg.pickup_transport_contact_name || "—"} (${reg.pickup_transport_contact_phone || "—"})`,
+      })
+    }
+  }
+
+  if (reg.dropoff_melbourne_airport) {
+    transportRows.push(
+      { label: "Departure date", value: reg.departure_date || "—" },
+      { label: "Departure airport", value: reg.departure_airport || "—" },
+      { label: "Departure flight", value: reg.departure_flight_no || "—" }
+    )
+    if (
+      hasText(reg.dropoff_transport_contact_name) ||
+      hasText(reg.dropoff_transport_contact_phone)
+    ) {
+      transportRows.push({
+        label: "Drop-off transport contact",
+        value: `${reg.dropoff_transport_contact_name || "—"} (${reg.dropoff_transport_contact_phone || "—"})`,
+      })
+    }
+  }
+
+  sections.push({ title: "Accommodation & Transport", rows: transportRows })
+
+  if (hasSouvenirPreOrder(reg.souvenir_orders)) {
+    sections.push({
+      title: "Souvenir pre-order (Love In Action)",
+      rows: [
+        {
+          label: "T-shirts",
+          value: formatSouvenirOrdersSummary(reg.souvenir_orders),
+        },
+        {
+          label: "Souvenir total",
+          value: formatCurrency(souvenirTotalAmount(reg.souvenir_orders)),
+        },
+      ],
+    })
+  }
+
+  sections.push({
+    title: "Payment",
+    rows: [
+      { label: "Amount Due", value: formatCurrency(Number(reg.amount_due)) },
+      { label: "Amount Paid", value: formatCurrency(Number(reg.amount_paid)) },
+      { label: "Status", value: reg.payment_status },
+      {
+        label: "Bank reference",
+        value: `Include Unique Code (${ref}) in Message and Ref.`,
+      },
+    ],
+  })
+
+  return sections
+}
 
 const buildFullRegistrationDetails = (
   reg: RegistrationEmailRecord,
@@ -321,6 +478,107 @@ Please include ${ref} in your payment reference.`
   }
 }
 
+const buildHtml = (
+  type: EmailType,
+  reg: RegistrationEmailRecord,
+  links: { viewUrl?: string; portalUrl?: string }
+) => {
+  const name = `${reg.given_name} ${reg.surname}`.trim()
+  const ref = paymentRef(reg)
+  const greeting = paragraphHtml(`Dear ${name},`)
+
+  switch (type) {
+    case "registration_submitted":
+      return renderEmail({
+        heading: "Registration confirmed",
+        introHtml:
+          greeting +
+          paragraphHtml(
+            "Thank you for registering for the CFCA Conference. Here is a summary of your registration:"
+          ),
+        sections: buildRegistrationSections(reg),
+        ctaLabel: links.viewUrl ? "View registration" : undefined,
+        ctaUrl: links.viewUrl,
+        footerNote:
+          "If you have already paid and receive this in error, please contact the registration team.",
+      })
+    case "registration_updated":
+      return renderEmail({
+        heading: "Registration updated",
+        introHtml:
+          greeting +
+          paragraphHtml(
+            `Your registration (${ref}) has been updated. Please review the full details below.`
+          ),
+        sections: buildRegistrationSections(reg),
+        ctaLabel: "Open my registration",
+        ctaUrl: links.portalUrl,
+        footerNote:
+          "Log in is required. If you do not have an account yet, create one using the same email as this registration.",
+      })
+    case "accommodation_updated":
+      return renderEmail({
+        heading: "Transport / accommodation updated",
+        introHtml:
+          greeting +
+          paragraphHtml(
+            `Your transport and/or accommodation details (${ref}) have been updated. Please review the full details below.`
+          ),
+        sections: buildRegistrationSections(reg),
+        ctaLabel: "Open my registration",
+        ctaUrl: links.portalUrl,
+        footerNote:
+          "Log in is required. If you do not have an account yet, create one using the same email as this registration.",
+      })
+    case "payment_received":
+      return renderEmail({
+        heading: "Payment received",
+        introHtml:
+          greeting +
+          paragraphHtml(`We have received your payment for registration ${ref}.`),
+        sections: [
+          {
+            title: "Payment",
+            rows: [
+              {
+                label: "Amount Paid",
+                value: formatCurrency(Number(reg.amount_paid)),
+              },
+              { label: "Status", value: reg.payment_status },
+              { label: "Unique Code", value: ref },
+            ],
+          },
+        ],
+      })
+    case "payment_reminder":
+      return renderEmail({
+        heading: "Payment reminder",
+        introHtml:
+          greeting +
+          paragraphHtml(
+            `This is a reminder that payment is outstanding for registration ${ref}.`
+          ),
+        sections: [
+          {
+            title: "Payment",
+            rows: [
+              {
+                label: "Amount Due",
+                value: formatCurrency(Number(reg.amount_due)),
+              },
+              {
+                label: "Bank reference",
+                value: `Please include ${ref} in your payment reference.`,
+              },
+            ],
+          },
+        ],
+        ctaLabel: "View my registration",
+        ctaUrl: links.portalUrl,
+      })
+  }
+}
+
 export const sendRegistrationEmail = async (
   registration: RegistrationEmailRecord,
   type: EmailType,
@@ -334,10 +592,14 @@ export const sendRegistrationEmail = async (
 
   const resend = getResend()
   const subject = buildSubject(type, registration)
-  const body = buildBody(type, registration, { viewUrl, portalUrl })
+  const text = buildBody(type, registration, { viewUrl, portalUrl })
+  const html = buildHtml(type, registration, { viewUrl, portalUrl })
+  assertEmailIncludesLogo(html)
+  const logoAttachment = getEmailLogoAttachment()
 
   if (!resend) {
     console.log(`[email] (dev) ${type} to ${registration.email}: ${subject}`)
+    console.log(`[email] (dev) logo attached as cid:${logoAttachment.inlineContentId}`)
     if (viewUrl) console.log(`[email] (dev) view link: ${viewUrl}`)
     if (type === "registration_updated" || type === "accommodation_updated") {
       console.log(`[email] (dev) portal link: ${portalUrl}`)
@@ -350,7 +612,9 @@ export const sendRegistrationEmail = async (
     from: getFrom(),
     to: registration.email,
     subject,
-    text: body,
+    text,
+    html,
+    attachments: [logoAttachment],
   })
 
   if (error) {

@@ -6,8 +6,9 @@
 CFCA_Registration/
 ├── specs/                 # Product behavior (source of truth)
 ├── docs/                  # This handbook
+├── public/brand/          # CFCA logo mark + email logo assets
 ├── src/
-│   ├── app/               # Routes (pages + API)
+│   ├── app/               # Routes (pages + API), favicon icons
 │   ├── components/        # UI by feature
 │   ├── hooks/
 │   ├── lib/               # Domain logic
@@ -29,7 +30,7 @@ CFCA_Registration/
 | Update registration / no-op | `src/app/api/registrations/[id]/route.ts`, `compare.ts` | `features.registration` |
 | Login / cookies | `src/app/api/auth/*`, `src/lib/auth/*` | `global.auth-security`, `features.login` |
 | Protected routes | `src/lib/auth/paths.ts`, `src/proxy.ts` | `global.layout-and-navigation` |
-| Header Login/Register | `src/components/layout/site-header.tsx` | `global.layout-and-navigation` |
+| Header logo / Login / Register | `src/components/layout/site-header.tsx`, `public/brand/` | `global.layout-and-navigation` / theme |
 | Dashboard submenu | `src/components/layout/dashboard-subnav.tsx` + site header dropdown | `features.dashboard` / layout |
 | User roles / groups | `src/app/dashboard/users/page.tsx`, `src/app/api/admin/users/route.ts`, `src/lib/auth/user-groups.ts` | `features.dashboard` |
 | Payment page | `src/app/payment/page.tsx` | `features.payment` |
@@ -40,7 +41,7 @@ CFCA_Registration/
 | Detailed CSV export | `src/app/api/admin/reports/route.ts` | `features.dashboard` |
 | Admin detail | `src/app/dashboard/registrations/[id]/page.tsx` | `features.dashboard` |
 | Audit write / UI | `src/lib/audit/*`, `src/app/dashboard/audit` | `features.audit` |
-| Email content | `src/lib/email/send.ts` | related feature + registration |
+| Email content / HTML template | `src/lib/email/send.ts`, `password-reset.ts`, `template.ts` | `global.email` |
 | Server DB client | `src/lib/supabase/admin.ts` (service role) | `global.database` / auth-security |
 
 ## API surface (App Router)
@@ -77,7 +78,7 @@ flowchart LR
 | `lib/pricing` | Conference fee calculation |
 | `lib/payments` | Bank PDF parse helpers |
 | `lib/audit` | Sanitize + write audit rows |
-| `lib/email` | Resend templates |
+| `lib/email` | Resend HTML + text templates (`template.ts`) |
 | `lib/dashboard` | Client list cache |
 | `lib/db` | Migration helpers |
 | `lib/supabase` | Admin client |

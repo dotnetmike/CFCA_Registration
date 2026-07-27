@@ -11,9 +11,9 @@ const buttonVariants = cva(
     variants: {
       variant: {
         default:
-          "bg-ink text-white hover:bg-ink-soft hover:-translate-y-px active:translate-y-0",
+          "bg-brand text-white hover:bg-brand-strong hover:-translate-y-px active:translate-y-0",
         outline:
-          "border border-[color:var(--line-strong)] bg-surface/90 text-ink hover:border-accent hover:bg-mist",
+          "border border-[color:var(--line-strong)] bg-surface/90 text-ink hover:border-brand hover:bg-mist",
         ghost: "text-ink-soft hover:bg-surface-muted hover:text-ink",
         destructive:
           "bg-[color:var(--danger)] text-white hover:brightness-110",
