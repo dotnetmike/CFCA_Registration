@@ -63,12 +63,16 @@
   }
 }
 
-@keyframes fade-in {
+@keyframes dashboard-panel-in {
   from {
     opacity: 0;
+    transform: translateY(10px) scale(0.992);
+    filter: blur(2px);
   }
   to {
     opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: blur(0);
   }
 }
 
@@ -122,6 +126,32 @@
   .cfca-page {
     @apply space-y-8;
     animation: rise-in 560ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  .cfca-dashboard-shell {
+    @apply flex flex-col gap-6;
+  }
+
+  .cfca-dashboard-nav {
+    @apply sticky top-0 z-20 -mx-1 px-1 pb-1 pt-0;
+    background: linear-gradient(
+      180deg,
+      rgba(245, 249, 252, 0.96) 0%,
+      rgba(245, 249, 252, 0.88) 70%,
+      rgba(245, 249, 252, 0) 100%
+    );
+    backdrop-filter: blur(8px);
+  }
+
+  .cfca-dashboard-subnav__indicator {
+    transition:
+      left 320ms cubic-bezier(0.22, 1, 0.36, 1),
+      width 320ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .cfca-dashboard-panel {
+    @apply min-h-[40vh];
+    animation: dashboard-panel-in 420ms cubic-bezier(0.22, 1, 0.36, 1) both;
   }
 
   .cfca-brand-mark {
@@ -240,12 +270,17 @@
 
   .cfca-page,
   .cfca-auth-shell,
+  .cfca-dashboard-panel,
   .animate-rise,
   .animate-rise-delay-1,
   .animate-rise-delay-2,
   .animate-rise-delay-3,
   .animate-fade {
     animation: none !important;
+  }
+
+  .cfca-dashboard-subnav__indicator {
+    transition: none !important;
   }
 
   .cfca-nav-link::after {

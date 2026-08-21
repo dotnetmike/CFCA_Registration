@@ -7,7 +7,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { useBusyCursor } from "@/hooks/use-busy-cursor"
 import { Button } from "@/components/ui/button"
 import { Alert } from "@/components/ui/alert"
-import { DashboardSubnav } from "@/components/layout/dashboard-subnav"
 
 type ReconcileResult = {
   statementId: string
@@ -56,7 +55,6 @@ const ReconcilePage = () => {
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">
-      <DashboardSubnav />
       <h1 className="text-3xl font-bold">Payment Reconciliation</h1>
 
       <Card>

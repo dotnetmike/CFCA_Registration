@@ -10,7 +10,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
-import { DashboardSubnav } from "@/components/layout/dashboard-subnav"
 import { formatCurrency } from "@/lib/pricing/calculate"
 import { AUSTRALIAN_STATES } from "@/lib/registrations/schema"
 import {
@@ -222,7 +221,6 @@ const DashboardPage = () => {
 
   return (
     <div className="cfca-page space-y-6">
-      <DashboardSubnav />
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="space-y-2">
           <p className="text-xs font-semibold uppercase tracking-[0.22em] text-accent-ink">

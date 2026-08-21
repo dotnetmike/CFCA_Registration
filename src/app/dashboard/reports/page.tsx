@@ -7,7 +7,6 @@ import { isManager } from "@/lib/auth/permissions-client"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { useBusyCursor } from "@/hooks/use-busy-cursor"
 import { Button } from "@/components/ui/button"
-import { DashboardSubnav } from "@/components/layout/dashboard-subnav"
 import { formatCacheAge } from "@/lib/dashboard/list-cache"
 import { reportsCache, type ReportsSummary } from "@/lib/dashboard/reports-cache"
 
@@ -101,7 +100,6 @@ const ReportsPage = () => {
 
   return (
     <div className="cfca-page space-y-6">
-      <DashboardSubnav />
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="space-y-2">
           <p className="text-xs font-semibold uppercase tracking-[0.22em] text-accent-ink">

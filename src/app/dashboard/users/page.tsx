@@ -9,7 +9,6 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Alert } from "@/components/ui/alert"
-import { DashboardSubnav } from "@/components/layout/dashboard-subnav"
 import {
   USER_GROUP_OPTIONS,
   formatUserGroupLabel,
@@ -227,8 +226,6 @@ const UsersPage = () => {
 
   return (
     <div className="cfca-page space-y-6">
-      <DashboardSubnav />
-
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="space-y-2">
           <p className="text-xs font-semibold uppercase tracking-[0.22em] text-accent-ink">

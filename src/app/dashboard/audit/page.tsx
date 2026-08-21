@@ -6,7 +6,6 @@ import { useAuth } from "@/lib/auth/context"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { useBusyCursor } from "@/hooks/use-busy-cursor"
-import { DashboardSubnav } from "@/components/layout/dashboard-subnav"
 import {
   DASHBOARD_LIST_CACHE_MAX_ROWS,
   DASHBOARD_PAGE_SIZE,
@@ -103,7 +102,6 @@ const AuditLogPage = () => {
 
   return (
     <div className="cfca-page space-y-6">
-      <DashboardSubnav />
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="space-y-2">
           <p className="text-xs font-semibold uppercase tracking-[0.22em] text-accent-ink">
