@@ -18,10 +18,14 @@ export const isRegistrationEmailAvailable = async (
 
   const admin = createAdminClient()
 
-  const { data: registrations } = await admin
+  const { data: registrations, error: registrationError } = await admin
     .from("registrations")
     .select("id, user_id")
     .ilike("email", normalized)
+
+  if (registrationError) {
+    throw new Error(registrationError.message)
+  }
 
   const conflict = (registrations ?? []).find(
     (row) => row.id !== options.excludeRegistrationId
@@ -30,11 +34,15 @@ export const isRegistrationEmailAvailable = async (
     return { available: false, reason: "registration" }
   }
 
-  const { data: user } = await admin
+  const { data: user, error: userError } = await admin
     .from("users")
     .select("id")
     .eq("email", normalized)
     .maybeSingle()
+
+  if (userError) {
+    throw new Error(userError.message)
+  }
 
   if (user && user.id !== options.allowUserId) {
     return { available: false, reason: "account" }

@@ -29,6 +29,7 @@ Ask: Is it **UI state**, **auth/proxy**, **API validation**, **DB data**, or **e
 | 401 on API after login | Auth refresh | `authFetch`, `/api/auth/refresh`, refresh_tokens row |
 | Form won’t submit | Zod / client | Network payload vs `schema.ts`; console errors |
 | Email already used | DB uniqueness | `009_unique_registration_email.sql`; check-email API |
+| `Invalid API key` on POST `/api/registrations` (check-email may still look fine) | Env / service role | Production `SUPABASE_SERVICE_ROLE_KEY` must be Dashboard **secret** (`sb_secret_…`) or legacy `service_role` JWT — not publishable/anon. Restart after changing. |
 | Wrong amount due | Pricing + souvenirs | `pricing/calculate.ts`, `souvenirs.ts`, `amount_due` column |
 | Payment not matched | Reconcile parse | Unique Code in PDF text; amount ≥ due; `bank_transactions` |
 | Dashboard empty / stale | Cache / permissions | Refresh button; group membership; GET `/api/registrations` status |
@@ -50,7 +51,8 @@ Sequence reference: [flows/auth.md](../flows/auth.md).
 1. Capture failed request body from Network tab.
 2. Compare to Zod schema fields (dates as ISO strings, attendees array, souvenir_orders).
 3. Server logs from `POST /api/registrations` / `PUT .../[id]`.
-4. Inspect row in `registrations` + `registration_attendees`.
+4. If body is `{"error":"Invalid API key"}` (or the clearer configuration message), fix host env `SUPABASE_SERVICE_ROLE_KEY` and redeploy/restart — the payload is not the problem.
+5. Inspect row in `registrations` + `registration_attendees`.
 
 Sequence reference: [flows/registration.md](../flows/registration.md).
 

@@ -1,6 +1,6 @@
 {
   "name": "cfca-registration",
-  "version": "0.13.7",
+  "version": "0.13.8",
   "private": true,
   "scripts": {
     "db:deploy": "tsx scripts/db/deploy.ts",

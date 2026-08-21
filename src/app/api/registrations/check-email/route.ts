@@ -22,22 +22,28 @@ export const GET = async (request: NextRequest) => {
 
   if (!parsed.success) return jsonError("Valid email required")
 
-  // Allow the requester's own account email to pass when they're updating their own registration
   const token = getBearerToken(request)
   const auth = token ? await verifyAccessToken(token) : null
 
-  const result = await isRegistrationEmailAvailable(
-    normalizeEmail(parsed.data.email),
-    { excludeRegistrationId: parsed.data.excludeId, allowUserId: auth?.sub ?? null }
-  )
+  try {
+    const result = await isRegistrationEmailAvailable(
+      normalizeEmail(parsed.data.email),
+      { excludeRegistrationId: parsed.data.excludeId, allowUserId: auth?.sub ?? null }
+    )
 
-  if (!result.available) {
-    return NextResponse.json({
-      available: false,
-      error: EMAIL_IN_USE_MESSAGE,
-      reason: result.reason,
-    })
+    if (!result.available) {
+      return NextResponse.json({
+        available: false,
+        error: EMAIL_IN_USE_MESSAGE,
+        reason: result.reason,
+      })
+    }
+
+    return NextResponse.json({ available: true })
+  } catch (err) {
+    return jsonError(
+      err instanceof Error ? err.message : "Unable to verify email availability",
+      500
+    )
   }
-
-  return NextResponse.json({ available: true })
 }

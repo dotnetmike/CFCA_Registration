@@ -37,3 +37,13 @@ export const requirePermission = (
 
 export const jsonError = (message: string, status = 400) =>
   NextResponse.json({ error: message }, { status })
+
+export const jsonSupabaseError = (message: string, status = 500) =>
+  NextResponse.json(
+    {
+      error: /invalid api key/i.test(message)
+        ? "Database configuration error: invalid SUPABASE_SERVICE_ROLE_KEY. Update the server secret/service_role key and restart."
+        : message,
+    },
+    { status }
+  )

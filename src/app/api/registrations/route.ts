@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
+import { requireAuth, requirePermission, jsonError, jsonSupabaseError, getBearerToken } from "@/lib/auth/api"
 import { createAdminClient } from "@/lib/supabase/admin"
-import { requireAuth, requirePermission, jsonError, getBearerToken } from "@/lib/auth/api"
 import { verifyAccessToken } from "@/lib/auth/jwt"
 import { registrationSchema, formatRegistrationSchemaError } from "@/lib/registrations/schema"
 import {
@@ -66,7 +66,7 @@ export const GET = async (request: NextRequest) => {
       .select("id, registration_no, user_id, surname, given_name, email, mobile, dietary_requirements, address_line1, address_line2, suburb, address_state, postcode, cfca_position, state, spouse_surname, spouse_given_name, spouse_attending, spouse_email, spouse_mobile, spouse_dietary_requirements, accommodation_type, pickup_melbourne_airport, dropoff_melbourne_airport, hotel_transport_required, arrival_date, arrival_airport, arrival_flight_no, departure_date, departure_airport, departure_flight_no, hotel_name, hotel_address, accommodation_contact_name, accommodation_contact_phone, pickup_transport_contact_name, pickup_transport_contact_phone, dropoff_transport_contact_name, dropoff_transport_contact_phone, payment_status, amount_due, amount_paid, payment_last_updated_source, payment_last_updated_at, payment_last_updated_by, souvenir_orders, is_early_bird, early_bird_slot, submitted_at, created_at, updated_at, participant_reference, view_token_hash, registration_attendees(*)")
       .order("created_at", { ascending: false })
 
-    if (error) return jsonError(error.message, 500)
+    if (error) return jsonSupabaseError(error.message, 500)
     return NextResponse.json({ registrations: data })
   }
 
@@ -76,7 +76,7 @@ export const GET = async (request: NextRequest) => {
     .eq("user_id", auth.sub)
     .maybeSingle()
 
-  if (error) return jsonError(error.message, 500)
+  if (error) return jsonSupabaseError(error.message, 500)
   return NextResponse.json({ registration: data })
 }
 
@@ -94,7 +94,15 @@ const handlePublicSubmit = async (request: NextRequest, body: unknown) => {
   }
 
   const email = normalizeEmail(parsed.data.email)
-  const emailCheck = await isRegistrationEmailAvailable(email)
+  let emailCheck: Awaited<ReturnType<typeof isRegistrationEmailAvailable>>
+  try {
+    emailCheck = await isRegistrationEmailAvailable(email)
+  } catch (err) {
+    return jsonSupabaseError(
+      err instanceof Error ? err.message : "Unable to verify email availability",
+      500
+    )
+  }
   if (!emailCheck.available) {
     return NextResponse.json(
       { error: EMAIL_IN_USE_MESSAGE, code: "EMAIL_IN_USE" },
@@ -113,7 +121,9 @@ const handlePublicSubmit = async (request: NextRequest, body: unknown) => {
       parsed.data.surname
     )
   } catch (err) {
-    return jsonError(err instanceof Error ? err.message : "Failed to assign participant reference")
+    return jsonSupabaseError(
+      err instanceof Error ? err.message : "Failed to assign participant reference"
+    )
   }
 
   const earlyBirdSlot = await claimEarlyBirdSlot(parsed.data.state ?? "")
@@ -141,7 +151,7 @@ const handlePublicSubmit = async (request: NextRequest, body: unknown) => {
     .select("id")
     .single()
 
-  if (error) return jsonError(error.message, 500)
+  if (error) return jsonSupabaseError(error.message, 500)
 
   await insertAttendees(registration.id, parsed.data.attendees)
 
@@ -192,7 +202,15 @@ const handleAuthenticatedPost = async (request: NextRequest, body: unknown) => {
   if (existing) return jsonError("Registration already exists. Use PUT to update.", 409)
 
   const email = normalizeEmail(parsed.data.email)
-  const emailCheck = await isRegistrationEmailAvailable(email, { allowUserId: auth.sub })
+  let emailCheck: Awaited<ReturnType<typeof isRegistrationEmailAvailable>>
+  try {
+    emailCheck = await isRegistrationEmailAvailable(email, { allowUserId: auth.sub })
+  } catch (err) {
+    return jsonSupabaseError(
+      err instanceof Error ? err.message : "Unable to verify email availability",
+      500
+    )
+  }
   if (!emailCheck.available) {
     return NextResponse.json(
       { error: EMAIL_IN_USE_MESSAGE, code: "EMAIL_IN_USE" },
@@ -209,7 +227,9 @@ const handleAuthenticatedPost = async (request: NextRequest, body: unknown) => {
       parsed.data.surname
     )
   } catch (err) {
-    return jsonError(err instanceof Error ? err.message : "Failed to assign participant reference")
+    return jsonSupabaseError(
+      err instanceof Error ? err.message : "Failed to assign participant reference"
+    )
   }
 
   const earlyBirdSlot = parsed.data.submit
@@ -242,7 +262,7 @@ const handleAuthenticatedPost = async (request: NextRequest, body: unknown) => {
     .select("id")
     .single()
 
-  if (error) return jsonError(error.message, 500)
+  if (error) return jsonSupabaseError(error.message, 500)
 
   await insertAttendees(registration.id, parsed.data.attendees)
 

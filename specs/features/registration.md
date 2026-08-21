@@ -2,8 +2,8 @@
 id: features.registration
 title: Registration form
 status: active
-synced_commit: 743bec3
-synced_at: 2026-08-20
+synced_commit: working-tree
+synced_at: 2026-08-21
 owners: [team]
 files:
   - src/app/page.tsx
@@ -85,20 +85,21 @@ Single continuous conference registration page. Guests complete without login; l
 
 ### Guest (not logged in)
 
-- ?Already registered? Login? ? `/login?redirect=/my-registration`.
-- Email uniqueness checked on email blur and on submit.
+- Already registered? Login → `/login?redirect=/my-registration`.
+- Email uniqueness checked on email blur and on submit. DB/API errors fail closed (HTTP 500), never report `available: true`.
 - Accommodation and airport transport mandatory with no default.
-- Submit ? public `POST /api/registrations` ? `/register/complete`.
+- Submit → public `POST /api/registrations` → `/register/complete`.
 
 ### Logged in
 
-- Load/save via `authFetch`; submit ? `/my-registration`.
+- Load/save via `authFetch`; submit → `/my-registration`.
 - No-op saves skipped when nothing changed.
 
 ### API
 
 - Public POST rate-limited; unique email enforced.
 - Authenticated PUT; unchanged payloads return `unchanged: true`.
+- Invalid Supabase service-role key surfaces as a configuration error (not a silent email-available success).
 
 ### Participant emails (`src/lib/email/send.ts`)
 
