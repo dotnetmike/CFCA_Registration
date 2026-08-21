@@ -2,8 +2,8 @@
 id: features.account
 title: Account (change password)
 status: active
-synced_commit: working-tree
-synced_at: 2026-07-11
+synced_commit: 743bec3
+synced_at: 2026-08-20
 owners: [team]
 files:
   - src/app/account/page.tsx
@@ -20,7 +20,7 @@ Logged-in users change their password.
 
 - Protected route `/account`.
 - Requires current password + new password (min 8) + confirm.
-- Wrong current password â†?**400** (not 401) so client does not treat as session expiry.
+- Wrong current password ï¿½?**400** (not 401) so client does not treat as session expiry.
 - Success: revoke other sessions, issue new session cookies, stay logged in.
 
 ## Acceptance criteria

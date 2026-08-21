@@ -2,8 +2,8 @@
 id: global.database
 title: Database and migrations
 status: active
-synced_commit: working-tree
-synced_at: 2026-07-15
+synced_commit: 743bec3
+synced_at: 2026-08-20
 owners: [team]
 files:
   - supabase/migrations/

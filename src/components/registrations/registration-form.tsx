@@ -13,6 +13,8 @@ import {
   CFCA_POSITIONS,
   CFCA_POSITION_LABELS,
   AUSTRALIAN_STATES,
+  getAirportTransportDateWindow,
+  getAirportTransportValidationError,
 } from "@/lib/registrations/schema"
 import {
   ACCOMMODATION_OPTIONS,
@@ -75,7 +77,7 @@ const SectionHeading = ({
 )
 
 const RegistrationForm = () => {
-  const { authFetch, user, isLoading: authLoading } = useAuth()
+  const { authFetch, user, getAuthHeaders, isLoading: authLoading } = useAuth()
   const router = useRouter()
   const errorBannerRef = useRef<HTMLDivElement>(null)
   const [isLoading, setIsLoading] = useState(false)
@@ -97,6 +99,7 @@ const RegistrationForm = () => {
       given_name: "",
       email: user?.email ?? "",
       mobile: "",
+      dietary_requirements: "",
       cfca_position: "member",
       state: undefined,
       accommodation_type: "",
@@ -121,6 +124,8 @@ const RegistrationForm = () => {
   const transportOption = watchAll.transport_option as TransportOption | "" | undefined
   const { showArrival, showDeparture } = getTransportFlightSections(transportOption)
   const needsAirportTransport = showArrival || showDeparture
+  const pickupDateWindow = getAirportTransportDateWindow("pickup", watchAll.cfca_position)
+  const dropoffDateWindow = getAirportTransportDateWindow("dropoff", watchAll.cfca_position)
   const souvenirQty = souvenirTotalQuantity(watchAll.souvenir_orders)
   const souvenirAmount = souvenirTotalAmount(watchAll.souvenir_orders)
 
@@ -146,6 +151,7 @@ const RegistrationForm = () => {
           given_name: data.registration.given_name,
           email: data.registration.email,
           mobile: data.registration.mobile,
+          dietary_requirements: data.registration.dietary_requirements ?? "",
           address_line1: data.registration.address_line1,
           suburb: data.registration.suburb,
           address_state: data.registration.address_state ?? undefined,
@@ -157,6 +163,7 @@ const RegistrationForm = () => {
           spouse_attending: data.registration.spouse_attending,
           spouse_email: data.registration.spouse_email,
           spouse_mobile: data.registration.spouse_mobile,
+          spouse_dietary_requirements: data.registration.spouse_dietary_requirements ?? "",
           accommodation_type: data.registration.accommodation_type ?? "",
           transport_option: hasTransportSelection
             ? booleansToTransportOption(
@@ -181,11 +188,18 @@ const RegistrationForm = () => {
             return { size, quantity: existing?.quantity ?? 0 }
           }),
           attendees: (data.registration.registration_attendees ?? data.registration.attendees ?? []).map(
-            (a: { surname: string; given_name: string; age: number; needs_kids_supervision?: boolean }) => ({
+            (a: {
+              surname: string
+              given_name: string
+              age: number
+              needs_kids_supervision?: boolean
+              dietary_requirements?: string
+            }) => ({
               surname: a.surname,
               given_name: a.given_name,
               age: a.age,
               needs_kids_supervision: a.needs_kids_supervision ?? false,
+              dietary_requirements: a.dietary_requirements ?? "",
             })
           ),
           submit: false,
@@ -308,7 +322,9 @@ const RegistrationForm = () => {
   const checkEmailUnique = async (email: string): Promise<boolean> => {
     const params = new URLSearchParams({ email })
     if (registrationId) params.set("excludeId", registrationId)
-    const res = await fetch(`/api/registrations/check-email?${params.toString()}`)
+    const res = await fetch(`/api/registrations/check-email?${params.toString()}`, {
+      headers: getAuthHeaders(),
+    })
     const data = await res.json()
     if (!res.ok || data.available === false) {
       applyApiError({
@@ -361,10 +377,34 @@ const RegistrationForm = () => {
 
   const handleSubmit = async () => {
     setInfo("")
+    const state = form.getValues("state") as string | null | undefined
     const accommodation = form.getValues("accommodation_type") as string | null | undefined
     const transport = form.getValues("transport_option") as string | null | undefined
     let hasLocalError = false
 
+    const arrivalError = transport && (transport === "pickup" || transport === "pickup_dropoff")
+      ? getAirportTransportValidationError("pickup", form.getValues("cfca_position"), form.getValues("arrival_date") ?? undefined)
+      : null
+    const departureError = transport && (transport === "dropoff" || transport === "pickup_dropoff")
+      ? getAirportTransportValidationError("dropoff", form.getValues("cfca_position"), form.getValues("departure_date") ?? undefined)
+      : null
+
+    if (arrivalError) {
+      form.setError("arrival_date", { type: "validate", message: arrivalError })
+      hasLocalError = true
+    }
+    if (departureError) {
+      form.setError("departure_date", { type: "validate", message: departureError })
+      hasLocalError = true
+    }
+
+    if (!state) {
+      form.setError("state", {
+        type: "required",
+        message: "Please select a conference state option",
+      })
+      hasLocalError = true
+    }
     if (!accommodation) {
       form.setError("accommodation_type", {
         type: "required",
@@ -433,7 +473,7 @@ const RegistrationForm = () => {
               Official registration
             </p>
             <h1 className="font-display text-4xl font-semibold text-ink md:text-5xl">
-              Conference Registration
+              National Conference
             </h1>
             <div className="accent-rule" aria-hidden />
           </div>
@@ -508,7 +548,16 @@ const RegistrationForm = () => {
                 <Input
                   id="surname"
                   className="h-12 text-base"
-                  {...form.register("surname")}
+                  {...(() => {
+                    const field = form.register("surname")
+                    return {
+                      ...field,
+                      onBlur: (e: React.FocusEvent<HTMLInputElement>) => {
+                        field.onBlur(e)
+                        form.trigger("surname")
+                      },
+                    }
+                  })()}
                   aria-label="Surname"
                   aria-required="true"
                   aria-invalid={!!form.formState.errors.surname}
@@ -520,7 +569,16 @@ const RegistrationForm = () => {
                 <Input
                   id="given_name"
                   className="h-12 text-base"
-                  {...form.register("given_name")}
+                  {...(() => {
+                    const field = form.register("given_name")
+                    return {
+                      ...field,
+                      onBlur: (e: React.FocusEvent<HTMLInputElement>) => {
+                        field.onBlur(e)
+                        form.trigger("given_name")
+                      },
+                    }
+                  })()}
                   aria-label="Given name"
                   aria-required="true"
                   aria-invalid={!!form.formState.errors.given_name}
@@ -555,13 +613,33 @@ const RegistrationForm = () => {
                 <Input
                   id="mobile"
                   className="h-12 text-base"
-                  {...form.register("mobile")}
+                  {...(() => {
+                    const mobileField = form.register("mobile")
+                    return {
+                      ...mobileField,
+                      onBlur: (e: React.FocusEvent<HTMLInputElement>) => {
+                        mobileField.onBlur(e)
+                        form.trigger("mobile")
+                      },
+                    }
+                  })()}
                   aria-label="Mobile phone"
                   aria-required="true"
                   aria-invalid={!!form.formState.errors.mobile}
                   autoComplete="tel"
+                  placeholder="e.g. 0412 345 678"
                 />
                 <FieldError message={form.formState.errors.mobile?.message} />
+              </div>
+              <div className="space-y-2 md:col-span-2">
+                <Label htmlFor="dietary_requirements" className="text-base">Food allergy and dietary requirements</Label>
+                <Input
+                  id="dietary_requirements"
+                  className="h-12 text-base"
+                  {...form.register("dietary_requirements")}
+                  aria-label="Food allergy and dietary requirements"
+                  placeholder="e.g. nut allergy, vegetarian, halal"
+                />
               </div>
               <div className="space-y-2 md:col-span-2">
                 <AustralianAddressAutocomplete
@@ -580,12 +658,12 @@ const RegistrationForm = () => {
                 <Input id="postcode" className="h-12 text-base" {...form.register("postcode")} aria-label="Postcode" />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="address_state" className="text-base">Address state</Label>
+                <Label htmlFor="address_state" className="text-base">Address State</Label>
                 <select
                   id="address_state"
                   className={selectClassName}
                   {...form.register("address_state")}
-                  aria-label="Address state"
+                  aria-label="Address State"
                 >
                   <option value="">Select state</option>
                   {AUSTRALIAN_STATES.map((s) => (
@@ -594,12 +672,21 @@ const RegistrationForm = () => {
                 </select>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="state" className="text-base">Conference state *</Label>
+                <Label htmlFor="state" className="text-base">Conference State *</Label>
                 <select
                   id="state"
                   className={selectClassName}
-                  {...form.register("state")}
-                  aria-label="Conference state"
+                  {...(() => {
+                    const stateField = form.register("state")
+                    return {
+                      ...stateField,
+                      onBlur: (e: React.FocusEvent<HTMLSelectElement>) => {
+                        stateField.onBlur(e)
+                        form.trigger("state")
+                      },
+                    }
+                  })()}
+                  aria-label="Conference State"
                   aria-required="true"
                   aria-invalid={!!form.formState.errors.state}
                 >
@@ -637,20 +724,95 @@ const RegistrationForm = () => {
                 {spouseAttending && (
                   <div className="grid gap-5 md:grid-cols-2">
                     <div className="space-y-2">
-                      <Label className="text-base">Spouse surname</Label>
-                      <Input className="h-12 text-base" {...form.register("spouse_surname")} aria-label="Spouse surname" />
+                      <Label className="text-base">Spouse surname *</Label>
+                      <Input 
+                        className="h-12 text-base" 
+                        {...(() => {
+                          const field = form.register("spouse_surname")
+                          return {
+                            ...field,
+                            onBlur: (e: React.FocusEvent<HTMLInputElement>) => {
+                              field.onBlur(e)
+                              form.trigger("spouse_surname")
+                            },
+                          }
+                        })()}
+                        aria-label="Spouse surname"
+                        aria-required="true"
+                        aria-invalid={!!form.formState.errors.spouse_surname}
+                      />
+                      <FieldError message={form.formState.errors.spouse_surname?.message} />
                     </div>
                     <div className="space-y-2">
-                      <Label className="text-base">Spouse name</Label>
-                      <Input className="h-12 text-base" {...form.register("spouse_given_name")} aria-label="Spouse given name" />
+                      <Label className="text-base">Spouse name *</Label>
+                      <Input 
+                        className="h-12 text-base" 
+                        {...(() => {
+                          const field = form.register("spouse_given_name")
+                          return {
+                            ...field,
+                            onBlur: (e: React.FocusEvent<HTMLInputElement>) => {
+                              field.onBlur(e)
+                              form.trigger("spouse_given_name")
+                            },
+                          }
+                        })()}
+                        aria-label="Spouse given name"
+                        aria-required="true"
+                        aria-invalid={!!form.formState.errors.spouse_given_name}
+                      />
+                      <FieldError message={form.formState.errors.spouse_given_name?.message} />
                     </div>
                     <div className="space-y-2">
-                      <Label className="text-base">Spouse email</Label>
-                      <Input className="h-12 text-base" type="email" {...form.register("spouse_email")} aria-label="Spouse email" />
+                      <Label className="text-base">Spouse email *</Label>
+                      <Input 
+                        className="h-12 text-base" 
+                        type="email" 
+                        {...(() => {
+                          const field = form.register("spouse_email")
+                          return {
+                            ...field,
+                            onBlur: (e: React.FocusEvent<HTMLInputElement>) => {
+                              field.onBlur(e)
+                              form.trigger("spouse_email")
+                            },
+                          }
+                        })()}
+                        aria-label="Spouse email"
+                        aria-required="true"
+                        aria-invalid={!!form.formState.errors.spouse_email}
+                      />
+                      <FieldError message={form.formState.errors.spouse_email?.message} />
                     </div>
                     <div className="space-y-2">
-                      <Label className="text-base">Spouse mobile</Label>
-                      <Input className="h-12 text-base" {...form.register("spouse_mobile")} aria-label="Spouse mobile" />
+                      <Label className="text-base">Spouse mobile *</Label>
+                      <Input 
+                        className="h-12 text-base" 
+                        {...(() => {
+                          const spouseMobileField = form.register("spouse_mobile")
+                          return {
+                            ...spouseMobileField,
+                            onBlur: (e: React.FocusEvent<HTMLInputElement>) => {
+                              spouseMobileField.onBlur(e)
+                              form.trigger("spouse_mobile")
+                            },
+                          }
+                        })()}
+                        aria-label="Spouse mobile"
+                        placeholder="e.g. 0412 345 678"
+                        aria-required="true"
+                        aria-invalid={!!form.formState.errors.spouse_mobile}
+                      />
+                      <FieldError message={form.formState.errors.spouse_mobile?.message} />
+                    </div>
+                    <div className="space-y-2 md:col-span-2">
+                      <Label className="text-base">Spouse food allergy and dietary requirements</Label>
+                      <Input
+                        className="h-12 text-base"
+                        {...form.register("spouse_dietary_requirements")}
+                        aria-label="Spouse food allergy and dietary requirements"
+                        placeholder="e.g. nut allergy, vegetarian, halal"
+                      />
                     </div>
                   </div>
                 )}
@@ -678,30 +840,66 @@ const RegistrationForm = () => {
                   className="grid gap-4 rounded-md border border-gray-200 bg-gray-50 p-4 md:grid-cols-4"
                 >
                   <div className="space-y-2">
-                    <Label className="text-base">Surname</Label>
+                    <Label className="text-base">Surname *</Label>
                     <Input
                       className="h-12 text-base"
-                      {...form.register(`attendees.${index}.surname`)}
+                      {...(() => {
+                        const field = form.register(`attendees.${index}.surname`)
+                        return {
+                          ...field,
+                          onBlur: (e: React.FocusEvent<HTMLInputElement>) => {
+                            field.onBlur(e)
+                            form.trigger(`attendees.${index}.surname`)
+                          },
+                        }
+                      })()}
                       aria-label={`Attendee ${index + 1} surname`}
+                      aria-required="true"
+                      aria-invalid={!!form.formState.errors.attendees?.[index]?.surname}
                     />
+                    <FieldError message={form.formState.errors.attendees?.[index]?.surname?.message} />
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-base">Name</Label>
+                    <Label className="text-base">Name *</Label>
                     <Input
                       className="h-12 text-base"
-                      {...form.register(`attendees.${index}.given_name`)}
+                      {...(() => {
+                        const field = form.register(`attendees.${index}.given_name`)
+                        return {
+                          ...field,
+                          onBlur: (e: React.FocusEvent<HTMLInputElement>) => {
+                            field.onBlur(e)
+                            form.trigger(`attendees.${index}.given_name`)
+                          },
+                        }
+                      })()}
                       aria-label={`Attendee ${index + 1} name`}
+                      aria-required="true"
+                      aria-invalid={!!form.formState.errors.attendees?.[index]?.given_name}
                     />
+                    <FieldError message={form.formState.errors.attendees?.[index]?.given_name?.message} />
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-base">Age</Label>
+                    <Label className="text-base">Age *</Label>
                     <Input
                       className="h-12 text-base"
                       type="number"
                       min={0}
-                      {...form.register(`attendees.${index}.age`, { valueAsNumber: true })}
+                      {...(() => {
+                        const field = form.register(`attendees.${index}.age`, { valueAsNumber: true })
+                        return {
+                          ...field,
+                          onBlur: (e: React.FocusEvent<HTMLInputElement>) => {
+                            field.onBlur(e)
+                            form.trigger(`attendees.${index}.age`)
+                          },
+                        }
+                      })()}
                       aria-label={`Attendee ${index + 1} age`}
+                      aria-required="true"
+                      aria-invalid={!!form.formState.errors.attendees?.[index]?.age}
                     />
+                    <FieldError message={form.formState.errors.attendees?.[index]?.age?.message} />
                   </div>
                   <div className="flex items-end">
                     <Button
@@ -712,6 +910,15 @@ const RegistrationForm = () => {
                     >
                       Remove
                     </Button>
+                  </div>
+                  <div className="space-y-2 md:col-span-4">
+                    <Label className="text-base">Food allergy &amp; dietary requirements</Label>
+                    <Input
+                      className="h-12 text-base"
+                      {...form.register(`attendees.${index}.dietary_requirements`)}
+                      aria-label={`Attendee ${index + 1} food allergy and dietary requirements`}
+                      placeholder="e.g. nut allergy, vegetarian, halal"
+                    />
                   </div>
                   {(form.watch(`attendees.${index}.age`) ?? 0) < 12 && (
                     <label className="flex items-start gap-3 text-base md:col-span-4">
@@ -730,7 +937,7 @@ const RegistrationForm = () => {
                 type="button"
                 variant="outline"
                 className="h-12 text-base"
-                onClick={() => append({ surname: "", given_name: "", age: 0, needs_kids_supervision: false })}
+                onClick={() => append({ surname: "", given_name: "", age: 0, needs_kids_supervision: false, dietary_requirements: "" })}
                 aria-label="Add another person attending"
               >
                 Add person
@@ -754,7 +961,16 @@ const RegistrationForm = () => {
                 <select
                   id="accommodation_type"
                   className={selectClassName}
-                  {...form.register("accommodation_type")}
+                  {...(() => {
+                    const field = form.register("accommodation_type")
+                    return {
+                      ...field,
+                      onBlur: (e: React.FocusEvent<HTMLSelectElement>) => {
+                        field.onBlur(e)
+                        form.trigger("accommodation_type")
+                      },
+                    }
+                  })()}
                   aria-label="Accommodation during conference"
                   aria-required="true"
                   aria-invalid={!!form.formState.errors.accommodation_type}
@@ -790,7 +1006,16 @@ const RegistrationForm = () => {
                 <select
                   id="transport_option"
                   className={selectClassName}
-                  {...form.register("transport_option")}
+                  {...(() => {
+                    const field = form.register("transport_option")
+                    return {
+                      ...field,
+                      onBlur: (e: React.FocusEvent<HTMLSelectElement>) => {
+                        field.onBlur(e)
+                        form.trigger("transport_option")
+                      },
+                    }
+                  })()}
                   aria-label="Airport transport option"
                   aria-required="true"
                   aria-invalid={!!form.formState.errors.transport_option}
@@ -806,7 +1031,10 @@ const RegistrationForm = () => {
               </div>
 
               {transportOption && transportOption !== "own" && (
-                <TransportScheduleAlert transportOption={transportOption} />
+                <TransportScheduleAlert
+                  transportOption={transportOption}
+                  cfcaPosition={watchAll.cfca_position}
+                />
               )}
 
               {transportOption === "own" && (
@@ -824,7 +1052,17 @@ const RegistrationForm = () => {
                       <div className="grid gap-4 md:grid-cols-3">
                         <div className="space-y-2">
                           <Label className="text-base">Date of arrival</Label>
-                          <Input className="h-12 text-base" type="date" {...form.register("arrival_date")} aria-label="Arrival date" />
+                          <Input
+                            className="h-12 text-base"
+                            type="date"
+                            min={pickupDateWindow.min}
+                            max={pickupDateWindow.max}
+                            {...form.register("arrival_date")}
+                            aria-label="Arrival date"
+                          />
+                          {form.formState.errors.arrival_date && (
+                            <FieldError message={form.formState.errors.arrival_date?.message} />
+                          )}
                         </div>
                         <div className="space-y-2">
                           <Label className="text-base">Airport</Label>
@@ -844,7 +1082,17 @@ const RegistrationForm = () => {
                       <div className="grid gap-4 md:grid-cols-3">
                         <div className="space-y-2">
                           <Label className="text-base">Date of departure</Label>
-                          <Input className="h-12 text-base" type="date" {...form.register("departure_date")} aria-label="Departure date" />
+                          <Input
+                            className="h-12 text-base"
+                            type="date"
+                            min={dropoffDateWindow.min}
+                            max={dropoffDateWindow.max}
+                            {...form.register("departure_date")}
+                            aria-label="Departure date"
+                          />
+                          {form.formState.errors.departure_date && (
+                            <FieldError message={form.formState.errors.departure_date?.message} />
+                          )}
                         </div>
                         <div className="space-y-2">
                           <Label className="text-base">Airport</Label>

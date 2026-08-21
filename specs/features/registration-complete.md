@@ -2,8 +2,8 @@
 id: features.registration-complete
 title: Registration complete (optional signup)
 status: active
-synced_commit: working-tree
-synced_at: 2026-07-11
+synced_commit: 743bec3
+synced_at: 2026-08-20
 owners: [team]
 files:
   - src/app/register/complete/page.tsx
@@ -19,10 +19,10 @@ After guest submit: celebrate registration, then optionally create an account.
 
 ## Behavior
 
-- **Primary focus**: congratulations hero â€?â€œRegistration confirmedâ€? â€œCongratulations, {firstName}!â€? welcome / looking forward to seeing them at the conference, confirmation email note (+ view link if `view` query present).
+- **Primary focus**: congratulations hero ï¿½?â€œRegistration confirmedï¿½? â€œCongratulations, {firstName}!ï¿½? welcome / looking forward to seeing them at the conference, confirmation email note (+ view link if `view` query present).
 - **Secondary**: optional Create your account card (name, email read-only, password, confirm).
-- Create account â†?`POST /api/auth/register-signup` with `signupToken` â†?session â†?`/my-registration`.
-- Skip for now â†?keep congrats; remind they can signup later with same email.
+- Create account ï¿½?`POST /api/auth/register-signup` with `signupToken` ï¿½?session ï¿½?`/my-registration`.
+- Skip for now ï¿½?keep congrats; remind they can signup later with same email.
 
 ## Acceptance criteria
 

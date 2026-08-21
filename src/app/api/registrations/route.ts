@@ -31,7 +31,13 @@ const getAssignParticipantReference = (body: unknown) =>
 
 const insertAttendees = async (
   registrationId: string,
-  attendees: { surname: string; given_name: string; age: number; needs_kids_supervision?: boolean }[]
+  attendees: {
+    surname: string
+    given_name: string
+    age: number
+    needs_kids_supervision?: boolean
+    dietary_requirements?: string
+  }[]
 ) => {
   if (attendees.length === 0) return
   const admin = createAdminClient()
@@ -42,6 +48,7 @@ const insertAttendees = async (
       given_name: a.given_name,
       age: a.age,
       needs_kids_supervision: a.age < 12 ? (a.needs_kids_supervision ?? false) : false,
+      dietary_requirements: a.dietary_requirements ?? "",
       sort_order: i,
     }))
   )
@@ -56,7 +63,7 @@ export const GET = async (request: NextRequest) => {
   if (auth.permissions.includes("registrations:read_all")) {
     const { data, error } = await admin
       .from("registrations")
-      .select("*, registration_attendees(*)")
+      .select("id, registration_no, user_id, surname, given_name, email, mobile, dietary_requirements, address_line1, address_line2, suburb, address_state, postcode, cfca_position, state, spouse_surname, spouse_given_name, spouse_attending, spouse_email, spouse_mobile, spouse_dietary_requirements, accommodation_type, pickup_melbourne_airport, dropoff_melbourne_airport, hotel_transport_required, arrival_date, arrival_airport, arrival_flight_no, departure_date, departure_airport, departure_flight_no, hotel_name, hotel_address, accommodation_contact_name, accommodation_contact_phone, pickup_transport_contact_name, pickup_transport_contact_phone, dropoff_transport_contact_name, dropoff_transport_contact_phone, payment_status, amount_due, amount_paid, payment_last_updated_source, payment_last_updated_at, payment_last_updated_by, souvenir_orders, is_early_bird, early_bird_slot, submitted_at, created_at, updated_at, participant_reference, view_token_hash, registration_attendees(*)")
       .order("created_at", { ascending: false })
 
     if (error) return jsonError(error.message, 500)
@@ -65,7 +72,7 @@ export const GET = async (request: NextRequest) => {
 
   const { data, error } = await admin
     .from("registrations")
-    .select("*, registration_attendees(*)")
+    .select("id, registration_no, user_id, surname, given_name, email, mobile, dietary_requirements, address_line1, address_line2, suburb, address_state, postcode, cfca_position, state, spouse_surname, spouse_given_name, spouse_attending, spouse_email, spouse_mobile, spouse_dietary_requirements, accommodation_type, pickup_melbourne_airport, dropoff_melbourne_airport, hotel_transport_required, arrival_date, arrival_airport, arrival_flight_no, departure_date, departure_airport, departure_flight_no, hotel_name, hotel_address, accommodation_contact_name, accommodation_contact_phone, pickup_transport_contact_name, pickup_transport_contact_phone, dropoff_transport_contact_name, dropoff_transport_contact_phone, payment_status, amount_due, amount_paid, payment_last_updated_source, payment_last_updated_at, payment_last_updated_by, souvenir_orders, is_early_bird, early_bird_slot, submitted_at, created_at, updated_at, participant_reference, view_token_hash, registration_attendees(*)")
     .eq("user_id", auth.sub)
     .maybeSingle()
 
@@ -109,7 +116,7 @@ const handlePublicSubmit = async (request: NextRequest, body: unknown) => {
     return jsonError(err instanceof Error ? err.message : "Failed to assign participant reference")
   }
 
-  const earlyBirdSlot = await claimEarlyBirdSlot(parsed.data.state)
+  const earlyBirdSlot = await claimEarlyBirdSlot(parsed.data.state ?? "")
   const amountDue = computeAmountDue(parsed.data, earlyBirdSlot)
   const registrationNo = await generateRegistrationNo()
 
@@ -131,7 +138,7 @@ const handlePublicSubmit = async (request: NextRequest, body: unknown) => {
       ...dbData,
       participant_reference: participantReference,
     })
-    .select()
+    .select("id")
     .single()
 
   if (error) return jsonError(error.message, 500)
@@ -206,7 +213,7 @@ const handleAuthenticatedPost = async (request: NextRequest, body: unknown) => {
   }
 
   const earlyBirdSlot = parsed.data.submit
-    ? await claimEarlyBirdSlot(parsed.data.state)
+    ? await claimEarlyBirdSlot(parsed.data.state ?? "")
     : ("none" as const)
 
   const amountDue = computeAmountDue(parsed.data, earlyBirdSlot)
@@ -232,7 +239,7 @@ const handleAuthenticatedPost = async (request: NextRequest, body: unknown) => {
       ...dbData,
       ...(participantReference ? { participant_reference: participantReference } : {}),
     })
-    .select()
+    .select("id")
     .single()
 
   if (error) return jsonError(error.message, 500)

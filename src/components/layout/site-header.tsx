@@ -102,21 +102,20 @@ export const SiteHeader = () => {
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src="/brand/cfca-australia-mark.png"
-            alt=""
-            width={108}
-            height={113}
-            className="cfca-brand-mark__icon transition-opacity group-hover:opacity-90"
+            src="/brand/cfca-logo-official-transparent.png"
+            alt="Couples for Christ Australia"
+            width={220}
+            height={78}
+            className="h-20 w-auto object-contain transition-opacity group-hover:opacity-90"
           />
-          <span className="cfca-brand-mark__text">
-            <span className="cfca-brand-mark__primary">Couples for Christ</span>
-            <span className="cfca-brand-mark__secondary">Australia</span>
-          </span>
         </Link>
 
-        <p className="cfca-header-title">
-          Conference Registration
-        </p>
+        <div className="cfca-header-title" aria-label="National Conference 2027">
+          <span>National Conference 2027</span>
+          <span>9-11 April, 2027</span>
+          <span>Melton Entertainment Park</span>
+          <span>2 Ferris Road, Melton, Victoria</span>
+        </div>
 
         <nav
           className="flex flex-wrap items-center justify-end gap-x-5 gap-y-2 justify-self-end"

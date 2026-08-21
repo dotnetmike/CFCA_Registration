@@ -13,6 +13,7 @@ import {
   getTransportOptionLabel,
   booleansToTransportOption,
 } from "@/lib/registrations/transport"
+import { formatSouvenirOrdersSummary, hasSouvenirPreOrder } from "@/lib/registrations/souvenirs"
 
 type Registration = {
   id: string
@@ -24,7 +25,13 @@ type Registration = {
   mobile: string
   state: string
   cfca_position: string
+  dietary_requirements?: string | null
   spouse_attending: boolean
+  spouse_surname?: string | null
+  spouse_given_name?: string | null
+  spouse_email?: string | null
+  spouse_mobile?: string | null
+  spouse_dietary_requirements?: string | null
   payment_status: string
   amount_due: number
   amount_paid: number
@@ -46,7 +53,14 @@ type Registration = {
   pickup_transport_contact_phone?: string | null
   dropoff_transport_contact_name?: string | null
   dropoff_transport_contact_phone?: string | null
-  registration_attendees: { given_name: string; surname: string; age: number }[]
+  souvenir_orders?: unknown
+  registration_attendees: {
+    given_name: string
+    surname: string
+    age: number
+    needs_kids_supervision?: boolean
+    dietary_requirements?: string | null
+  }[]
 }
 
 const hasText = (value?: string | null) => Boolean(value && value.trim())
@@ -152,6 +166,30 @@ const MyRegistrationPage = () => {
             <strong>Spouse Attending:</strong>{" "}
             {registration.spouse_attending ? "Yes" : "No"}
           </div>
+          {registration.spouse_attending && (
+            <>
+              <div>
+                <strong>Spouse Name:</strong>{" "}
+                {[registration.spouse_given_name, registration.spouse_surname]
+                  .filter(Boolean)
+                  .join(" ") || "—"}
+              </div>
+              <div>
+                <strong>Spouse Email:</strong> {registration.spouse_email || "—"}
+              </div>
+              <div>
+                <strong>Spouse Mobile:</strong> {registration.spouse_mobile || "—"}
+              </div>
+              <div className="md:col-span-2">
+                <strong>Spouse dietary requirements:</strong>{" "}
+                {registration.spouse_dietary_requirements?.trim() || "None specified"}
+              </div>
+            </>
+          )}
+          <div className="md:col-span-2">
+            <strong>Dietary requirements:</strong>{" "}
+            {registration.dietary_requirements?.trim() || "None specified"}
+          </div>
           <div>
             <strong>Payment Status:</strong> {registration.payment_status}
           </div>
@@ -256,9 +294,24 @@ const MyRegistrationPage = () => {
               {registration.registration_attendees.map((a, i) => (
                 <li key={i}>
                   {a.given_name} {a.surname} (age {a.age})
+                  {a.needs_kids_supervision ? " — kids supervision required" : ""}
+                  {a.dietary_requirements?.trim()
+                    ? ` — Dietary requirements: ${a.dietary_requirements}`
+                    : ""}
                 </li>
               ))}
             </ul>
+          </CardContent>
+        </Card>
+      )}
+
+      {hasSouvenirPreOrder(registration.souvenir_orders) && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Souvenirs</CardTitle>
+          </CardHeader>
+          <CardContent className="text-sm">
+            {formatSouvenirOrdersSummary(registration.souvenir_orders)}
           </CardContent>
         </Card>
       )}

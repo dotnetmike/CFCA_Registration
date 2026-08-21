@@ -2,8 +2,8 @@
 id: global.layout-and-navigation
 title: Layout and navigation
 status: active
-synced_commit: working-tree
-synced_at: 2026-07-27
+synced_commit: 743bec3
+synced_at: 2026-08-20
 owners: [team]
 files:
   - src/app/layout.tsx
@@ -25,7 +25,7 @@ Shell of every page: header, main content width, and which routes require login.
 ## Behavior
 
 - Root layout wraps all pages with `AuthProvider`, `SiteHeader`, atmospheric body shell, and `<main className="cfca-main …">` (`mx-auto max-w-6xl` content width).
-- Header is a white frosted bar with three zones: **left** Australia mark icon + readable “COUPLES FOR CHRIST” / “AUSTRALIA” wordmark (HTML text, not baked into a tiny logo raster), **center** “Conference Registration”, **right** nav actions.
+- Header is a white frosted bar with three zones: **left** Australia mark icon + readable “COUPLES FOR CHRIST” / “AUSTRALIA” wordmark (HTML text, not baked into a tiny logo raster), **center** “National Conference 2027 / 9-11 April, 2027 / Melton Entertainment Park / 2 Ferris Road, Melton, Victoria”, **right** nav actions.
 - `RequireAuth` gates **protected** routes only (see `isProtectedPath`).
 - **Protected paths**: `/my-registration`, `/payment`, `/dashboard`, `/account` (and subpaths).
 - **Public paths** (examples): `/`, `/register` (redirects to `/`), `/register/complete`, `/r/[token]`, `/login`, `/signup` (post-registration only), `/forgot-password`, `/reset-password`.
@@ -40,7 +40,7 @@ Shell of every page: header, main content width, and which routes require login.
 - [ ] Logged-out header shows Login and Register (not Sign Up) on non-registration pages
 - [ ] Logged-out header on `/` (registration) hides Login and Register
 - [ ] Header left brand uses large Australia icon + readable Couples for Christ / Australia HTML wordmark linking to `/`
-- [ ] Header center shows Conference Registration in the brand display font
+- [ ] Header center shows the National Conference 2027 details in the brand display font
 - [ ] Managers get a Dashboard submenu (header dropdown + in-dashboard subnav)
 
 ## Related specs

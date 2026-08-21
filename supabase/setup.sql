@@ -154,6 +154,7 @@ CREATE TABLE IF NOT EXISTS public.registrations (
   given_name text NOT NULL DEFAULT '',
   email text NOT NULL DEFAULT '',
   mobile text NOT NULL DEFAULT '',
+  dietary_requirements text NOT NULL DEFAULT '',
   address_line1 text NOT NULL DEFAULT '',
   address_line2 text NOT NULL DEFAULT '',
   suburb text NOT NULL DEFAULT '',
@@ -166,6 +167,7 @@ CREATE TABLE IF NOT EXISTS public.registrations (
   spouse_attending boolean NOT NULL DEFAULT false,
   spouse_email text NOT NULL DEFAULT '',
   spouse_mobile text NOT NULL DEFAULT '',
+  spouse_dietary_requirements text NOT NULL DEFAULT '',
   accommodation_type public.accommodation_type,
   pickup_melbourne_airport boolean,
   dropoff_melbourne_airport boolean,
@@ -196,7 +198,11 @@ CREATE TABLE IF NOT EXISTS public.registrations (
   submitted_at timestamptz,
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now(),
-  UNIQUE (user_id)
+  participant_reference text,
+  view_token_hash text,
+  UNIQUE (user_id),
+  UNIQUE (participant_reference),
+  UNIQUE (view_token_hash)
 );
 
 CREATE TABLE IF NOT EXISTS public.registration_attendees (
@@ -206,6 +212,7 @@ CREATE TABLE IF NOT EXISTS public.registration_attendees (
   given_name text NOT NULL DEFAULT '',
   age integer NOT NULL DEFAULT 0,
   needs_kids_supervision boolean NOT NULL DEFAULT false,
+  dietary_requirements text NOT NULL DEFAULT '',
   sort_order integer NOT NULL DEFAULT 0
 );
 

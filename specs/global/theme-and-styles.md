@@ -2,8 +2,8 @@
 id: global.theme-and-styles
 title: Theme and styles
 status: active
-synced_commit: working-tree
-synced_at: 2026-07-27
+synced_commit: 743bec3
+synced_at: 2026-08-20
 owners: [team]
 files:
   - src/app/globals.css

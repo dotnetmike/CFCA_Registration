@@ -2,8 +2,8 @@
 id: global.email
 title: Branded transactional email
 status: active
-synced_commit: working-tree
-synced_at: 2026-07-27
+synced_commit: 743bec3
+synced_at: 2026-08-20
 owners: [team]
 files:
   - src/lib/email/template.ts

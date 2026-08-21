@@ -2,16 +2,18 @@
 id: features.registration
 title: Registration form
 status: active
-synced_commit: working-tree
-synced_at: 2026-07-13
+synced_commit: 743bec3
+synced_at: 2026-08-20
 owners: [team]
 files:
   - src/app/page.tsx
   - src/app/register/page.tsx
+  - src/components/layout/site-header.tsx
   - src/components/registrations/registration-form.tsx
   - src/components/registrations/registration-review-summary.tsx
   - src/components/registrations/transport-schedule-alert.tsx
   - src/lib/registrations/schema.ts
+  - src/lib/registrations/validation.test.ts
   - src/lib/registrations/souvenirs.ts
   - src/lib/registrations/transport.ts
   - src/lib/registrations/email-unique.ts
@@ -24,6 +26,7 @@ files:
   - src/app/api/registrations/[id]/route.ts
   - src/app/api/registrations/check-email/route.ts
   - src/lib/email/send.ts
+  - supabase/migrations/014_registration_dietary_requirements.sql
 ---
 
 # Registration form
@@ -44,14 +47,34 @@ Single continuous conference registration page. Guests complete without login; l
   4. Souvenir pre-order (optional)
   5. Review & submit
 - Short intro: fill in the form, then press Submit once at the bottom.
+- National Conference reminder shown on the page: **National Conference 2027**.
 - Required fields marked with `*`; selects use plain-language placeholders.
 - Controls use comfortable sizing (`text-base` / taller inputs) for readability and touch.
+
+### Registration details
+
+- Primary registrant and attendee fields include an optional food allergy and dietary requirements field.
+- Australian mobile numbers are validated to the local format (`04xx xxx xxx` or `+61...`).
+
+### Airport transport
+
+- Pickup is available from Friday, 9 April 2027 to Saturday, 10 April 2027, 5am–10pm.
+- Drop-off is available from Saturday, 10 April 2027 to Sunday, 11 April 2027, 5am–10pm.
+- Pickup exception: Chapter Leader, Ministry Coordinator, Area Coordinator, Area Head, and National Council roles may choose Thursday, 8 April 2027 to Saturday, 10 April 2027, 5am–10pm only.
+- On-screen schedule alert copy reflects the selected transport option and CFCA position:
+  - Pickup only, standard position: "Pick-up at Tullamarine is available only on Friday, 9 April 2027, 5am–10pm."
+  - Pickup only, exception position: "Pick-up at Tullamarine is available from Thursday, 8 April 2027, 5am–10pm."
+  - Pickup + drop-off, standard position: "Pick-up and drop-off at Tullamarine: pick-up Friday, 9 April 2027, 5am–10pm and drop-off Sunday, 11 April 2027, 5am–10pm."
+  - Pickup + drop-off, exception position: "Pick-up and drop-off at Tullamarine: pick-up from Thursday, 8 April 2027, 5am–10pm and drop-off Sunday, 11 April 2027, 5am–10pm."
+  - Drop-off only (any position): "Drop-off at Tullamarine is available only on Sunday, 11 April 2027, 5am–10pm."
+  - All variants note transport from other airports (e.g. Avalon) may not be available.
+- Spouse records include an optional food allergy and dietary requirements field if attending.
 
 ### Souvenir pre-order (optional)
 
 - Managed by **Love In Action**; note that all proceeds support a fund for future projects sharing love and help to others.
 - Item: conference **t-shirt**, **$30** each.
-- Registrant may pre-order multiple lines by **size** and **quantity** (e.g. 1� Medium + 3� Large).
+- Registrant may pre-order multiple lines by **size** and **quantity** (e.g. 1� Medium + 3� Large).
 - Stored as `souvenir_orders` JSON on the registration; total added to `amount_due`.
 
 ### Accessibility
@@ -89,6 +112,10 @@ Single continuous conference registration page. Guests complete without login; l
 - [ ] Optional t-shirt pre-order with size/qty at $30 each
 - [ ] Love In Action proceeds note shown
 - [ ] Souvenir total included in amount due
+- [ ] National Conference reminder shown as National Conference 2027
+- [ ] Food allergy and dietary requirements field is available for registrants, spouses, and attendees
+- [ ] Australian mobile validation is enforced
+- [ ] Airport pickup/drop-off dates are restricted to the conference windows with the CFCA pickup exception
 - [ ] No-op saves do not write empty audits
 - [ ] Update notification emails include full registration details and contacts when applicable
 - [ ] Update emails include a link that leads to My Registration after login

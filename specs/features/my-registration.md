@@ -2,8 +2,8 @@
 id: features.my-registration
 title: My Registration
 status: active
-synced_commit: working-tree
-synced_at: 2026-07-14
+synced_commit: 743bec3
+synced_at: 2026-08-20
 owners: [team]
 files:
   - src/app/my-registration/page.tsx
@@ -14,14 +14,16 @@ files:
 
 ## Purpose
 
-Logged-in summary of the user’s registration. Primary destination for update-notification email links.
+Logged-in summary of the userï¿½s registration. Primary destination for update-notification email links.
 
 ## Behavior
 
 - Protected (`/my-registration`). Unauthenticated visitors are redirected to `/login?redirect=/my-registration`.
 - Loads own registration via `GET /api/registrations`.
 - Empty ? prompt to start `/` (registration form).
-- Shows: Unique Code, amounts (due / paid / remaining), personal summary, spouse flag, attendees.
+- Shows: Unique Code, amounts (due / paid / remaining), personal summary, primary registrant dietary requirements, spouse details (name, email, mobile, dietary requirements) when attending, attendees.
+- **Additional attendees**: name, age, kids supervision required (when set), and dietary requirements (when set) per attendee.
+- **Souvenirs**: pre-ordered t-shirt sizes/quantities shown when any souvenir order line has a quantity greater than zero.
 - **Accommodation & transport** (when applicable):
   - Accommodation type label
   - Accommodation name / address (`hotel_name` / `hotel_address`)
@@ -34,7 +36,11 @@ Logged-in summary of the user’s registration. Primary destination for update-not
 
 ## Acceptance criteria
 
-- [ ] Only the owner’s registration is shown (non-managers)
+- [ ] Only the ownerï¿½s registration is shown (non-managers)
+- [ ] Spouse details (name, email, mobile, dietary requirements) are shown when spouse is attending
+- [ ] Primary registrant and attendee dietary requirements are shown when set
+- [ ] Kids supervision requirement is shown per attendee when set
+- [ ] Souvenir pre-orders are shown when present
 - [ ] Accommodation and transport contacts/names are visible when present
 - [ ] Login redirect returns the user to this page
 

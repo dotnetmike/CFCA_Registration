@@ -2,8 +2,8 @@
 id: features.audit
 title: Audit log
 status: active
-synced_commit: working-tree
-synced_at: 2026-07-14
+synced_commit: 743bec3
+synced_at: 2026-08-20
 owners: [team]
 files:
   - src/lib/audit/log.ts

@@ -62,6 +62,7 @@ export const mapFormToDb = (data: RegistrationFormData, extras: {
   given_name: data.given_name,
   email: data.email,
   mobile: data.mobile,
+  dietary_requirements: data.dietary_requirements ?? "",
   address_line1: data.address_line1 ?? "",
   suburb: data.suburb ?? "",
   address_state: data.address_state === "" ? null : (data.address_state ?? null),
@@ -73,6 +74,7 @@ export const mapFormToDb = (data: RegistrationFormData, extras: {
   spouse_attending: data.spouse_attending,
   spouse_email: data.spouse_email ?? "",
   spouse_mobile: data.spouse_mobile ?? "",
+  spouse_dietary_requirements: data.spouse_dietary_requirements ?? "",
   accommodation_type: data.accommodation_type === "" || data.accommodation_type == null
     ? null
     : data.accommodation_type,
@@ -102,7 +104,7 @@ export const getRegistrationWithAttendees = async (id: string) => {
   const admin = createAdminClient()
   const { data: registration, error } = await admin
     .from("registrations")
-    .select("*")
+    .select("id, registration_no, user_id, surname, given_name, email, mobile, dietary_requirements, address_line1, address_line2, suburb, address_state, postcode, cfca_position, state, spouse_surname, spouse_given_name, spouse_attending, spouse_email, spouse_mobile, spouse_dietary_requirements, accommodation_type, pickup_melbourne_airport, dropoff_melbourne_airport, hotel_transport_required, arrival_date, arrival_airport, arrival_flight_no, departure_date, departure_airport, departure_flight_no, hotel_name, hotel_address, accommodation_contact_name, accommodation_contact_phone, pickup_transport_contact_name, pickup_transport_contact_phone, dropoff_transport_contact_name, dropoff_transport_contact_phone, payment_status, amount_due, amount_paid, payment_last_updated_source, payment_last_updated_at, payment_last_updated_by, souvenir_orders, is_early_bird, early_bird_slot, submitted_at, created_at, updated_at, participant_reference, view_token_hash")
     .eq("id", id)
     .single()
 
@@ -110,7 +112,7 @@ export const getRegistrationWithAttendees = async (id: string) => {
 
   const { data: attendees } = await admin
     .from("registration_attendees")
-    .select("*")
+    .select("id, registration_id, surname, given_name, age, needs_kids_supervision, dietary_requirements, sort_order")
     .eq("registration_id", id)
     .order("sort_order")
 
