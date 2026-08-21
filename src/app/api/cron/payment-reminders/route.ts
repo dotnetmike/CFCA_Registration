@@ -28,7 +28,7 @@ export const GET = async (request: NextRequest) => {
 
   let sent = 0
   for (const reg of unpaid ?? []) {
-    await sendRegistrationEmail(reg, "payment_reminder")
+    await sendRegistrationEmail(reg, "payment_reminder", { request })
     sent++
   }
 

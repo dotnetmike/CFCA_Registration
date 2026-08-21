@@ -2,13 +2,15 @@
 id: features.magic-link-view
 title: Magic-link registration view
 status: active
-synced_commit: 743bec3
-synced_at: 2026-08-20
+synced_commit: working-tree
+synced_at: 2026-08-22
 owners: [team]
 files:
   - src/app/r/[token]/page.tsx
   - src/app/api/registrations/view/[token]/route.ts
   - src/lib/registrations/view-token.ts
+  - src/lib/site-url.ts
+  - src/lib/email/send.ts
 ---
 
 # Magic-link registration view
@@ -19,6 +21,7 @@ Permanent read-only view of a registration from the confirmation email, without 
 
 ## Behavior
 
+- Confirmation email “View registration” link is absolute and uses the request host (`getRequestSiteUrl`).
 - Route: `/r/[token]` (public).
 - Loads via `GET /api/registrations/view/[token]` (hashed token lookup).
 - Shows personal, spouse/attendees, accommodation/transport, payment summary.

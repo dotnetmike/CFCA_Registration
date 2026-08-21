@@ -19,7 +19,7 @@ Copy `.env.example` → `.env`. Typical needs:
 - `JWT_SECRET` / access expiry
 - `NEXT_PUBLIC_BANK_*` for payment page
 - `RESEND_API_KEY`, `EMAIL_FROM`
-- Site URL helper for magic links (`getSiteUrl`)
+- Absolute links in emails use the request Host / `X-Forwarded-*` headers (`getRequestSiteUrl`) — no site URL env var
 
 Never commit secrets. Never expose service role to the client.
 

@@ -279,7 +279,10 @@ export const PUT = async (request: NextRequest, { params }: RouteParams) => {
     await sendRegistrationEmail(
       full,
       emailType,
-      isSubmitting && viewToken ? { viewToken } : undefined
+      {
+        request,
+        ...(isSubmitting && viewToken ? { viewToken } : {}),
+      }
     )
   }
 

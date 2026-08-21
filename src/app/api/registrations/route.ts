@@ -159,7 +159,7 @@ const handlePublicSubmit = async (request: NextRequest, body: unknown) => {
   const full = await getRegistrationWithAttendees(registration.id)
 
   if (full) {
-    await sendRegistrationEmail(full, "registration_submitted", { viewToken })
+    await sendRegistrationEmail(full, "registration_submitted", { request, viewToken })
   }
 
   await writeAuditLog({
@@ -277,7 +277,7 @@ const handleAuthenticatedPost = async (request: NextRequest, body: unknown) => {
   const full = await getRegistrationWithAttendees(registration.id)
 
   if (parsed.data.submit && full) {
-    await sendRegistrationEmail(full, "registration_submitted", { viewToken })
+    await sendRegistrationEmail(full, "registration_submitted", { request, viewToken })
   }
 
   await writeAuditLog({

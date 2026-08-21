@@ -5,7 +5,7 @@ import { jsonError } from "@/lib/auth/api"
 import { normalizeEmail } from "@/lib/utils"
 import { createPasswordResetToken } from "@/lib/auth/password-reset"
 import { sendPasswordResetEmail } from "@/lib/email/password-reset"
-import { getSiteUrl } from "@/lib/site-url"
+import { getRequestSiteUrl } from "@/lib/site-url"
 import { writeAuditLog } from "@/lib/audit/log"
 
 const forgotPasswordSchema = z.object({
@@ -39,7 +39,7 @@ export const POST = async (request: NextRequest) => {
   }
 
   const { token } = await createPasswordResetToken(user.id)
-  const resetUrl = `${getSiteUrl()}/reset-password?token=${encodeURIComponent(token)}`
+  const resetUrl = `${getRequestSiteUrl(request)}/reset-password?token=${encodeURIComponent(token)}`
   await sendPasswordResetEmail(user.id, user.email, user.name, resetUrl)
 
   await writeAuditLog({

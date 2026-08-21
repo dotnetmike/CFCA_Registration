@@ -3,7 +3,7 @@ id: features.registration
 title: Registration form
 status: active
 synced_commit: working-tree
-synced_at: 2026-08-21
+synced_at: 2026-08-22
 owners: [team]
 files:
   - src/app/page.tsx
@@ -22,6 +22,7 @@ files:
   - src/lib/registrations/rate-limit.ts
   - src/lib/registrations/compare.ts
   - src/lib/pricing/calculate.ts
+  - src/lib/site-url.ts
   - src/app/api/registrations/route.ts
   - src/app/api/registrations/[id]/route.ts
   - src/app/api/registrations/check-email/route.ts
@@ -103,7 +104,7 @@ Single continuous conference registration page. Guests complete without login; l
 
 ### Participant emails (`src/lib/email/send.ts`)
 
-- **Submitted** (`registration_submitted`): full registration summary + magic-link view URL (`/r/{token}`).
+- **Submitted** (`registration_submitted`): full registration summary + magic-link view URL built from the request host (`{origin}/r/{token}`).
 - **Updated** (`registration_updated` / `accommodation_updated`): full registration summary including accommodation name/address and accommodation/transport contacts when set; includes a portal link to `/my-registration` (login required via proxy redirect).
 - Accommodation/transport contact lines appear only when applicable (values present / transport flags).
 

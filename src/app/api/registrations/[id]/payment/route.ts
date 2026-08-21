@@ -97,7 +97,7 @@ export const PATCH = async (request: NextRequest, { params }: RouteParams) => {
 
   if (paymentStatus === "paid" || paymentStatus === "overpaid" || delta > 0) {
     const full = await getRegistrationWithAttendees(id)
-    if (full) await sendRegistrationEmail(full, "payment_received")
+    if (full) await sendRegistrationEmail(full, "payment_received", { request })
   }
 
   const registration = await getRegistrationWithAttendees(id)

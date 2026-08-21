@@ -1,6 +1,5 @@
 import { readFileSync } from "fs"
 import { join } from "path"
-import { getSiteUrl } from "@/lib/site-url"
 
 export const escapeHtml = (value: string) =>
   value
@@ -22,6 +21,8 @@ type RenderEmailOptions = {
   ctaLabel?: string
   ctaUrl?: string
   footerNote?: string
+  /** Public origin for footer home link (from request Host). */
+  siteUrl?: string
 }
 
 const brand = {
@@ -38,9 +39,6 @@ const brand = {
 /** Inline CID used by Resend attachments so the logo renders without a public URL. */
 export const EMAIL_LOGO_CID = "cfca-logo"
 
-export const getEmailLogoPublicUrl = () =>
-  `${getSiteUrl()}/brand/cfca-email-logo.png`
-
 export const getEmailLogoSrc = () => `cid:${EMAIL_LOGO_CID}`
 
 export const getEmailLogoAttachment = () => {
@@ -54,9 +52,6 @@ export const getEmailLogoAttachment = () => {
   }
 }
 
-/** @deprecated Prefer getEmailLogoSrc / getEmailLogoPublicUrl */
-export const getEmailLogoUrl = getEmailLogoPublicUrl
-
 export const renderEmail = ({
   heading,
   introHtml,
@@ -64,9 +59,9 @@ export const renderEmail = ({
   ctaLabel,
   ctaUrl,
   footerNote,
+  siteUrl,
 }: RenderEmailOptions) => {
   const logoSrc = getEmailLogoSrc()
-  const siteUrl = getSiteUrl()
 
   const sectionsHtml = sections
     .map((section) => {
@@ -114,6 +109,12 @@ export const renderEmail = ({
     ? `<p style="margin:0 0 8px;font-size:13px;line-height:1.5;color:${brand.grey};">${escapeHtml(footerNote)}</p>`
     : ""
 
+  const homeLink = siteUrl
+    ? `<p style="margin:0;font-size:12px;">
+                <a href="${escapeHtml(siteUrl)}" style="color:${brand.deep};text-decoration:none;">${escapeHtml(siteUrl.replace(/^https?:\/\//, ""))}</a>
+              </p>`
+    : ""
+
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -150,9 +151,7 @@ export const renderEmail = ({
           <tr>
             <td style="padding:18px 24px 24px;border-top:1px solid ${brand.line};">
               <p style="margin:0 0 4px;font-size:12px;color:${brand.grey};">Couples for Christ Australia — Conference Registration</p>
-              <p style="margin:0;font-size:12px;">
-                <a href="${escapeHtml(siteUrl)}" style="color:${brand.deep};text-decoration:none;">${escapeHtml(siteUrl.replace(/^https?:\/\//, ""))}</a>
-              </p>
+              ${homeLink}
             </td>
           </tr>
         </table>

@@ -12,7 +12,7 @@ import {
   hasSouvenirPreOrder,
   souvenirTotalAmount,
 } from "@/lib/registrations/souvenirs"
-import { getSiteUrl } from "@/lib/site-url"
+import { getRequestSiteUrl } from "@/lib/site-url"
 import {
   paragraphHtml,
   renderEmail,
@@ -481,7 +481,7 @@ Please include ${ref} in your payment reference.`
 const buildHtml = (
   type: EmailType,
   reg: RegistrationEmailRecord,
-  links: { viewUrl?: string; portalUrl?: string }
+  links: { viewUrl?: string; portalUrl?: string; siteUrl: string }
 ) => {
   const name = `${reg.given_name} ${reg.surname}`.trim()
   const ref = paymentRef(reg)
@@ -501,6 +501,7 @@ const buildHtml = (
         ctaUrl: links.viewUrl,
         footerNote:
           "If you have already paid and receive this in error, please contact the registration team.",
+        siteUrl: links.siteUrl,
       })
     case "registration_updated":
       return renderEmail({
@@ -515,6 +516,7 @@ const buildHtml = (
         ctaUrl: links.portalUrl,
         footerNote:
           "Log in is required. If you do not have an account yet, create one using the same email as this registration.",
+        siteUrl: links.siteUrl,
       })
     case "accommodation_updated":
       return renderEmail({
@@ -529,6 +531,7 @@ const buildHtml = (
         ctaUrl: links.portalUrl,
         footerNote:
           "Log in is required. If you do not have an account yet, create one using the same email as this registration.",
+        siteUrl: links.siteUrl,
       })
     case "payment_received":
       return renderEmail({
@@ -549,6 +552,7 @@ const buildHtml = (
             ],
           },
         ],
+        siteUrl: links.siteUrl,
       })
     case "payment_reminder":
       return renderEmail({
@@ -575,6 +579,7 @@ const buildHtml = (
         ],
         ctaLabel: "View my registration",
         ctaUrl: links.portalUrl,
+        siteUrl: links.siteUrl,
       })
   }
 }
@@ -582,10 +587,10 @@ const buildHtml = (
 export const sendRegistrationEmail = async (
   registration: RegistrationEmailRecord,
   type: EmailType,
-  options?: { viewToken?: string }
+  options: { request: Request; viewToken?: string }
 ) => {
-  const siteUrl = getSiteUrl()
-  const viewUrl = options?.viewToken
+  const siteUrl = getRequestSiteUrl(options.request)
+  const viewUrl = options.viewToken
     ? `${siteUrl}/r/${encodeURIComponent(options.viewToken)}`
     : undefined
   const portalUrl = `${siteUrl}/my-registration`
@@ -593,7 +598,7 @@ export const sendRegistrationEmail = async (
   const resend = getResend()
   const subject = buildSubject(type, registration)
   const text = buildBody(type, registration, { viewUrl, portalUrl })
-  const html = buildHtml(type, registration, { viewUrl, portalUrl })
+  const html = buildHtml(type, registration, { viewUrl, portalUrl, siteUrl })
   assertEmailIncludesLogo(html)
   const logoAttachment = getEmailLogoAttachment()
 

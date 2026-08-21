@@ -23,7 +23,8 @@ Required for a useful local run:
 | `SUPABASE_ACCESS_TOKEN` | `npm run db:deploy` |
 | `JWT_ACCESS_SECRET` / `JWT_REFRESH_SECRET` | Auth cookies |
 | `SEED_ADMIN_EMAIL` / `SEED_ADMIN_PASSWORD` | First staff login |
-| `NEXT_PUBLIC_SITE_URL` | Magic links / emails |
+
+Email magic links use the request Host / `X-Forwarded-*` headers automatically (no `NEXT_PUBLIC_SITE_URL`).
 
 ## Run modes
 

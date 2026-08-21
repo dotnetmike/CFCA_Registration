@@ -109,7 +109,7 @@ export const POST = async (request: NextRequest) => {
             .eq("id", registration.id)
 
           const updated = { ...registration, amount_paid: newPaid, payment_status: paymentStatus }
-          await sendRegistrationEmail(updated, "payment_received")
+          await sendRegistrationEmail(updated, "payment_received", { request })
 
           await writeAuditLog({
             userId: auth.sub,

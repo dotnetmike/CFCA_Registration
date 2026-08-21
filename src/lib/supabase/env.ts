@@ -37,6 +37,3 @@ export const getJwtRefreshSecret = () => {
 
 export const getRegistrationCodePrefix = () =>
   process.env.REGISTRATION_CODE_PREFIX ?? "CFCA26"
-
-export const getSiteUrl = () =>
-  process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"
