@@ -151,7 +151,15 @@
   .cfca-header-title {
     font-family: var(--font-brand);
     color: #0057c8;
-    @apply text-center text-[0.85rem] font-normal uppercase leading-tight tracking-[0.06em] sm:text-[1.05rem] md:text-[1.2rem];
+    @apply flex flex-col items-center gap-0.5 text-center font-normal uppercase leading-tight tracking-[0.04em];
+  }
+
+  .cfca-header-title span:first-child {
+    @apply text-[0.95rem] sm:text-[1.2rem] md:text-[1.5rem];
+  }
+
+  .cfca-header-title span:not(:first-child) {
+    @apply text-[0.62rem] sm:text-[0.72rem] md:text-[0.8rem];
   }
 
   .cfca-section-panel {

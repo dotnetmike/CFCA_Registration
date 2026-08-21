@@ -99,7 +99,7 @@ export const RegistrationReviewSummary = ({
   participantReference,
 }: RegistrationReviewSummaryProps) => {
   const attendees = buildAttendeesForPricing(formData)
-  const earlyBirdSlot = resolveEarlyBirdSlot(formData.state)
+  const earlyBirdSlot = resolveEarlyBirdSlot(formData.state ?? undefined)
   const lineItems = buildPricingBreakdown(
     attendees,
     earlyBirdSlot,
@@ -129,6 +129,10 @@ export const RegistrationReviewSummary = ({
         <div>
           <dt className="font-medium">Email</dt>
           <dd>{formData.email}</dd>
+        </div>
+        <div className="md:col-span-2">
+          <dt className="font-medium">Food allergy &amp; dietary requirements</dt>
+          <dd>{formData.dietary_requirements?.trim() || "None specified"}</dd>
         </div>
         <div>
           <dt className="font-medium">State</dt>

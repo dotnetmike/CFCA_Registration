@@ -2,8 +2,8 @@
 id: features.payment
 title: Payment information
 status: active
-synced_commit: working-tree
-synced_at: 2026-07-13
+synced_commit: 743bec3
+synced_at: 2026-08-20
 owners: [team]
 files:
   - src/app/payment/page.tsx

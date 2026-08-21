@@ -33,6 +33,7 @@ type RegistrationView = {
   spouse_given_name?: string
   spouse_email?: string
   spouse_mobile?: string
+  spouse_dietary_requirements?: string | null
   payment_status: string
   amount_due: number
   amount_paid: number
@@ -186,6 +187,12 @@ const MagicRegistrationPage = () => {
               </div>
               <div>{registration.spouse_email}</div>
               <div>{registration.spouse_mobile}</div>
+              {registration.spouse_dietary_requirements && (
+                <div className="md:col-span-2">
+                  <strong>Spouse dietary requirements:</strong>{" "}
+                  {registration.spouse_dietary_requirements}
+                </div>
+              )}
             </div>
           )}
           {registration.registration_attendees && registration.registration_attendees.length > 0 ? (

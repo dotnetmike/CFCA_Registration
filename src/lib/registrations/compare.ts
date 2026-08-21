@@ -6,6 +6,7 @@ export type ComparableAttendee = {
   given_name: string
   age: number
   needs_kids_supervision: boolean
+  dietary_requirements: string
 }
 
 export type ComparableRegistrationSnapshot = {
@@ -13,6 +14,7 @@ export type ComparableRegistrationSnapshot = {
   given_name: string
   email: string
   mobile: string
+  dietary_requirements: string
   address_line1: string
   suburb: string
   address_state: string
@@ -24,6 +26,7 @@ export type ComparableRegistrationSnapshot = {
   spouse_attending: boolean
   spouse_email: string
   spouse_mobile: string
+  spouse_dietary_requirements: string
   accommodation_type: string
   pickup_melbourne_airport: boolean
   dropoff_melbourne_airport: boolean
@@ -63,6 +66,7 @@ export const normalizeComparableAttendees = (
       given_name: str(a.given_name),
       age: Number.isFinite(age) ? age : 0,
       needs_kids_supervision: age < 12 ? !!a.needs_kids_supervision : false,
+      dietary_requirements: str(a.dietary_requirements),
     }
   })
 }
@@ -85,6 +89,7 @@ export const snapshotFromFormValues = (
     given_name: str(values.given_name),
     email: str(values.email).toLowerCase(),
     mobile: str(values.mobile),
+    dietary_requirements: str(values.dietary_requirements),
     address_line1: str(values.address_line1),
     suburb: str(values.suburb),
     address_state: str(values.address_state),
@@ -96,6 +101,7 @@ export const snapshotFromFormValues = (
     spouse_attending: !!values.spouse_attending,
     spouse_email: str(values.spouse_email).toLowerCase(),
     spouse_mobile: str(values.spouse_mobile),
+    spouse_dietary_requirements: str(values.spouse_dietary_requirements),
     accommodation_type: str(values.accommodation_type),
     pickup_melbourne_airport: !!transport.pickup_melbourne_airport,
     dropoff_melbourne_airport: !!transport.dropoff_melbourne_airport,
@@ -133,6 +139,7 @@ export const snapshotFromRegistration = (
     given_name: str(reg.given_name),
     email: str(reg.email).toLowerCase(),
     mobile: str(reg.mobile),
+    dietary_requirements: str(reg.dietary_requirements),
     address_line1: str(reg.address_line1),
     suburb: str(reg.suburb),
     address_state: str(reg.address_state),
@@ -144,6 +151,7 @@ export const snapshotFromRegistration = (
     spouse_attending: !!reg.spouse_attending,
     spouse_email: str(reg.spouse_email).toLowerCase(),
     spouse_mobile: str(reg.spouse_mobile),
+    spouse_dietary_requirements: str(reg.spouse_dietary_requirements),
     accommodation_type: str(reg.accommodation_type),
     pickup_melbourne_airport: !!reg.pickup_melbourne_airport,
     dropoff_melbourne_airport: !!reg.dropoff_melbourne_airport,

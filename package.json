@@ -5,7 +5,7 @@
   "scripts": {
     "db:deploy": "tsx scripts/db/deploy.ts",
     "db:login": "npx supabase@latest login",
-    "dev": "tsx scripts/db/deploy.ts && next dev",
+    "dev": "tsx scripts/db/deploy.ts && next dev --webpack",
     "build": "next build",
     "start": "tsx scripts/db/deploy.ts && next start",
     "lint": "eslint",

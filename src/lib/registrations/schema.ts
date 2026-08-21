@@ -24,6 +24,67 @@ export const CFCA_POSITION_LABELS: Record<(typeof CFCA_POSITIONS)[number], strin
   national_council: "National Council",
 }
 
+export const CFCA_AIRPORT_PICKUP_EXCEPTION_POSITIONS = [
+  "chapter_leader",
+  "ministry_coordinator",
+  "area_coordinator",
+  "area_head",
+  "national_council",
+] as const
+
+export const CONFERENCE_DATE_RANGE = {
+  start: "2027-04-09",
+  end: "2027-04-11",
+} as const
+
+export const isAustralianMobileNumber = (value: string) => {
+  const digits = value.replace(/[\s()\-]/g, "").trim()
+  if (!digits) return false
+  if (!/^\+?[0-9]+$/.test(digits)) return false
+  const normalized = digits.startsWith("+") ? digits.slice(1) : digits
+  return /^(?:0|61)?4\d{8}$/.test(normalized)
+}
+
+export const getAirportTransportDateWindow = (
+  transportType: "pickup" | "dropoff",
+  position: string | null | undefined
+) => {
+  if (transportType === "pickup") {
+    const isException = CFCA_AIRPORT_PICKUP_EXCEPTION_POSITIONS.includes(
+      (position ?? "") as (typeof CFCA_AIRPORT_PICKUP_EXCEPTION_POSITIONS)[number]
+    )
+    return isException
+      ? { min: "2027-04-08", max: "2027-04-10" }
+      : { min: "2027-04-09", max: "2027-04-10" }
+  }
+
+  return { min: "2027-04-10", max: "2027-04-11" }
+}
+
+export const getAirportTransportValidationError = (
+  transportType: "pickup" | "dropoff",
+  position: string | null | undefined,
+  selectedDate: string | null | undefined
+) => {
+  if (!selectedDate) return null
+
+  const window = getAirportTransportDateWindow(transportType, position)
+  const isException = transportType === "pickup" && CFCA_AIRPORT_PICKUP_EXCEPTION_POSITIONS.includes(
+    (position ?? "") as (typeof CFCA_AIRPORT_PICKUP_EXCEPTION_POSITIONS)[number]
+  )
+
+  if (selectedDate < window.min || selectedDate > window.max) {
+    if (transportType === "pickup") {
+      return isException
+        ? "Please choose a pickup date between Thursday, 8 April 2027 and Saturday, 10 April 2027 for this CFCA position."
+        : "Please choose a pickup date between Friday, 9 April 2027 and Saturday, 10 April 2027."
+    }
+    return "Please choose a drop-off date between Saturday, 10 April 2027 and Sunday, 11 April 2027."
+  }
+
+  return null
+}
+
 const emptyableState = z.union([z.enum(AUSTRALIAN_STATES), z.literal(""), z.null()]).optional()
 const emptyableAccommodation = z.union([z.enum(["own", "billet"]), z.literal(""), z.null()]).optional()
 const emptyableTransport = z
@@ -35,10 +96,11 @@ const optionalBoolean = z.union([z.boolean(), z.null()]).optional()
 const optionalEmail = z.union([z.string().email("Valid email required"), z.literal(""), z.null()]).optional()
 
 export const attendeeSchema = z.object({
-  surname: z.string().min(1),
-  given_name: z.string().min(1),
-  age: z.coerce.number().min(0).max(120),
+  surname: z.string().min(1, "Surname is required"),
+  given_name: z.string().min(1, "Name is required"),
+  age: z.coerce.number({ invalid_type_error: "Age is required" }).min(0, "Age is required").max(120),
   needs_kids_supervision: z.boolean().optional(),
+  dietary_requirements: z.string().optional(),
 })
 
 export const souvenirOrderLineSchema = z.object({
@@ -57,18 +119,32 @@ export const registrationBaseSchema = z.object({
   surname: z.string().min(1, "Surname is required"),
   given_name: z.string().min(1, "Name is required"),
   email: z.string().email("Valid email required"),
-  mobile: z.string().min(1, "Mobile is required"),
+  mobile: z
+    .string()
+    .trim()
+    .min(1, "Mobile is required")
+    .refine((value) => isAustralianMobileNumber(value), {
+      message: "Mobile number must be a valid Australian mobile number",
+    }),
+  dietary_requirements: optionalString,
   address_line1: optionalString,
   suburb: optionalString,
   address_state: emptyableState,
   postcode: optionalString,
   cfca_position: z.enum(CFCA_POSITIONS).default("member"),
-  state: z.enum(AUSTRALIAN_STATES, { required_error: "Conference state is required" }),
+  state: emptyableState,
   spouse_surname: optionalString,
   spouse_given_name: optionalString,
   spouse_attending: z.boolean(),
   spouse_email: optionalEmail,
-  spouse_mobile: optionalString,
+  spouse_mobile: z
+    .union([z.string().trim(), z.literal(""), z.null()])
+    .optional()
+    .refine(
+      (value) => !value || value === "" || isAustralianMobileNumber(value),
+      { message: "Spouse mobile number must be a valid Australian mobile number" }
+    ),
+  spouse_dietary_requirements: optionalString,
   accommodation_type: emptyableAccommodation,
   transport_option: emptyableTransport,
   pickup_melbourne_airport: optionalBoolean,
@@ -94,13 +170,81 @@ export const registrationBaseSchema = z.object({
 })
 
 export const registrationSchema = registrationBaseSchema.superRefine((data, ctx) => {
+  // Spouse and attendee fields validate live (like surname/mobile), not gated by submit.
+  if (data.spouse_attending) {
+    if (!data.spouse_surname || !data.spouse_surname.trim()) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Spouse surname is required",
+        path: ["spouse_surname"],
+      })
+    }
+    if (!data.spouse_given_name || !data.spouse_given_name.trim()) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Spouse name is required",
+        path: ["spouse_given_name"],
+      })
+    }
+    if (!data.spouse_email || !data.spouse_email.trim()) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Spouse email is required",
+        path: ["spouse_email"],
+      })
+    }
+    if (!data.spouse_mobile || !data.spouse_mobile.trim()) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Spouse mobile is required",
+        path: ["spouse_mobile"],
+      })
+    }
+  }
+
+  if (data.attendees && data.attendees.length > 0) {
+    for (let i = 0; i < data.attendees.length; i++) {
+      const attendee = data.attendees[i]
+      if (!attendee.surname || !attendee.surname.trim()) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Surname is required",
+          path: [`attendees.${i}.surname`],
+        })
+      }
+      if (!attendee.given_name || !attendee.given_name.trim()) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Name is required",
+          path: [`attendees.${i}.given_name`],
+        })
+      }
+      if (attendee.age == null || attendee.age < 0) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Age is required",
+          path: [`attendees.${i}.age`],
+        })
+      }
+    }
+  }
+
   if (!data.submit) return
+
+  const state = data.state as string | null | undefined
+  if (!state) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Please complete all required fields marked with * before submitting.",
+      path: ["state"],
+    })
+  }
 
   const accommodation = data.accommodation_type as string | null | undefined
   if (!accommodation) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
-      message: "Please select an accommodation option",
+      message: "Please complete all required fields marked with * before submitting.",
       path: ["accommodation_type"],
     })
   }
@@ -109,9 +253,39 @@ export const registrationSchema = registrationBaseSchema.superRefine((data, ctx)
   if (!transport) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
-      message: "Please select an airport transport option",
+      message: "Please complete all required fields marked with * before submitting.",
       path: ["transport_option"],
     })
+  }
+
+  if (transport === "pickup" || transport === "pickup_dropoff") {
+    const pickupError = getAirportTransportValidationError(
+      "pickup",
+      data.cfca_position,
+      data.arrival_date ?? undefined
+    )
+    if (pickupError) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: pickupError,
+        path: ["arrival_date"],
+      })
+    }
+  }
+
+  if (transport === "dropoff" || transport === "pickup_dropoff") {
+    const dropoffError = getAirportTransportValidationError(
+      "dropoff",
+      data.cfca_position,
+      data.departure_date ?? undefined
+    )
+    if (dropoffError) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: dropoffError,
+        path: ["departure_date"],
+      })
+    }
   }
 })
 
@@ -151,10 +325,10 @@ export const accommodationOnlySchema = z.object({
 
 export const REGISTRATION_FIELDS = {
   registration: [
-    "surname", "given_name", "email", "mobile", "address_line1",
+    "surname", "given_name", "email", "mobile", "dietary_requirements", "address_line1",
     "suburb", "address_state", "postcode", "cfca_position", "state",
     "spouse_surname", "spouse_given_name", "spouse_attending", "spouse_email", "spouse_mobile",
-    "souvenir_orders",
+    "spouse_dietary_requirements", "souvenir_orders",
   ],
   accommodation: [
     "accommodation_type", "pickup_melbourne_airport", "dropoff_melbourne_airport",

@@ -2,8 +2,8 @@
 id: features.magic-link-view
 title: Magic-link registration view
 status: active
-synced_commit: working-tree
-synced_at: 2026-07-11
+synced_commit: 743bec3
+synced_at: 2026-08-20
 owners: [team]
 files:
   - src/app/r/[token]/page.tsx
@@ -22,7 +22,7 @@ Permanent read-only view of a registration from the confirmation email, without 
 - Route: `/r/[token]` (public).
 - Loads via `GET /api/registrations/view/[token]` (hashed token lookup).
 - Shows personal, spouse/attendees, accommodation/transport, payment summary.
-- Edit CTA: if `hasAccount` â†?login redirect to `/register`; else signup with email + redirect `/register`.
+- Edit CTA: if `hasAccount` ï¿½?login redirect to `/register`; else signup with email + redirect `/register`.
 - Editing always requires an account; magic link never allows writes.
 
 ## Acceptance criteria
