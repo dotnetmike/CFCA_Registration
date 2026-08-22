@@ -105,15 +105,15 @@ const buildSubject = (type: EmailType, reg: RegistrationEmailRecord) => {
   const ref = paymentRef(reg)
   switch (type) {
     case "registration_submitted":
-      return `CFCA Conference Registration Confirmed — ${ref}`
+      return `2027 CFCA National Conference Registration Confirmed — ${ref}`
     case "registration_updated":
-      return `CFCA Registration Updated — ${ref}`
+      return `2027 CFCA National Conference Registration Updated — ${ref}`
     case "accommodation_updated":
-      return `CFCA Transport/Accommodation Updated — ${ref}`
+      return `2027 CFCA National Conference Transport/Accommodation Updated — ${ref}`
     case "payment_received":
-      return `Payment Received — ${ref}`
+      return `2027 CFCA National Conference Payment Received — ${ref}`
     case "payment_reminder":
-      return `Payment Reminder — ${ref}`
+      return `2027 CFCA National Conference Payment Reminder — ${ref}`
   }
 }
 
@@ -442,7 +442,7 @@ const buildBody = (
         introLines: [
           `Dear ${name},`,
           "",
-          "Thank you for registering for the CFCA Conference. Here is a summary of your registration:",
+          "Thank you for registering for the 2027 CFCA National Conference. Here is a summary of your registration:",
         ],
         viewUrl: links.viewUrl,
       })
@@ -494,7 +494,7 @@ const buildHtml = (
         introHtml:
           greeting +
           paragraphHtml(
-            "Thank you for registering for the CFCA Conference. Here is a summary of your registration:"
+            "Thank you for registering for the 2027 CFCA National Conference. Here is a summary of your registration:"
           ),
         sections: buildRegistrationSections(reg),
         ctaLabel: links.viewUrl ? "View registration" : undefined,

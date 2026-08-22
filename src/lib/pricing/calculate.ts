@@ -94,8 +94,8 @@ export const buildPricingBreakdown = (
   })
 
 export const isEarlyBirdWindow = (date = new Date()) => {
-  const start = new Date("2025-10-01")
-  const end = new Date("2026-02-28")
+  const start = new Date("2026-08-01")
+  const end = new Date("2027-02-28")
   return date >= start && date <= end
 }
 

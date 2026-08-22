@@ -36,7 +36,7 @@ Define the visual language for CFCA Conference Registration: Couples for Christ 
   - Surfaces: `--background`, `--foreground`, `--ink`, `--mist`, `--surface`, `--line`, `--ring`
   - `--accent` / `--accent-soft` / `--accent-ink` map to the blue brand scale
 - Brand assets under `public/brand/`:
-  - `cfca-mark.svg`, `cfca-mark-white.svg`, `cfca-logo-horizontal.svg`, `cfca-logo-stacked.svg`, `cfca-email-logo.png`
+  - `cfca-mark.svg`, `cfca-mark-white.svg`, `cfca-logo-horizontal.svg`, `cfca-logo-stacked.svg`, `cfca-logo-official.jpg`
 - Favicon / apple icon: `src/app/icon.svg`, `src/app/apple-icon.svg`
 - Fonts loaded via CSS `@import` (Cormorant Garamond display, Source Sans 3 body) — not `next/font` at build time.
 - Body: atmospheric blue-tint gradient + fine grid texture, `antialiased`, min-height screen.

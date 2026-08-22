@@ -10,7 +10,7 @@ files:
   - src/lib/email/send.ts
   - src/lib/email/password-reset.ts
   - src/lib/site-url.ts
-  - public/brand/cfca-email-logo.png
+  - public/brand/cfca-logo-official.jpg
 ---
 
 # Branded transactional email
@@ -22,7 +22,7 @@ All outbound Resend emails use a shared Couples for Christ Australia HTML templa
 ## Behavior
 
 - Shared renderer: `src/lib/email/template.ts` (`renderEmail`, `escapeHtml`, `paragraphHtml`, `assertEmailIncludesLogo`).
-- Logo is embedded as an **inline CID attachment** (`cid:cfca-logo` → `public/brand/cfca-email-logo.png`) so it renders without needing a public logo URL.
+- Logo is embedded as an **inline CID attachment** (`cid:cfca-logo` → `public/brand/cfca-logo-official.jpg`) so it renders without needing a public logo URL.
 - Absolute links (View registration, portal, password reset) use `getRequestSiteUrl(request)` from the incoming request `Host` / `X-Forwarded-Host` + `X-Forwarded-Proto`. They are **not** driven by `NEXT_PUBLIC_SITE_URL`.
 - Registration / payment emails (`send.ts`) and password reset (`password-reset.ts`) send `html` + `text` and attach the logo.
 - `assertEmailIncludesLogo` runs before send and throws if the HTML omits the logo reference.
@@ -32,7 +32,7 @@ All outbound Resend emails use a shared Couples for Christ Australia HTML templa
 ## Acceptance criteria
 
 - [ ] Every transactional email HTML references `cid:cfca-logo`
-- [ ] Sends include the logo PNG as an inline attachment
+- [ ] Sends include the official logo image as an inline attachment
 - [ ] Plain-text body remains available as a fallback
 - [ ] CTA buttons use brand deep blue (`#0D47A1`)
 - [ ] Dynamic content is HTML-escaped

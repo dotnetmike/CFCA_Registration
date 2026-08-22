@@ -22,24 +22,24 @@ export const sendPasswordResetEmail = async (
   name: string,
   resetUrl: string
 ) => {
-  const subject = "Reset your CFCA Conference Registration password"
+  const subject = "Reset your 2027 CFCA National Conference Registration password"
   const text = `Dear ${name},
 
-We received a request to reset your password for the CFCA Conference Registration portal.
+We received a request to reset your password for the 2027 CFCA National Conference Registration portal.
 
 Click the link below to choose a new password (valid for a limited time):
 ${resetUrl}
 
 If you did not request this, you can safely ignore this email. Your password will not change.
 
-CFCA Conference Registration Team`
+2027 CFCA National Conference Registration Team`
 
   const html = renderEmail({
     heading: "Reset your password",
     introHtml:
       paragraphHtml(`Dear ${name},`) +
       paragraphHtml(
-        "We received a request to reset your password for the CFCA Conference Registration portal."
+        "We received a request to reset your password for the 2027 CFCA National Conference Registration portal."
       ) +
       paragraphHtml(
         "Use the button below to choose a new password. This link is valid for a limited time."

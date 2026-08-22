@@ -102,7 +102,7 @@ export const SiteHeader = () => {
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src="/brand/cfca-logo-official-transparent.png"
+            src="/brand/cfca-logo-official.jpg"
             alt="Couples for Christ Australia"
             width={220}
             height={78}

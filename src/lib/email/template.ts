@@ -42,12 +42,12 @@ export const EMAIL_LOGO_CID = "cfca-logo"
 export const getEmailLogoSrc = () => `cid:${EMAIL_LOGO_CID}`
 
 export const getEmailLogoAttachment = () => {
-  const filePath = join(process.cwd(), "public", "brand", "cfca-email-logo.png")
+  const filePath = join(process.cwd(), "public", "brand", "cfca-logo-official.jpg")
   const content = readFileSync(filePath)
   return {
-    filename: "cfca-email-logo.png",
+    filename: "cfca-logo-official.jpg",
     content,
-    contentType: "image/png",
+    contentType: "image/jpeg",
     inlineContentId: EMAIL_LOGO_CID,
   }
 }
@@ -163,7 +163,7 @@ export const renderEmail = ({
 }
 
 export const assertEmailIncludesLogo = (html: string) => {
-  if (!html.includes(`cid:${EMAIL_LOGO_CID}`) && !html.includes("/brand/cfca-email-logo.png")) {
+  if (!html.includes(`cid:${EMAIL_LOGO_CID}`) && !html.includes("/brand/cfca-logo-official.jpg")) {
     throw new Error("Email HTML is missing the CFCA logo image")
   }
 }
