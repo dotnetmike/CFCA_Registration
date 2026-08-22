@@ -1,8 +1,10 @@
 import {
-  ADULT_EARLY_BIRD_SAVING,
+  DEFAULT_PRICING_CONFIG,
   buildPricingBreakdown,
   formatCurrency,
+  getAdultEarlyBirdSaving,
   resolveEarlyBirdSlot,
+  type PricingConfig,
   type PricingLineItem,
 } from "@/lib/pricing/calculate"
 import { buildAttendeesForPricing } from "@/lib/registrations/service"
@@ -19,6 +21,7 @@ import { PaymentReferenceMockup } from "@/components/registrations/payment-refer
 type RegistrationReviewSummaryProps = {
   formData: RegistrationFormData
   participantReference: string | null
+  pricingConfig?: PricingConfig
 }
 
 const buildAttendeeDescriptions = (data: RegistrationFormData) => {
@@ -97,13 +100,19 @@ const PricingTable = ({ lineItems, total, totalEarlyBirdSaving }: {
 export const RegistrationReviewSummary = ({
   formData,
   participantReference,
+  pricingConfig = DEFAULT_PRICING_CONFIG,
 }: RegistrationReviewSummaryProps) => {
   const attendees = buildAttendeesForPricing(formData)
-  const earlyBirdSlot = resolveEarlyBirdSlot(formData.state ?? undefined)
+  const earlyBirdSlot = resolveEarlyBirdSlot(
+    formData.state ?? undefined,
+    new Date(),
+    pricingConfig
+  )
   const lineItems = buildPricingBreakdown(
     attendees,
     earlyBirdSlot,
-    buildAttendeeDescriptions(formData)
+    buildAttendeeDescriptions(formData),
+    pricingConfig
   )
   const total = lineItems.reduce((sum, item) => sum + item.amount, 0)
   const souvenirAmount = souvenirTotalAmount(formData.souvenir_orders)
@@ -150,6 +159,18 @@ export const RegistrationReviewSummary = ({
               : "None"}
           </dd>
         </div>
+        {formData.transport_option && formData.transport_option !== "own" && (
+          <>
+            <div>
+              <dt className="font-medium">Hotel / accommodation name</dt>
+              <dd>{formData.hotel_name?.trim() || "Not provided"}</dd>
+            </div>
+            <div>
+              <dt className="font-medium">Hotel / accommodation address</dt>
+              <dd>{formData.hotel_address?.trim() || "Not provided"}</dd>
+            </div>
+          </>
+        )}
         {participantReference && (
           <div className="md:col-span-2">
             <dt className="font-medium">Your Unique Code</dt>
@@ -162,8 +183,9 @@ export const RegistrationReviewSummary = ({
         <h3 className="font-semibold">Registration cost</h3>
         {earlyBirdSlot !== "none" && (
           <Alert variant="success">
-            Early bird pricing applies — {formatCurrency(220)}/adult (save{" "}
-            {formatCurrency(ADULT_EARLY_BIRD_SAVING)} per adult) until slots are filled.
+            Early bird pricing applies — {formatCurrency(pricingConfig.adultEarlyBird)}/adult (save{" "}
+            {formatCurrency(getAdultEarlyBirdSaving(pricingConfig))} per adult) until slots are
+            filled.
           </Alert>
         )}
         <PricingTable

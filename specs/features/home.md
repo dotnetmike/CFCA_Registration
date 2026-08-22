@@ -8,6 +8,7 @@ owners: [team]
 files:
   - src/app/page.tsx
   - src/app/register/page.tsx
+  - src/lib/registration-settings.ts
 ---
 
 # Home (registration entry)
@@ -19,12 +20,14 @@ Public entry is the registration form itself (no separate marketing landing).
 ## Behavior
 
 - `/` renders the multi-step registration form (`RegistrationForm`).
+- If registration is closed in runtime settings, `/` renders a friendly closed notice and asks users to contact their Chapter Leaders.
 - `/register` redirects to `/` (same form).
 - Guests can complete registration without an account.
 
 ## Acceptance criteria
 
 - [ ] Unauthenticated users open `/` and see the registration form
+- [ ] When registration is closed, `/` shows a closed notice instead of the form
 - [ ] `/register` redirects to `/`
 
 ## Related specs

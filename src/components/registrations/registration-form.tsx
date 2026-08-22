@@ -40,7 +40,11 @@ import {
   snapshotFromFormValues,
 } from "@/lib/registrations/compare"
 import { useBusyCursor } from "@/hooks/use-busy-cursor"
-import { formatCurrency } from "@/lib/pricing/calculate"
+import {
+  DEFAULT_PRICING_CONFIG,
+  formatCurrency,
+  type PricingConfig,
+} from "@/lib/pricing/calculate"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -76,7 +80,11 @@ const SectionHeading = ({
   </div>
 )
 
-const RegistrationForm = () => {
+const RegistrationForm = ({
+  pricingConfig = DEFAULT_PRICING_CONFIG,
+}: {
+  pricingConfig?: PricingConfig
+}) => {
   const { authFetch, user, getAuthHeaders, isLoading: authLoading } = useAuth()
   const router = useRouter()
   const errorBannerRef = useRef<HTMLDivElement>(null)
@@ -1046,6 +1054,42 @@ const RegistrationForm = () => {
 
               {needsAirportTransport && (
                 <div className="space-y-5 border-t pt-5">
+                  {needsAirportTransport && (
+                    <div className="space-y-3">
+                      <h3 className="text-lg font-semibold">Hotel / accommodation for transport</h3>
+                      <p className="text-sm text-ink-soft">
+                        Optional: if known, share where you are staying so transport coordinators
+                        can plan pickup and/or drop-off.
+                      </p>
+                      <div className="grid gap-4 md:grid-cols-2">
+                        <div className="space-y-2">
+                          <Label htmlFor="hotel_name" className="text-base">
+                            Hotel / accommodation name
+                          </Label>
+                          <Input
+                            id="hotel_name"
+                            className="h-12 text-base"
+                            {...form.register("hotel_name")}
+                            aria-label="Hotel or accommodation name"
+                            placeholder="e.g. Mercure Melbourne"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="hotel_address" className="text-base">
+                            Hotel / accommodation address
+                          </Label>
+                          <Input
+                            id="hotel_address"
+                            className="h-12 text-base"
+                            {...form.register("hotel_address")}
+                            aria-label="Hotel or accommodation address"
+                            placeholder="Street address"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
                   {showArrival && (
                     <div className="space-y-3">
                       <h3 className="text-lg font-semibold">Arrival flight</h3>
@@ -1173,6 +1217,7 @@ const RegistrationForm = () => {
               <RegistrationReviewSummary
                 formData={watchAll as RegistrationFormData}
                 participantReference={participantReference}
+                pricingConfig={pricingConfig}
               />
               <div className="rounded-md border border-[color:rgba(166,135,78,0.35)] bg-[rgba(166,135,78,0.1)] p-4 text-base text-accent-ink">
                 When you are ready, press the button below. You only need to do this once.

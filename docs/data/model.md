@@ -14,6 +14,7 @@ erDiagram
   users ||--o| registrations : owns
   registrations ||--o{ registration_attendees : includes
   registrations ||--o{ registration_admin_notes : notes
+  users ||--o{ runtime_registration_settings : updated_by
   registrations ||--o{ payments : receives
   users ||--o{ payments : created_by
   users ||--o{ registration_admin_notes : authored
@@ -45,6 +46,16 @@ erDiagram
     numeric amount
     payment_source source
   }
+  runtime_registration_settings {
+    bool id PK
+    bool registration_open
+    date early_bird_start
+    date early_bird_end
+    numeric adult_early_bird
+    numeric adult_regular
+    numeric age_12_plus
+    numeric age_2_to_12
+  }
   audit_log {
     uuid id PK
     uuid user_id
@@ -63,6 +74,7 @@ erDiagram
 | `souvenir_orders` | `[{ size, quantity }, …]` t-shirts |
 | `pickup_*` / `dropoff_*` | Transport flags + admin contacts |
 | `hotel_name` / `hotel_address` | UI: Accommodation name/address |
+| `runtime_registration_settings` | Admin runtime controls for registration open/close, early bird window, and pricing |
 | `view_token_hash` / signup tokens | Magic link + account link |
 
 ## Groups (seeded)

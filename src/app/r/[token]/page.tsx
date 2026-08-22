@@ -222,6 +222,16 @@ const MagicRegistrationPage = () => {
           <p>
             <strong>Transport:</strong> {getTransportOptionLabel(transport)}
           </p>
+          {(registration.hotel_name || registration.hotel_address) && (
+            <>
+              <p>
+                <strong>Hotel / accommodation name:</strong> {registration.hotel_name || "—"}
+              </p>
+              <p>
+                <strong>Hotel / accommodation address:</strong> {registration.hotel_address || "—"}
+              </p>
+            </>
+          )}
           {registration.pickup_melbourne_airport && (
             <p>
               Arrival: {registration.arrival_date || "—"} / {registration.arrival_airport || "—"} /{" "}

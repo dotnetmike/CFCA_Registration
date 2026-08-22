@@ -14,11 +14,14 @@ files:
   - src/lib/dashboard/audit-list-cache.ts
   - src/lib/dashboard/reports-cache.ts
   - src/app/dashboard/users/page.tsx
+  - src/app/dashboard/settings/page.tsx
   - src/app/dashboard/reports/page.tsx
   - src/app/dashboard/payments/reconcile/page.tsx
   - src/app/dashboard/registrations/[id]/page.tsx
   - src/app/dashboard/audit/page.tsx
   - src/app/api/admin/users/route.ts
+  - src/app/api/admin/registration-settings/route.ts
+  - src/app/api/registration-settings/route.ts
   - src/app/api/admin/reports/route.ts
   - src/lib/dashboard/reports-csv.ts
   - src/app/api/admin/audit-log/route.ts
@@ -26,6 +29,7 @@ files:
   - src/app/api/registrations/[id]/payment/route.ts
   - src/app/api/registrations/[id]/notes/route.ts
   - src/lib/auth/user-groups.ts
+  - src/lib/registration-settings.ts
 ---
 
 # Manager dashboard
@@ -42,6 +46,7 @@ Staff tools: list registrations, users, reports, payment reconcile.
   - Reports (`/dashboard/reports`)
   - Payment Reconcile (`/dashboard/payments/reconcile`) when `payments:reconcile`
   - Users (`/dashboard/users`) when `users:manage`
+  - Registration Settings (`/dashboard/settings`) when `users:manage`
   - Audit Log (`/dashboard/audit`) when `users:manage`
 - Active item is highlighted from the current path.
 - Site header also exposes a **Dashboard** dropdown submenu (managers) with the same permission-gated links.
@@ -63,14 +68,23 @@ Staff tools: list registrations, users, reports, payment reconcile.
 - UI: per-user role editor (checkboxes) with Save; loading disables the trigger.
 - Users list: **client cache** + **100/page** paging + **Refresh** (same pattern as Registrations). Create/role save/revoke clears cache and reloads.
 
+### Registration settings (`/dashboard/settings`, `users:manage`)
+
+- Admin-only runtime controls:
+  - `registration_open` toggle (on/off)
+  - Early bird start/end dates
+  - Attendee pricing (adult early bird, adult regular, child 12+, child 2–12)
+- Changes save via `PATCH /api/admin/registration-settings` and apply without redeploy.
+- Public read model exposed by `GET /api/registration-settings` for form pricing display.
+
 ### Reports (`/dashboard/reports`)
 
 - Summary-by-state view uses **client cache** + **Refresh**.
 - **Export Detailed CSV** always fetches a fresh full export from the API (not from the summary cache).
 - CSV includes **all registrant attributes** currently on the registration row (dynamic column union so newly added columns appear automatically), plus flattened spouse/attendee helpers as needed:
   - Excludes secrets/tokens (`view_token_hash`, `signup_token_hash`, related token timestamps).
-  - Nested `registration_attendees` exported as a JSON column.
-  - Object/array fields (e.g. `souvenir_orders`) exported as JSON strings.
+  - Additional attendees exported as readable text, e.g. `John Smith (age 0) (kids supervision), Mary Smith (age 15)`.
+  - Souvenir orders exported as readable text, e.g. `1 x Small (S), 1 x Large (L)`.
 
 ### Registration detail (`/dashboard/registrations/[id]`)
 
@@ -112,6 +126,7 @@ Staff tools: list registrations, users, reports, payment reconcile.
 - [ ] Admin can update user roles/groups from Users page
 - [ ] Role update is audited and revokes target user sessions
 - [ ] Dashboard submenu (and header Dashboard dropdown) for staff navigation
+- [ ] Admin can update runtime registration settings without redeploy
 
 ## Related specs
 

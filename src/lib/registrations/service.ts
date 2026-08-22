@@ -1,6 +1,12 @@
 import { createAdminClient } from "@/lib/supabase/admin"
 import { getRegistrationCodePrefix } from "@/lib/supabase/env"
-import { calculateTotal, isEarlyBirdWindow, type AttendeeInput } from "@/lib/pricing/calculate"
+import {
+  DEFAULT_PRICING_CONFIG,
+  calculateTotal,
+  isEarlyBirdWindow,
+  type AttendeeInput,
+  type PricingConfig,
+} from "@/lib/pricing/calculate"
 import type { RegistrationFormData } from "./schema"
 import { transportOptionToBooleans } from "./transport"
 import { normalizeSouvenirOrders, souvenirTotalAmount } from "./souvenirs"
@@ -14,15 +20,17 @@ export const buildAttendeesForPricing = (data: RegistrationFormData): AttendeeIn
 
 export const computeAmountDue = (
   data: RegistrationFormData,
-  earlyBirdSlot: "interstate" | "melbourne" | "none"
+  earlyBirdSlot: "interstate" | "melbourne" | "none",
+  pricingConfig: PricingConfig = DEFAULT_PRICING_CONFIG
 ) =>
-  calculateTotal({ attendees: buildAttendeesForPricing(data), earlyBirdSlot }) +
+  calculateTotal({ attendees: buildAttendeesForPricing(data), earlyBirdSlot }, pricingConfig) +
   souvenirTotalAmount(data.souvenir_orders)
 
 export const claimEarlyBirdSlot = async (
-  state: string
+  state: string,
+  pricingConfig: PricingConfig = DEFAULT_PRICING_CONFIG
 ): Promise<"interstate" | "melbourne" | "none"> => {
-  if (!isEarlyBirdWindow()) return "none"
+  if (!isEarlyBirdWindow(new Date(), pricingConfig)) return "none"
 
   const admin = createAdminClient()
   const { data, error } = await admin.rpc("claim_early_bird_slot", {
@@ -55,6 +63,9 @@ export const mapFormToDb = (data: RegistrationFormData, extras: {
       : transportOptionToBooleans("own")
 
   const needsAssistance = data.accommodation_type === "billet"
+  const needsAirportTransport =
+    transport.pickup_melbourne_airport || transport.dropoff_melbourne_airport
+  const shouldKeepAccommodationLocation = !needsAssistance || needsAirportTransport
 
   return {
   ...extras,
@@ -87,8 +98,8 @@ export const mapFormToDb = (data: RegistrationFormData, extras: {
   departure_date: data.departure_date || null,
   departure_airport: data.departure_airport ?? "",
   departure_flight_no: data.departure_flight_no ?? "",
-  hotel_name: needsAssistance ? "" : (data.hotel_name ?? ""),
-  hotel_address: needsAssistance ? "" : (data.hotel_address ?? ""),
+  hotel_name: shouldKeepAccommodationLocation ? (data.hotel_name ?? "") : "",
+  hotel_address: shouldKeepAccommodationLocation ? (data.hotel_address ?? "") : "",
   accommodation_contact_name: data.accommodation_contact_name ?? "",
   accommodation_contact_phone: data.accommodation_contact_phone ?? "",
   pickup_transport_contact_name: data.pickup_transport_contact_name ?? "",
