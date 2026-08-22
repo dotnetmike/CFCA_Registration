@@ -22,6 +22,10 @@ import {
   EMAIL_IN_USE_MESSAGE,
   isRegistrationEmailAvailable,
 } from "@/lib/registrations/email-unique"
+import {
+  canBypassRegistrationClosed,
+  getRegistrationRuntimeSettings,
+} from "@/lib/registration-settings"
 
 const getAssignParticipantReference = (body: unknown) =>
   typeof body === "object" &&
@@ -81,6 +85,14 @@ export const GET = async (request: NextRequest) => {
 }
 
 const handlePublicSubmit = async (request: NextRequest, body: unknown) => {
+  const runtime = await getRegistrationRuntimeSettings()
+  if (!runtime.registrationOpen) {
+    return jsonError(
+      "Registration is currently closed. Please contact your Chapter Leader for assistance.",
+      403
+    )
+  }
+
   const meta = getRequestMeta(request)
   const ip = meta.ip ?? "unknown"
   if (!checkPublicRegistrationRateLimit(ip)) {
@@ -126,8 +138,8 @@ const handlePublicSubmit = async (request: NextRequest, body: unknown) => {
     )
   }
 
-  const earlyBirdSlot = await claimEarlyBirdSlot(parsed.data.state ?? "")
-  const amountDue = computeAmountDue(parsed.data, earlyBirdSlot)
+  const earlyBirdSlot = await claimEarlyBirdSlot(parsed.data.state ?? "", runtime.pricing)
+  const amountDue = computeAmountDue(parsed.data, earlyBirdSlot, runtime.pricing)
   const registrationNo = await generateRegistrationNo()
 
   const dbData = mapFormToDb(
@@ -184,6 +196,14 @@ const handleAuthenticatedPost = async (request: NextRequest, body: unknown) => {
   const auth = await requireAuth(request)
   if (auth instanceof NextResponse) return auth
 
+  const runtime = await getRegistrationRuntimeSettings()
+  if (!runtime.registrationOpen && !canBypassRegistrationClosed(auth)) {
+    return jsonError(
+      "Registration is currently closed. Please contact your Chapter Leader for assistance.",
+      403
+    )
+  }
+
   const forbidden = requirePermission(auth, "registrations:write_own")
   if (forbidden) return forbidden
 
@@ -233,10 +253,10 @@ const handleAuthenticatedPost = async (request: NextRequest, body: unknown) => {
   }
 
   const earlyBirdSlot = parsed.data.submit
-    ? await claimEarlyBirdSlot(parsed.data.state ?? "")
+    ? await claimEarlyBirdSlot(parsed.data.state ?? "", runtime.pricing)
     : ("none" as const)
 
-  const amountDue = computeAmountDue(parsed.data, earlyBirdSlot)
+  const amountDue = computeAmountDue(parsed.data, earlyBirdSlot, runtime.pricing)
   const registrationNo = parsed.data.submit
     ? await generateRegistrationNo()
     : `DRAFT-${auth.sub.slice(0, 8)}`

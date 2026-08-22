@@ -22,11 +22,14 @@ files:
   - src/lib/registrations/rate-limit.ts
   - src/lib/registrations/compare.ts
   - src/lib/pricing/calculate.ts
+  - src/lib/registration-settings.ts
   - src/lib/site-url.ts
   - src/app/api/registrations/route.ts
   - src/app/api/registrations/[id]/route.ts
+  - src/app/api/registration-settings/route.ts
   - src/app/api/registrations/check-email/route.ts
   - src/lib/email/send.ts
+  - supabase/migrations/015_runtime_registration_settings.sql
   - supabase/migrations/014_registration_dietary_requirements.sql
 ---
 
@@ -91,11 +94,18 @@ Single continuous conference registration page. Guests complete without login; l
 - Email uniqueness checked on email blur and on submit. DB/API errors fail closed (HTTP 500), never report `available: true`.
 - Accommodation and airport transport mandatory with no default.
 - Submit → public `POST /api/registrations` → `/register/complete`.
+- When registration is closed, public submit is blocked with a friendly message to contact Chapter Leaders.
 
 ### Logged in
 
 - Load/save via `authFetch`; submit → `/my-registration`.
 - No-op saves skipped when nothing changed.
+- When registration is closed, owner-level updates are blocked. Admin / Registration Manager / Accommodation Manager can still update registrations.
+
+### Runtime pricing + early bird settings
+
+- Early bird window and attendee pricing are loaded from runtime registration settings (DB-backed), not hardcoded constants.
+- Form pricing preview and server-side amount calculations use the same runtime settings.
 
 ### API
 
@@ -123,6 +133,8 @@ Single continuous conference registration page. Guests complete without login; l
 - [ ] No-op saves do not write empty audits
 - [ ] Update notification emails include full registration details and contacts when applicable
 - [ ] Update emails include a link that leads to My Registration after login
+- [ ] Early bird window and attendee pricing can be changed without redeploy
+- [ ] Closed registration blocks public/participant registration writes while allowing manager/admin role updates
 
 ## Related specs
 

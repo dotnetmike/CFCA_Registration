@@ -9,13 +9,28 @@ export type PricingInput = {
   earlyBirdSlot: "interstate" | "melbourne" | "none"
 }
 
-const ADULT_EARLY_BIRD = 220
-const ADULT_REGULAR = 240
-const AGE_12_PLUS = 175
-const AGE_2_TO_12 = 100
-const AGE_FREE = 0
+export type PricingConfig = {
+  adultEarlyBird: number
+  adultRegular: number
+  age12Plus: number
+  age2To12: number
+  ageFree: number
+  earlyBirdStart: string
+  earlyBirdEnd: string
+}
 
-export const ADULT_EARLY_BIRD_SAVING = ADULT_REGULAR - ADULT_EARLY_BIRD
+export const DEFAULT_PRICING_CONFIG: PricingConfig = {
+  adultEarlyBird: 220,
+  adultRegular: 240,
+  age12Plus: 175,
+  age2To12: 100,
+  ageFree: 0,
+  earlyBirdStart: "2026-08-01",
+  earlyBirdEnd: "2027-02-28",
+}
+
+export const getAdultEarlyBirdSaving = (config: PricingConfig = DEFAULT_PRICING_CONFIG) =>
+  config.adultRegular - config.adultEarlyBird
 
 export type PricingLineItem = {
   description: string
@@ -27,46 +42,54 @@ export type PricingLineItem = {
 
 export const resolveEarlyBirdSlot = (
   state: string | undefined,
-  date = new Date()
+  date = new Date(),
+  config: PricingConfig = DEFAULT_PRICING_CONFIG
 ): "interstate" | "melbourne" | "none" => {
-  if (!state || !isEarlyBirdWindow(date)) return "none"
+  if (!state || !isEarlyBirdWindow(date, config)) return "none"
   return state === "VIC" ? "melbourne" : "interstate"
 }
 
 export const priceForAttendee = (
   attendee: AttendeeInput,
-  earlyBirdSlot: "interstate" | "melbourne" | "none"
+  earlyBirdSlot: "interstate" | "melbourne" | "none",
+  config: PricingConfig = DEFAULT_PRICING_CONFIG
 ): number => {
   const { age, isPrimary, isSpouse } = attendee
 
   if (isPrimary || isSpouse) {
-    if (earlyBirdSlot !== "none") return ADULT_EARLY_BIRD
-    return ADULT_REGULAR
+    if (earlyBirdSlot !== "none") return config.adultEarlyBird
+    return config.adultRegular
   }
 
-  if (age <= 1) return AGE_FREE
-  if (age >= 2 && age <= 12) return AGE_2_TO_12
-  if (age >= 12) return AGE_12_PLUS
-  return AGE_FREE
+  if (age <= 1) return config.ageFree
+  if (age >= 2 && age <= 12) return config.age2To12
+  if (age >= 12) return config.age12Plus
+  return config.ageFree
 }
 
-export const calculateTotal = (input: PricingInput): number =>
+export const calculateTotal = (
+  input: PricingInput,
+  config: PricingConfig = DEFAULT_PRICING_CONFIG
+): number =>
   input.attendees.reduce(
-    (sum, attendee) => sum + priceForAttendee(attendee, input.earlyBirdSlot),
+    (sum, attendee) => sum + priceForAttendee(attendee, input.earlyBirdSlot, config),
     0
   )
 
 export const buildPricingBreakdown = (
   attendees: AttendeeInput[],
   earlyBirdSlot: "interstate" | "melbourne" | "none",
-  descriptions: string[]
+  descriptions: string[],
+  config: PricingConfig = DEFAULT_PRICING_CONFIG
 ): PricingLineItem[] =>
   attendees.map((attendee, index) => {
-    const amount = priceForAttendee(attendee, earlyBirdSlot)
+    const amount = priceForAttendee(attendee, earlyBirdSlot, config)
     const isAdult = attendee.isPrimary || attendee.isSpouse
     const earlyBirdApplied = isAdult && earlyBirdSlot !== "none"
-    const standardAmount = earlyBirdApplied ? ADULT_REGULAR : undefined
-    const earlyBirdSaving = earlyBirdApplied ? ADULT_EARLY_BIRD_SAVING : undefined
+    const standardAmount = earlyBirdApplied ? config.adultRegular : undefined
+    const earlyBirdSaving = earlyBirdApplied
+      ? getAdultEarlyBirdSaving(config)
+      : undefined
 
     let note: string | undefined
     if (earlyBirdApplied) {
@@ -93,9 +116,12 @@ export const buildPricingBreakdown = (
     }
   })
 
-export const isEarlyBirdWindow = (date = new Date()) => {
-  const start = new Date("2026-08-01")
-  const end = new Date("2027-02-28")
+export const isEarlyBirdWindow = (
+  date = new Date(),
+  config: PricingConfig = DEFAULT_PRICING_CONFIG
+) => {
+  const start = new Date(config.earlyBirdStart)
+  const end = new Date(config.earlyBirdEnd)
   return date >= start && date <= end
 }
 

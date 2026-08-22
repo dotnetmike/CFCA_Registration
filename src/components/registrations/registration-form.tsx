@@ -40,7 +40,11 @@ import {
   snapshotFromFormValues,
 } from "@/lib/registrations/compare"
 import { useBusyCursor } from "@/hooks/use-busy-cursor"
-import { formatCurrency } from "@/lib/pricing/calculate"
+import {
+  DEFAULT_PRICING_CONFIG,
+  formatCurrency,
+  type PricingConfig,
+} from "@/lib/pricing/calculate"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -76,7 +80,11 @@ const SectionHeading = ({
   </div>
 )
 
-const RegistrationForm = () => {
+const RegistrationForm = ({
+  pricingConfig = DEFAULT_PRICING_CONFIG,
+}: {
+  pricingConfig?: PricingConfig
+}) => {
   const { authFetch, user, getAuthHeaders, isLoading: authLoading } = useAuth()
   const router = useRouter()
   const errorBannerRef = useRef<HTMLDivElement>(null)
@@ -1209,6 +1217,7 @@ const RegistrationForm = () => {
               <RegistrationReviewSummary
                 formData={watchAll as RegistrationFormData}
                 participantReference={participantReference}
+                pricingConfig={pricingConfig}
               />
               <div className="rounded-md border border-[color:rgba(166,135,78,0.35)] bg-[rgba(166,135,78,0.1)] p-4 text-base text-accent-ink">
                 When you are ready, press the button below. You only need to do this once.

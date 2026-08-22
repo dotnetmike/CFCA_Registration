@@ -1,0 +1,108 @@
+import { createAdminClient } from "@/lib/supabase/admin"
+import {
+  DEFAULT_PRICING_CONFIG,
+  type PricingConfig,
+} from "@/lib/pricing/calculate"
+import type { AccessTokenPayload } from "@/lib/auth/jwt"
+
+type RuntimeSettingsRow = {
+  registration_open: boolean
+  early_bird_start: string
+  early_bird_end: string
+  adult_early_bird: number
+  adult_regular: number
+  age_12_plus: number
+  age_2_to_12: number
+}
+
+export type RegistrationRuntimeSettings = {
+  registrationOpen: boolean
+  pricing: PricingConfig
+}
+
+export const DEFAULT_REGISTRATION_RUNTIME_SETTINGS: RegistrationRuntimeSettings = {
+  registrationOpen: true,
+  pricing: DEFAULT_PRICING_CONFIG,
+}
+
+const SETTINGS_TABLE = "runtime_registration_settings"
+const SETTINGS_SELECT =
+  "registration_open, early_bird_start, early_bird_end, adult_early_bird, adult_regular, age_12_plus, age_2_to_12"
+
+const toNumber = (value: unknown, fallback: number) => {
+  const n = Number(value)
+  return Number.isFinite(n) ? n : fallback
+}
+
+const toDateString = (value: unknown, fallback: string) => {
+  const raw = String(value ?? "").trim()
+  return raw ? raw.slice(0, 10) : fallback
+}
+
+const mapRow = (row: RuntimeSettingsRow | null | undefined): RegistrationRuntimeSettings => {
+  if (!row) return DEFAULT_REGISTRATION_RUNTIME_SETTINGS
+
+  return {
+    registrationOpen: !!row.registration_open,
+    pricing: {
+      adultEarlyBird: toNumber(row.adult_early_bird, DEFAULT_PRICING_CONFIG.adultEarlyBird),
+      adultRegular: toNumber(row.adult_regular, DEFAULT_PRICING_CONFIG.adultRegular),
+      age12Plus: toNumber(row.age_12_plus, DEFAULT_PRICING_CONFIG.age12Plus),
+      age2To12: toNumber(row.age_2_to_12, DEFAULT_PRICING_CONFIG.age2To12),
+      ageFree: DEFAULT_PRICING_CONFIG.ageFree,
+      earlyBirdStart: toDateString(row.early_bird_start, DEFAULT_PRICING_CONFIG.earlyBirdStart),
+      earlyBirdEnd: toDateString(row.early_bird_end, DEFAULT_PRICING_CONFIG.earlyBirdEnd),
+    },
+  }
+}
+
+export const getRegistrationRuntimeSettings = async (): Promise<RegistrationRuntimeSettings> => {
+  const admin = createAdminClient()
+  const { data } = await admin
+    .from(SETTINGS_TABLE)
+    .select(SETTINGS_SELECT)
+    .eq("id", true)
+    .maybeSingle()
+
+  return mapRow(data as RuntimeSettingsRow | null)
+}
+
+export const updateRegistrationRuntimeSettings = async (
+  values: RegistrationRuntimeSettings,
+  updatedBy?: string
+): Promise<RegistrationRuntimeSettings> => {
+  const admin = createAdminClient()
+
+  const { data, error } = await admin
+    .from(SETTINGS_TABLE)
+    .upsert(
+      {
+        id: true,
+        registration_open: values.registrationOpen,
+        early_bird_start: values.pricing.earlyBirdStart,
+        early_bird_end: values.pricing.earlyBirdEnd,
+        adult_early_bird: values.pricing.adultEarlyBird,
+        adult_regular: values.pricing.adultRegular,
+        age_12_plus: values.pricing.age12Plus,
+        age_2_to_12: values.pricing.age2To12,
+        updated_by: updatedBy ?? null,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "id" }
+    )
+    .select(SETTINGS_SELECT)
+    .single()
+
+  if (error) throw new Error(error.message)
+
+  return mapRow(data as RuntimeSettingsRow)
+}
+
+const PRIVILEGED_GROUPS = new Set([
+  "admin",
+  "registration_manager",
+  "accommodation_manager",
+])
+
+export const canBypassRegistrationClosed = (user: AccessTokenPayload | null | undefined) =>
+  !!user && user.groups.some((group) => PRIVILEGED_GROUPS.has(group))

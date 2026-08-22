@@ -25,6 +25,10 @@ import {
   EMAIL_IN_USE_MESSAGE,
   isRegistrationEmailAvailable,
 } from "@/lib/registrations/email-unique"
+import {
+  canBypassRegistrationClosed,
+  getRegistrationRuntimeSettings,
+} from "@/lib/registration-settings"
 
 const getAssignParticipantReference = (body: unknown) =>
   typeof body === "object" &&
@@ -98,6 +102,14 @@ export const GET = async (request: NextRequest, { params }: RouteParams) => {
 export const PUT = async (request: NextRequest, { params }: RouteParams) => {
   const auth = await requireAuth(request)
   if (auth instanceof NextResponse) return auth
+
+  const runtime = await getRegistrationRuntimeSettings()
+  if (!runtime.registrationOpen && !canBypassRegistrationClosed(auth)) {
+    return jsonError(
+      "Registration is currently closed. Please contact your Chapter Leader for assistance.",
+      403
+    )
+  }
 
   const { id } = await params
   const admin = createAdminClient()
@@ -209,7 +221,7 @@ export const PUT = async (request: NextRequest, { params }: RouteParams) => {
   const earlyBirdSlot = existing.is_early_bird
     ? (existing.early_bird_slot as "interstate" | "melbourne" | "none")
     : isSubmitting && parsed.data.state
-      ? await claimEarlyBirdSlot(parsed.data.state ?? existing.state)
+      ? await claimEarlyBirdSlot(parsed.data.state ?? existing.state, runtime.pricing)
       : ((existing.early_bird_slot as "interstate" | "melbourne" | "none") ?? "none")
 
   const formData = {
@@ -220,7 +232,8 @@ export const PUT = async (request: NextRequest, { params }: RouteParams) => {
 
   const amountDue = computeAmountDue(
     formData as Parameters<typeof computeAmountDue>[0],
-    earlyBirdSlot
+    earlyBirdSlot,
+    runtime.pricing
   )
 
   let registrationNo = existing.registration_no as string

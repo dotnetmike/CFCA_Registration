@@ -12,6 +12,7 @@ files:
   - scripts/db/deploy.ts
   - src/lib/supabase/admin.ts
   - src/lib/supabase/env.ts
+  - src/lib/registration-settings.ts
 ---
 
 # Database and migrations
@@ -35,6 +36,7 @@ Postgres via Supabase; schema changes only through numbered SQL migrations.
   - `011_payment_attribution_and_notes.sql` — payment attribution + admin notes
   - `012_souvenir_orders.sql` — `souvenir_orders` JSONB (t-shirt size/qty pre-orders)
   - `013_enable_rls_revoke_anon.sql` — RLS on + revoke public Data API grants
+  - `015_runtime_registration_settings.sql` — runtime registration open toggle + early bird window + attendee pricing
 
 ## Acceptance criteria
 

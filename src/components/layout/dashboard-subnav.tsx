@@ -54,6 +54,12 @@ export const DashboardSubnav = () => {
         show: canManageUsers,
       },
       {
+        href: "/dashboard/settings",
+        label: "Registration Settings",
+        match: (p) => p.startsWith("/dashboard/settings"),
+        show: canManageUsers,
+      },
+      {
         href: "/dashboard/audit",
         label: "Audit Log",
         match: (p) => p.startsWith("/dashboard/audit"),
