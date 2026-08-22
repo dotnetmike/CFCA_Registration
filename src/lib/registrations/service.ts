@@ -55,6 +55,9 @@ export const mapFormToDb = (data: RegistrationFormData, extras: {
       : transportOptionToBooleans("own")
 
   const needsAssistance = data.accommodation_type === "billet"
+  const needsAirportTransport =
+    transport.pickup_melbourne_airport || transport.dropoff_melbourne_airport
+  const shouldKeepAccommodationLocation = !needsAssistance || needsAirportTransport
 
   return {
   ...extras,
@@ -87,8 +90,8 @@ export const mapFormToDb = (data: RegistrationFormData, extras: {
   departure_date: data.departure_date || null,
   departure_airport: data.departure_airport ?? "",
   departure_flight_no: data.departure_flight_no ?? "",
-  hotel_name: needsAssistance ? "" : (data.hotel_name ?? ""),
-  hotel_address: needsAssistance ? "" : (data.hotel_address ?? ""),
+  hotel_name: shouldKeepAccommodationLocation ? (data.hotel_name ?? "") : "",
+  hotel_address: shouldKeepAccommodationLocation ? (data.hotel_address ?? "") : "",
   accommodation_contact_name: data.accommodation_contact_name ?? "",
   accommodation_contact_phone: data.accommodation_contact_phone ?? "",
   pickup_transport_contact_name: data.pickup_transport_contact_name ?? "",

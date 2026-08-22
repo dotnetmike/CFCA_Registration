@@ -61,6 +61,7 @@ Single continuous conference registration page. Guests complete without login; l
 
 - Pickup is available from Friday, 9 April 2027 to Saturday, 10 April 2027, 5am–10pm.
 - Drop-off is available from Saturday, 10 April 2027 to Sunday, 11 April 2027, 5am–10pm.
+- When **Pick-up and/or Drop-off** is selected, users can optionally provide their hotel/accommodation name and address to support transport planning.
 - Pickup exception: Chapter Leader, Ministry Coordinator, Area Coordinator, Area Head, and National Council roles may choose Thursday, 8 April 2027 to Saturday, 10 April 2027, 5am–10pm only.
 - On-screen schedule alert copy reflects the selected transport option and CFCA position:
   - Pickup only, standard position: "Pick-up at Tullamarine is available only on Friday, 9 April 2027, 5am–10pm."
@@ -105,7 +106,7 @@ Single continuous conference registration page. Guests complete without login; l
 ### Participant emails (`src/lib/email/send.ts`)
 
 - **Submitted** (`registration_submitted`): full registration summary + magic-link view URL built from the request host (`{origin}/r/{token}`).
-- **Updated** (`registration_updated` / `accommodation_updated`): full registration summary including accommodation name/address and accommodation/transport contacts when set; includes a portal link to `/my-registration` (login required via proxy redirect).
+- **Updated** (`registration_updated` / `accommodation_updated`): full registration summary including hotel/accommodation name/address and accommodation/transport contacts when set; includes a portal link to `/my-registration` (login required via proxy redirect).
 - Accommodation/transport contact lines appear only when applicable (values present / transport flags).
 
 ## Acceptance criteria
@@ -118,6 +119,7 @@ Single continuous conference registration page. Guests complete without login; l
 - [ ] Food allergy and dietary requirements field is available for registrants, spouses, and attendees
 - [ ] Australian mobile validation is enforced
 - [ ] Airport pickup/drop-off dates are restricted to the conference windows with the CFCA pickup exception
+- [ ] Pick-up and/or drop-off selections allow optional hotel/accommodation name and address capture
 - [ ] No-op saves do not write empty audits
 - [ ] Update notification emails include full registration details and contacts when applicable
 - [ ] Update emails include a link that leads to My Registration after login

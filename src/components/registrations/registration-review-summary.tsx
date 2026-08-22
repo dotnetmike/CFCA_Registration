@@ -150,6 +150,18 @@ export const RegistrationReviewSummary = ({
               : "None"}
           </dd>
         </div>
+        {formData.transport_option && formData.transport_option !== "own" && (
+          <>
+            <div>
+              <dt className="font-medium">Hotel / accommodation name</dt>
+              <dd>{formData.hotel_name?.trim() || "Not provided"}</dd>
+            </div>
+            <div>
+              <dt className="font-medium">Hotel / accommodation address</dt>
+              <dd>{formData.hotel_address?.trim() || "Not provided"}</dd>
+            </div>
+          </>
+        )}
         {participantReference && (
           <div className="md:col-span-2">
             <dt className="font-medium">Your Unique Code</dt>

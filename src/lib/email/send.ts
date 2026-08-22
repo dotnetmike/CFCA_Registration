@@ -196,8 +196,8 @@ const buildRegistrationSections = (reg: RegistrationEmailRecord): EmailSection[]
 
   if (hasText(reg.hotel_name) || hasText(reg.hotel_address)) {
     transportRows.push(
-      { label: "Accommodation name", value: reg.hotel_name || "—" },
-      { label: "Accommodation address", value: reg.hotel_address || "—" }
+      { label: "Hotel / accommodation name", value: reg.hotel_name || "—" },
+      { label: "Hotel / accommodation address", value: reg.hotel_address || "—" }
     )
   }
 
@@ -337,8 +337,8 @@ const buildFullRegistrationDetails = (
 
   if (hasText(reg.hotel_name) || hasText(reg.hotel_address)) {
     lines.push(
-      `Accommodation name: ${reg.hotel_name || "—"}`,
-      `Accommodation address: ${reg.hotel_address || "—"}`
+      `Hotel / accommodation name: ${reg.hotel_name || "—"}`,
+      `Hotel / accommodation address: ${reg.hotel_address || "—"}`
     )
   }
 

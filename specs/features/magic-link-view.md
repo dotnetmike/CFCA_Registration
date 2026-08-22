@@ -25,6 +25,7 @@ Permanent read-only view of a registration from the confirmation email, without 
 - Route: `/r/[token]` (public).
 - Loads via `GET /api/registrations/view/[token]` (hashed token lookup).
 - Shows personal, spouse/attendees, accommodation/transport, payment summary.
+- Accommodation/transport summary includes hotel/accommodation name and address when provided.
 - Edit CTA: if `hasAccount` �?login redirect to `/register`; else signup with email + redirect `/register`.
 - Editing always requires an account; magic link never allows writes.
 
