@@ -52,7 +52,8 @@ Single continuous conference registration page. Guests complete without login; l
   5. Review & submit
 - Short intro: fill in the form, then press Submit once at the bottom.
 - National Conference reminder shown on the page: **National Conference 2027**.
-- Required fields marked with `*`; selects use plain-language placeholders.
+- Required fields marked with a prominent **red asterisk**; invalid fields show a red border on submit.
+- On submit, **all** validation errors are shown together in a summary list (not one-at-a-time).
 - Controls use comfortable sizing (`text-base` / taller inputs) for readability and touch.
 
 ### Registration details
@@ -121,7 +122,8 @@ Single continuous conference registration page. Guests complete without login; l
 
 ## Acceptance criteria
 
-- [ ] Continuous single-page registration
+- [ ] On submit, all validation errors are shown together in a summary list
+- [ ] Required fields use a prominent red asterisk and red border when invalid
 - [ ] Optional t-shirt pre-order with size/qty at $30 each
 - [ ] Love In Action proceeds note shown
 - [ ] Souvenir total included in amount due
