@@ -35,6 +35,9 @@ import {
 import { TransportScheduleAlert } from "@/components/registrations/transport-schedule-alert"
 import { AustralianAddressAutocomplete } from "@/components/address/australian-address-autocomplete"
 import { RegistrationReviewSummary } from "@/components/registrations/registration-review-summary"
+import { FormFieldLabel } from "@/components/registrations/form-field-label"
+import { HelpTooltip } from "@/components/ui/help-tooltip"
+import { REGISTRATION_FIELD_TOOLTIPS } from "@/lib/registrations/form-tooltips"
 import type { AustralianAddress } from "@/lib/address/parse"
 import {
   snapshotFromFormValues,
@@ -101,7 +104,7 @@ const FIELD_LABELS: Record<string, string> = {
   given_name: "Name",
   email: "Email",
   mobile: "Mobile phone",
-  state: "Conference State",
+  state: "CFCA Membership State",
   accommodation_type: "Accommodation during conference",
   transport_option: "Airport transport",
   spouse_surname: "Spouse surname",
@@ -364,15 +367,18 @@ const RegistrationForm = ({
     loadRegistration()
   }, [loadRegistration, authLoading])
 
+  const syncMembershipStateFromAddress = (addressState: string | undefined) => {
+    if (!addressState) return
+    form.setValue("state", addressState as RegistrationFormInput["state"])
+  }
+
   const handleAddressSelect = (address: AustralianAddress) => {
     form.setValue("address_line1", address.address_line1)
     form.setValue("suburb", address.suburb)
     form.setValue("postcode", address.postcode)
     if (address.address_state) {
       form.setValue("address_state", address.address_state)
-      if (!form.getValues("state")) {
-        form.setValue("state", address.address_state)
-      }
+      syncMembershipStateFromAddress(address.address_state)
     }
   }
 
@@ -706,7 +712,9 @@ const RegistrationForm = ({
                 <FieldError message={formErrors.given_name?.message} />
               </div>
               <div className="space-y-2">
-                <RequiredLabel htmlFor="email">Email</RequiredLabel>
+                <FormFieldLabel htmlFor="email" required help={REGISTRATION_FIELD_TOOLTIPS.email}>
+                  Email
+                </FormFieldLabel>
                 <Input
                   id="email"
                   type="email"
@@ -728,7 +736,9 @@ const RegistrationForm = ({
                 <FieldError message={formErrors.email?.message} />
               </div>
               <div className="space-y-2">
-                <RequiredLabel htmlFor="mobile">Mobile phone</RequiredLabel>
+                <FormFieldLabel htmlFor="mobile" required help={REGISTRATION_FIELD_TOOLTIPS.mobile}>
+                  Mobile phone
+                </FormFieldLabel>
                 <Input
                   id="mobile"
                   className={fieldControlClass(!!formErrors.mobile, "h-12 text-base")}
@@ -751,7 +761,12 @@ const RegistrationForm = ({
                 <FieldError message={formErrors.mobile?.message} />
               </div>
               <div className="space-y-2 md:col-span-2">
-                <Label htmlFor="dietary_requirements" className="text-base">Food allergy and dietary requirements</Label>
+                <FormFieldLabel
+                  htmlFor="dietary_requirements"
+                  help={REGISTRATION_FIELD_TOOLTIPS.dietary_requirements}
+                >
+                  Food allergy and dietary requirements
+                </FormFieldLabel>
                 <Input
                   id="dietary_requirements"
                   className="h-12 text-base"
@@ -763,25 +778,51 @@ const RegistrationForm = ({
               <div className="space-y-2 md:col-span-2">
                 <AustralianAddressAutocomplete
                   label="Address"
+                  labelHelp={REGISTRATION_FIELD_TOOLTIPS.address}
                   value={form.watch("address_line1") ?? ""}
                   onChange={(value) => form.setValue("address_line1", value)}
                   onAddressSelect={handleAddressSelect}
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="suburb" className="text-base">Suburb</Label>
-                <Input id="suburb" className="h-12 text-base" {...form.register("suburb")} aria-label="Suburb" />
+                <FormFieldLabel htmlFor="suburb" help={REGISTRATION_FIELD_TOOLTIPS.suburb}>
+                  Address Suburb
+                </FormFieldLabel>
+                <Input
+                  id="suburb"
+                  className="h-12 text-base"
+                  {...form.register("suburb")}
+                  aria-label="Address Suburb"
+                />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="postcode" className="text-base">Postcode</Label>
-                <Input id="postcode" className="h-12 text-base" {...form.register("postcode")} aria-label="Postcode" />
+                <FormFieldLabel htmlFor="postcode" help={REGISTRATION_FIELD_TOOLTIPS.postcode}>
+                  Address Postcode
+                </FormFieldLabel>
+                <Input
+                  id="postcode"
+                  className="h-12 text-base"
+                  {...form.register("postcode")}
+                  aria-label="Address Postcode"
+                />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="address_state" className="text-base">Address State</Label>
+                <FormFieldLabel htmlFor="address_state" help={REGISTRATION_FIELD_TOOLTIPS.address_state}>
+                  Address State
+                </FormFieldLabel>
                 <select
                   id="address_state"
                   className={selectClassName}
-                  {...form.register("address_state")}
+                  {...(() => {
+                    const addressStateField = form.register("address_state")
+                    return {
+                      ...addressStateField,
+                      onChange: (e: React.ChangeEvent<HTMLSelectElement>) => {
+                        addressStateField.onChange(e)
+                        syncMembershipStateFromAddress(e.target.value || undefined)
+                      },
+                    }
+                  })()}
                   aria-label="Address State"
                 >
                   <option value="">Select state</option>
@@ -790,44 +831,50 @@ const RegistrationForm = ({
                   ))}
                 </select>
               </div>
-              <div className="space-y-2">
-                <RequiredLabel htmlFor="state">Conference State</RequiredLabel>
-                <select
-                  id="state"
-                  className={fieldControlClass(!!formErrors.state, selectClassName)}
-                  {...(() => {
-                    const stateField = form.register("state")
-                    return {
-                      ...stateField,
-                      onBlur: (e: React.FocusEvent<HTMLSelectElement>) => {
-                        stateField.onBlur(e)
-                        form.trigger("state")
-                      },
-                    }
-                  })()}
-                  aria-label="Conference State"
-                  aria-required="true"
-                  aria-invalid={!!formErrors.state}
-                >
-                  <option value="">Select state</option>
-                  {AUSTRALIAN_STATES.map((s) => (
-                    <option key={s} value={s}>{s}</option>
-                  ))}
-                </select>
-                <FieldError message={formErrors.state?.message} />
-              </div>
-              <div className="space-y-2 md:col-span-2">
-                <Label htmlFor="cfca_position" className="text-base">Position in CFCA</Label>
-                <select
-                  id="cfca_position"
-                  className={selectClassName}
-                  {...form.register("cfca_position")}
-                  aria-label="CFCA position"
-                >
-                  {CFCA_POSITIONS.map((p) => (
-                    <option key={p} value={p}>{CFCA_POSITION_LABELS[p]}</option>
-                  ))}
-                </select>
+              <div className="grid gap-5 md:col-span-2 md:grid-cols-2">
+                <div className="space-y-2">
+                  <FormFieldLabel htmlFor="cfca_position" help={REGISTRATION_FIELD_TOOLTIPS.cfca_position}>
+                    Position in CFCA
+                  </FormFieldLabel>
+                  <select
+                    id="cfca_position"
+                    className={selectClassName}
+                    {...form.register("cfca_position")}
+                    aria-label="CFCA position"
+                  >
+                    {CFCA_POSITIONS.map((p) => (
+                      <option key={p} value={p}>{CFCA_POSITION_LABELS[p]}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="space-y-2">
+                  <FormFieldLabel htmlFor="state" required help={REGISTRATION_FIELD_TOOLTIPS.state}>
+                    CFCA Membership State
+                  </FormFieldLabel>
+                  <select
+                    id="state"
+                    className={fieldControlClass(!!formErrors.state, selectClassName)}
+                    {...(() => {
+                      const stateField = form.register("state")
+                      return {
+                        ...stateField,
+                        onBlur: (e: React.FocusEvent<HTMLSelectElement>) => {
+                          stateField.onBlur(e)
+                          form.trigger("state")
+                        },
+                      }
+                    })()}
+                    aria-label="CFCA Membership State"
+                    aria-required="true"
+                    aria-invalid={!!formErrors.state}
+                  >
+                    <option value="">Select state</option>
+                    {AUSTRALIAN_STATES.map((s) => (
+                      <option key={s} value={s}>{s}</option>
+                    ))}
+                  </select>
+                  <FieldError message={formErrors.state?.message} />
+                </div>
               </div>
 
               <div className="space-y-4 border-t pt-5 md:col-span-2">
@@ -838,7 +885,14 @@ const RegistrationForm = ({
                     {...form.register("spouse_attending")}
                     aria-label="Spouse is attending"
                   />
-                  <span>My spouse is attending</span>
+                  <span className="inline-flex flex-wrap items-center gap-1">
+                    My spouse is attending
+                    <HelpTooltip
+                      content={REGISTRATION_FIELD_TOOLTIPS.spouse_attending}
+                      label="Help for spouse attending"
+                      className="ml-0.5"
+                    />
+                  </span>
                 </label>
                 {spouseAttending && (
                   <div className="grid gap-5 md:grid-cols-2">
@@ -1005,7 +1059,9 @@ const RegistrationForm = ({
                     <FieldError message={formErrors.attendees?.[index]?.given_name?.message} />
                   </div>
                   <div className="space-y-2">
-                    <RequiredLabel>Age</RequiredLabel>
+                    <FormFieldLabel required help={REGISTRATION_FIELD_TOOLTIPS.attendee_age}>
+                      Age
+                    </FormFieldLabel>
                     <Input
                       className={fieldControlClass(
                         !!formErrors.attendees?.[index]?.age,
@@ -1056,7 +1112,14 @@ const RegistrationForm = ({
                         {...form.register(`attendees.${index}.needs_kids_supervision`)}
                         aria-label={`Kids supervision for attendee ${index + 1}`}
                       />
-                      <span>Kids supervision required (under 12)</span>
+                      <span className="inline-flex flex-wrap items-center gap-1">
+                        Kids supervision required (under 12)
+                        <HelpTooltip
+                          content={REGISTRATION_FIELD_TOOLTIPS.kids_supervision}
+                          label="Help for kids supervision"
+                          className="ml-0.5"
+                        />
+                      </span>
                     </label>
                   )}
                 </div>
@@ -1081,11 +1144,15 @@ const RegistrationForm = ({
                 description="Choose how you will stay and travel. Both questions are required."
               />
             </CardHeader>
-            <CardContent className="space-y-5">
+            <CardContent className="space-y-5 overflow-visible">
               <div className="space-y-2">
-                <RequiredLabel htmlFor="accommodation_type">
+                <FormFieldLabel
+                  htmlFor="accommodation_type"
+                  required
+                  help={REGISTRATION_FIELD_TOOLTIPS.accommodation_type}
+                >
                   Accommodation during conference
-                </RequiredLabel>
+                </FormFieldLabel>
                 <select
                   id="accommodation_type"
                   className={fieldControlClass(!!formErrors.accommodation_type, selectClassName)}
@@ -1128,9 +1195,13 @@ const RegistrationForm = ({
               )}
 
               <div className="space-y-2">
-                <RequiredLabel htmlFor="transport_option">
+                <FormFieldLabel
+                  htmlFor="transport_option"
+                  required
+                  help={REGISTRATION_FIELD_TOOLTIPS.transport_option}
+                >
                   Airport transport (Tullamarine)
-                </RequiredLabel>
+                </FormFieldLabel>
                 <select
                   id="transport_option"
                   className={fieldControlClass(!!formErrors.transport_option, selectClassName)}
@@ -1183,9 +1254,9 @@ const RegistrationForm = ({
                       </p>
                       <div className="grid gap-4 md:grid-cols-2">
                         <div className="space-y-2">
-                          <Label htmlFor="hotel_name" className="text-base">
+                          <FormFieldLabel htmlFor="hotel_name" help={REGISTRATION_FIELD_TOOLTIPS.hotel_name}>
                             Hotel / accommodation name
-                          </Label>
+                          </FormFieldLabel>
                           <Input
                             id="hotel_name"
                             className="h-12 text-base"
@@ -1195,9 +1266,12 @@ const RegistrationForm = ({
                           />
                         </div>
                         <div className="space-y-2">
-                          <Label htmlFor="hotel_address" className="text-base">
+                          <FormFieldLabel
+                            htmlFor="hotel_address"
+                            help={REGISTRATION_FIELD_TOOLTIPS.hotel_address}
+                          >
                             Hotel / accommodation address
-                          </Label>
+                          </FormFieldLabel>
                           <Input
                             id="hotel_address"
                             className="h-12 text-base"
@@ -1215,7 +1289,9 @@ const RegistrationForm = ({
                       <h3 className="text-lg font-semibold">Arrival flight</h3>
                       <div className="grid gap-4 md:grid-cols-3">
                         <div className="space-y-2">
-                          <RequiredLabel>Date of arrival</RequiredLabel>
+                          <FormFieldLabel required help={REGISTRATION_FIELD_TOOLTIPS.arrival_date}>
+                            Date of arrival
+                          </FormFieldLabel>
                           <Input
                             className={fieldControlClass(!!formErrors.arrival_date, "h-12 text-base")}
                             type="date"
@@ -1229,11 +1305,15 @@ const RegistrationForm = ({
                           )}
                         </div>
                         <div className="space-y-2">
-                          <Label className="text-base">Airport</Label>
+                          <FormFieldLabel help={REGISTRATION_FIELD_TOOLTIPS.arrival_airport}>
+                            Airport
+                          </FormFieldLabel>
                           <Input className="h-12 text-base" {...form.register("arrival_airport")} aria-label="Arrival airport" />
                         </div>
                         <div className="space-y-2">
-                          <Label className="text-base">Flight number</Label>
+                          <FormFieldLabel help={REGISTRATION_FIELD_TOOLTIPS.arrival_flight_no}>
+                            Flight number
+                          </FormFieldLabel>
                           <Input className="h-12 text-base" {...form.register("arrival_flight_no")} aria-label="Arrival flight number" />
                         </div>
                       </div>
@@ -1245,7 +1325,9 @@ const RegistrationForm = ({
                       <h3 className="text-lg font-semibold">Departure flight</h3>
                       <div className="grid gap-4 md:grid-cols-3">
                         <div className="space-y-2">
-                          <RequiredLabel>Date of departure</RequiredLabel>
+                          <FormFieldLabel required help={REGISTRATION_FIELD_TOOLTIPS.departure_date}>
+                            Date of departure
+                          </FormFieldLabel>
                           <Input
                             className={fieldControlClass(!!formErrors.departure_date, "h-12 text-base")}
                             type="date"
@@ -1259,11 +1341,15 @@ const RegistrationForm = ({
                           )}
                         </div>
                         <div className="space-y-2">
-                          <Label className="text-base">Airport</Label>
+                          <FormFieldLabel help={REGISTRATION_FIELD_TOOLTIPS.departure_airport}>
+                            Airport
+                          </FormFieldLabel>
                           <Input className="h-12 text-base" {...form.register("departure_airport")} aria-label="Departure airport" />
                         </div>
                         <div className="space-y-2">
-                          <Label className="text-base">Flight number</Label>
+                          <FormFieldLabel help={REGISTRATION_FIELD_TOOLTIPS.departure_flight_no}>
+                            Flight number
+                          </FormFieldLabel>
                           <Input className="h-12 text-base" {...form.register("departure_flight_no")} aria-label="Departure flight number" />
                         </div>
                       </div>
@@ -1282,14 +1368,19 @@ const RegistrationForm = ({
                 description="Pre-order conference t-shirts if you would like. You can skip this section."
               />
             </CardHeader>
-            <CardContent className="space-y-5">
+            <CardContent className="space-y-5 overflow-visible">
               <Alert variant="info">
                 Souvenirs are managed by <strong>Love In Action</strong>. All proceeds go into the
                 fund to help future projects in sharing the love and help to other people.
               </Alert>
-              <p className="text-base text-ink-soft">
+              <p className="inline-flex flex-wrap items-center gap-1 text-base text-ink-soft">
                 Conference t-shirt — <strong className="text-ink">{formatCurrency(TSHIRT_UNIT_PRICE)}</strong> each.
                 Enter how many you want for each size (leave as 0 if you do not want that size).
+                <HelpTooltip
+                  content={REGISTRATION_FIELD_TOOLTIPS.souvenir_preorder}
+                  label="Help for souvenir pre-order"
+                  className="ml-0.5"
+                />
               </p>
               <div className="grid gap-4 sm:grid-cols-2">
                 {TSHIRT_SIZES.map((size, index) => (

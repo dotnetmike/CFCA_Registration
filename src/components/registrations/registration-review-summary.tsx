@@ -144,7 +144,7 @@ export const RegistrationReviewSummary = ({
           <dd>{formData.dietary_requirements?.trim() || "None specified"}</dd>
         </div>
         <div>
-          <dt className="font-medium">State</dt>
+          <dt className="font-medium">CFCA Membership State</dt>
           <dd>{formData.state}</dd>
         </div>
         <div>

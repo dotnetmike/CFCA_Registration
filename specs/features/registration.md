@@ -3,12 +3,15 @@ id: features.registration
 title: Registration form
 status: active
 synced_commit: working-tree
-synced_at: 2026-08-22
+synced_at: 2026-08-24
 owners: [team]
 files:
   - src/app/page.tsx
   - src/app/register/page.tsx
   - src/components/layout/site-header.tsx
+  - src/components/registrations/form-field-label.tsx
+  - src/components/ui/help-tooltip.tsx
+  - src/lib/registrations/form-tooltips.ts
   - src/components/registrations/registration-form.tsx
   - src/components/registrations/registration-review-summary.tsx
   - src/components/registrations/transport-schedule-alert.tsx
@@ -55,11 +58,15 @@ Single continuous conference registration page. Guests complete without login; l
 - Required fields marked with a prominent **red asterisk**; invalid fields show a red border on submit.
 - On submit, **all** validation errors are shown together in a summary list (not one-at-a-time).
 - Controls use comfortable sizing (`text-base` / taller inputs) for readability and touch.
+- Fields that may need extra explanation show a **help icon** (?) beside the label. Hover or keyboard focus on the icon opens a short tooltip with guidance.
 
 ### Registration details
 
 - Primary registrant and attendee fields include an optional food allergy and dietary requirements field.
 - Australian mobile numbers are validated to the local format (`04xx xxx xxx` or `+61...`).
+- Address fields use labels **Address Suburb**, **Address Postcode**, and **Address State** (optional).
+- **CFCA Membership State** (required, DB column `state`) is shown on the same row as **Position in CFCA** on medium+ screens; on small screens membership state stacks below position.
+- When the user selects or changes **Address State** (including via address autocomplete), **CFCA Membership State** is set to the same value automatically.
 
 ### Airport transport
 
@@ -137,6 +144,7 @@ Single continuous conference registration page. Guests complete without login; l
 - [ ] Update emails include a link that leads to My Registration after login
 - [ ] Early bird window and attendee pricing can be changed without redeploy
 - [ ] Closed registration blocks public/participant registration writes while allowing manager/admin role updates
+- [ ] Field help tooltips are available on hover/focus for key registration questions
 
 ## Related specs
 
