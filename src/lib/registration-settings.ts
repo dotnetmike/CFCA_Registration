@@ -20,6 +20,21 @@ export type RegistrationRuntimeSettings = {
   pricing: PricingConfig
 }
 
+export type RegistrationRuntimeSettingsInput = {
+  registrationOpen: boolean
+  pricing: Omit<PricingConfig, "ageFree"> & { ageFree?: number }
+}
+
+const normalizeSettings = (
+  values: RegistrationRuntimeSettingsInput
+): RegistrationRuntimeSettings => ({
+  registrationOpen: values.registrationOpen,
+  pricing: {
+    ...values.pricing,
+    ageFree: values.pricing.ageFree ?? DEFAULT_PRICING_CONFIG.ageFree,
+  },
+})
+
 export const DEFAULT_REGISTRATION_RUNTIME_SETTINGS: RegistrationRuntimeSettings = {
   registrationOpen: true,
   pricing: DEFAULT_PRICING_CONFIG,
@@ -68,9 +83,10 @@ export const getRegistrationRuntimeSettings = async (): Promise<RegistrationRunt
 }
 
 export const updateRegistrationRuntimeSettings = async (
-  values: RegistrationRuntimeSettings,
+  values: RegistrationRuntimeSettingsInput,
   updatedBy?: string
 ): Promise<RegistrationRuntimeSettings> => {
+  const normalized = normalizeSettings(values)
   const admin = createAdminClient()
 
   const { data, error } = await admin
@@ -78,13 +94,13 @@ export const updateRegistrationRuntimeSettings = async (
     .upsert(
       {
         id: true,
-        registration_open: values.registrationOpen,
-        early_bird_start: values.pricing.earlyBirdStart,
-        early_bird_end: values.pricing.earlyBirdEnd,
-        adult_early_bird: values.pricing.adultEarlyBird,
-        adult_regular: values.pricing.adultRegular,
-        age_12_plus: values.pricing.age12Plus,
-        age_2_to_12: values.pricing.age2To12,
+        registration_open: normalized.registrationOpen,
+        early_bird_start: normalized.pricing.earlyBirdStart,
+        early_bird_end: normalized.pricing.earlyBirdEnd,
+        adult_early_bird: normalized.pricing.adultEarlyBird,
+        adult_regular: normalized.pricing.adultRegular,
+        age_12_plus: normalized.pricing.age12Plus,
+        age_2_to_12: normalized.pricing.age2To12,
         updated_by: updatedBy ?? null,
         updated_at: new Date().toISOString(),
       },

@@ -47,6 +47,8 @@ type RegistrationView = {
   departure_date?: string | null
   departure_airport?: string
   departure_flight_no?: string
+  hotel_name?: string | null
+  hotel_address?: string | null
   registration_attendees?: {
     given_name: string
     surname: string
