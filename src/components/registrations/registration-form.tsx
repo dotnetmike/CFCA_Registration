@@ -35,7 +35,10 @@ import {
 import { TransportScheduleAlert } from "@/components/registrations/transport-schedule-alert"
 import { AustralianAddressAutocomplete } from "@/components/address/australian-address-autocomplete"
 import { RegistrationReviewSummary } from "@/components/registrations/registration-review-summary"
-import { FormFieldLabel } from "@/components/registrations/form-field-label"
+import {
+  FormFieldLabel,
+  FormLabelSpacer,
+} from "@/components/registrations/form-field-label"
 import { HelpTooltip } from "@/components/ui/help-tooltip"
 import { REGISTRATION_FIELD_TOOLTIPS } from "@/lib/registrations/form-tooltips"
 import type { AustralianAddress } from "@/lib/address/parse"
@@ -50,7 +53,6 @@ import {
 } from "@/lib/pricing/calculate"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert } from "@/components/ui/alert"
 
@@ -66,16 +68,6 @@ const fieldErrorClass =
 const fieldControlClass = (hasError: boolean, ...classes: string[]) =>
   cn(...classes, hasError && fieldErrorClass)
 
-const RequiredMark = () => (
-  <span
-    className="ml-1 inline-flex align-middle text-[color:var(--danger)]"
-    aria-hidden="true"
-    title="Required"
-  >
-    *
-  </span>
-)
-
 const RequiredLabel = ({
   htmlFor,
   children,
@@ -83,19 +75,30 @@ const RequiredLabel = ({
   htmlFor?: string
   children: React.ReactNode
 }) => (
-  <Label htmlFor={htmlFor} className="text-base font-semibold text-ink">
+  <FormFieldLabel htmlFor={htmlFor} required>
     {children}
-    <RequiredMark />
-    <span className="sr-only"> (required)</span>
-  </Label>
+  </FormFieldLabel>
 )
 
-const FieldError = ({ message }: { message?: string }) =>
-  message ? (
-    <p className="text-sm font-medium text-[color:var(--danger)]" role="alert">
-      {message}
-    </p>
-  ) : null
+/** Reserved height keeps sibling columns aligned when only some fields show errors. */
+const FieldError = ({ message }: { message?: string }) => (
+  <div className="min-h-5">
+    {message ? (
+      <p className="text-sm font-medium leading-5 text-[color:var(--danger)]" role="alert">
+        {message}
+      </p>
+    ) : null}
+  </div>
+)
+
+/** Standard vertical stack for label + control + error so grid columns share baselines. */
+const FormField = ({
+  children,
+  className,
+}: {
+  children: React.ReactNode
+  className?: string
+}) => <div className={cn("flex min-w-0 flex-col gap-2", className)}>{children}</div>
 
 type ValidationIssue = { id: string; label: string; message: string }
 
@@ -668,8 +671,8 @@ const RegistrationForm = ({
                 description="Tell us about yourself."
               />
             </CardHeader>
-            <CardContent className="grid gap-5 overflow-visible md:grid-cols-2">
-              <div className="space-y-2">
+            <CardContent className="grid items-start gap-5 overflow-visible md:grid-cols-2">
+              <FormField>
                 <RequiredLabel htmlFor="surname">Surname</RequiredLabel>
                 <Input
                   id="surname"
@@ -689,8 +692,8 @@ const RegistrationForm = ({
                   aria-invalid={!!formErrors.surname}
                 />
                 <FieldError message={formErrors.surname?.message} />
-              </div>
-              <div className="space-y-2">
+              </FormField>
+              <FormField>
                 <RequiredLabel htmlFor="given_name">Name</RequiredLabel>
                 <Input
                   id="given_name"
@@ -710,8 +713,8 @@ const RegistrationForm = ({
                   aria-invalid={!!formErrors.given_name}
                 />
                 <FieldError message={formErrors.given_name?.message} />
-              </div>
-              <div className="space-y-2">
+              </FormField>
+              <FormField>
                 <FormFieldLabel htmlFor="email" required help={REGISTRATION_FIELD_TOOLTIPS.email}>
                   Email
                 </FormFieldLabel>
@@ -734,8 +737,8 @@ const RegistrationForm = ({
                   autoComplete="email"
                 />
                 <FieldError message={formErrors.email?.message} />
-              </div>
-              <div className="space-y-2">
+              </FormField>
+              <FormField>
                 <FormFieldLabel htmlFor="mobile" required help={REGISTRATION_FIELD_TOOLTIPS.mobile}>
                   Mobile phone
                 </FormFieldLabel>
@@ -759,8 +762,8 @@ const RegistrationForm = ({
                   placeholder="e.g. 0412 345 678"
                 />
                 <FieldError message={formErrors.mobile?.message} />
-              </div>
-              <div className="space-y-2 md:col-span-2">
+              </FormField>
+              <FormField className="md:col-span-2">
                 <FormFieldLabel
                   htmlFor="dietary_requirements"
                   help={REGISTRATION_FIELD_TOOLTIPS.dietary_requirements}
@@ -774,8 +777,8 @@ const RegistrationForm = ({
                   aria-label="Food allergy and dietary requirements"
                   placeholder="e.g. nut allergy, vegetarian, halal"
                 />
-              </div>
-              <div className="space-y-2 md:col-span-2">
+              </FormField>
+              <FormField className="md:col-span-2">
                 <AustralianAddressAutocomplete
                   label="Address"
                   labelHelp={REGISTRATION_FIELD_TOOLTIPS.address}
@@ -783,8 +786,8 @@ const RegistrationForm = ({
                   onChange={(value) => form.setValue("address_line1", value)}
                   onAddressSelect={handleAddressSelect}
                 />
-              </div>
-              <div className="space-y-2">
+              </FormField>
+              <FormField>
                 <FormFieldLabel htmlFor="suburb" help={REGISTRATION_FIELD_TOOLTIPS.suburb}>
                   Address Suburb
                 </FormFieldLabel>
@@ -794,8 +797,8 @@ const RegistrationForm = ({
                   {...form.register("suburb")}
                   aria-label="Address Suburb"
                 />
-              </div>
-              <div className="space-y-2">
+              </FormField>
+              <FormField>
                 <FormFieldLabel htmlFor="postcode" help={REGISTRATION_FIELD_TOOLTIPS.postcode}>
                   Address Postcode
                 </FormFieldLabel>
@@ -805,8 +808,8 @@ const RegistrationForm = ({
                   {...form.register("postcode")}
                   aria-label="Address Postcode"
                 />
-              </div>
-              <div className="space-y-2">
+              </FormField>
+              <FormField>
                 <FormFieldLabel htmlFor="address_state" help={REGISTRATION_FIELD_TOOLTIPS.address_state}>
                   Address State
                 </FormFieldLabel>
@@ -830,9 +833,9 @@ const RegistrationForm = ({
                     <option key={s} value={s}>{s}</option>
                   ))}
                 </select>
-              </div>
-              <div className="grid gap-5 md:col-span-2 md:grid-cols-2">
-                <div className="space-y-2">
+              </FormField>
+              <div className="grid items-start gap-5 md:col-span-2 md:grid-cols-2">
+                <FormField>
                   <FormFieldLabel htmlFor="cfca_position" help={REGISTRATION_FIELD_TOOLTIPS.cfca_position}>
                     Position in CFCA
                   </FormFieldLabel>
@@ -846,8 +849,9 @@ const RegistrationForm = ({
                       <option key={p} value={p}>{CFCA_POSITION_LABELS[p]}</option>
                     ))}
                   </select>
-                </div>
-                <div className="space-y-2">
+                  <FieldError />
+                </FormField>
+                <FormField>
                   <FormFieldLabel htmlFor="state" required help={REGISTRATION_FIELD_TOOLTIPS.state}>
                     CFCA Membership State
                   </FormFieldLabel>
@@ -874,32 +878,31 @@ const RegistrationForm = ({
                     ))}
                   </select>
                   <FieldError message={formErrors.state?.message} />
-                </div>
+                </FormField>
               </div>
 
               <div className="space-y-4 border-t pt-5 md:col-span-2">
-                <label className="flex items-start gap-3 text-base">
+                <label className="flex items-center gap-3 text-base">
                   <input
                     type="checkbox"
-                    className="mt-1 h-5 w-5"
+                    className="h-5 w-5 shrink-0"
                     {...form.register("spouse_attending")}
                     aria-label="Spouse is attending"
                   />
-                  <span className="inline-flex flex-wrap items-center gap-1">
+                  <span className="inline-flex flex-wrap items-center gap-1.5">
                     My spouse is attending
                     <HelpTooltip
                       content={REGISTRATION_FIELD_TOOLTIPS.spouse_attending}
                       label="Help for spouse attending"
-                      className="ml-0.5"
                     />
                   </span>
                 </label>
                 {spouseAttending && (
-                  <div className="grid gap-5 md:grid-cols-2">
-                    <div className="space-y-2">
+                  <div className="grid items-start gap-5 md:grid-cols-2">
+                    <FormField>
                       <RequiredLabel>Spouse surname</RequiredLabel>
-                      <Input 
-                        className={fieldControlClass(!!formErrors.spouse_surname, "h-12 text-base")} 
+                      <Input
+                        className={fieldControlClass(!!formErrors.spouse_surname, "h-12 text-base")}
                         {...(() => {
                           const field = form.register("spouse_surname")
                           return {
@@ -915,11 +918,11 @@ const RegistrationForm = ({
                         aria-invalid={!!formErrors.spouse_surname}
                       />
                       <FieldError message={formErrors.spouse_surname?.message} />
-                    </div>
-                    <div className="space-y-2">
+                    </FormField>
+                    <FormField>
                       <RequiredLabel>Spouse name</RequiredLabel>
-                      <Input 
-                        className={fieldControlClass(!!formErrors.spouse_given_name, "h-12 text-base")} 
+                      <Input
+                        className={fieldControlClass(!!formErrors.spouse_given_name, "h-12 text-base")}
                         {...(() => {
                           const field = form.register("spouse_given_name")
                           return {
@@ -935,12 +938,12 @@ const RegistrationForm = ({
                         aria-invalid={!!formErrors.spouse_given_name}
                       />
                       <FieldError message={formErrors.spouse_given_name?.message} />
-                    </div>
-                    <div className="space-y-2">
+                    </FormField>
+                    <FormField>
                       <RequiredLabel>Spouse email</RequiredLabel>
-                      <Input 
-                        className={fieldControlClass(!!formErrors.spouse_email, "h-12 text-base")} 
-                        type="email" 
+                      <Input
+                        className={fieldControlClass(!!formErrors.spouse_email, "h-12 text-base")}
+                        type="email"
                         {...(() => {
                           const field = form.register("spouse_email")
                           return {
@@ -956,11 +959,11 @@ const RegistrationForm = ({
                         aria-invalid={!!formErrors.spouse_email}
                       />
                       <FieldError message={formErrors.spouse_email?.message} />
-                    </div>
-                    <div className="space-y-2">
+                    </FormField>
+                    <FormField>
                       <RequiredLabel>Spouse mobile</RequiredLabel>
-                      <Input 
-                        className={fieldControlClass(!!formErrors.spouse_mobile, "h-12 text-base")} 
+                      <Input
+                        className={fieldControlClass(!!formErrors.spouse_mobile, "h-12 text-base")}
                         {...(() => {
                           const spouseMobileField = form.register("spouse_mobile")
                           return {
@@ -977,16 +980,18 @@ const RegistrationForm = ({
                         aria-invalid={!!formErrors.spouse_mobile}
                       />
                       <FieldError message={formErrors.spouse_mobile?.message} />
-                    </div>
-                    <div className="space-y-2 md:col-span-2">
-                      <Label className="text-base">Spouse food allergy and dietary requirements</Label>
+                    </FormField>
+                    <FormField className="md:col-span-2">
+                      <FormFieldLabel help={REGISTRATION_FIELD_TOOLTIPS.dietary_requirements}>
+                        Spouse food allergy and dietary requirements
+                      </FormFieldLabel>
                       <Input
                         className="h-12 text-base"
                         {...form.register("spouse_dietary_requirements")}
                         aria-label="Spouse food allergy and dietary requirements"
                         placeholder="e.g. nut allergy, vegetarian, halal"
                       />
-                    </div>
+                    </FormField>
                   </div>
                 )}
               </div>
@@ -1010,114 +1015,121 @@ const RegistrationForm = ({
               {fields.map((field, index) => (
                 <div
                   key={field.id}
-                  className="grid gap-4 rounded-md border border-gray-200 bg-gray-50 p-4 md:grid-cols-4"
+                  className="space-y-4 rounded-md border border-gray-200 bg-gray-50 p-4"
                 >
-                  <div className="space-y-2">
-                    <RequiredLabel>Surname</RequiredLabel>
-                    <Input
-                      className={fieldControlClass(
-                        !!formErrors.attendees?.[index]?.surname,
-                        "h-12 text-base"
-                      )}
-                      {...(() => {
-                        const field = form.register(`attendees.${index}.surname`)
-                        return {
-                          ...field,
-                          onBlur: (e: React.FocusEvent<HTMLInputElement>) => {
-                            field.onBlur(e)
-                            form.trigger(`attendees.${index}.surname`)
-                          },
-                        }
-                      })()}
-                      aria-label={`Attendee ${index + 1} surname`}
-                      aria-required="true"
-                      aria-invalid={!!formErrors.attendees?.[index]?.surname}
-                    />
-                    <FieldError message={formErrors.attendees?.[index]?.surname?.message} />
+                  <div className="grid grid-cols-1 items-start gap-4 sm:grid-cols-2 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,7rem)_auto]">
+                    <FormField>
+                      <RequiredLabel>Surname</RequiredLabel>
+                      <Input
+                        className={fieldControlClass(
+                          !!formErrors.attendees?.[index]?.surname,
+                          "h-12 text-base"
+                        )}
+                        {...(() => {
+                          const field = form.register(`attendees.${index}.surname`)
+                          return {
+                            ...field,
+                            onBlur: (e: React.FocusEvent<HTMLInputElement>) => {
+                              field.onBlur(e)
+                              form.trigger(`attendees.${index}.surname`)
+                            },
+                          }
+                        })()}
+                        aria-label={`Attendee ${index + 1} surname`}
+                        aria-required="true"
+                        aria-invalid={!!formErrors.attendees?.[index]?.surname}
+                      />
+                      <FieldError message={formErrors.attendees?.[index]?.surname?.message} />
+                    </FormField>
+                    <FormField>
+                      <RequiredLabel>Name</RequiredLabel>
+                      <Input
+                        className={fieldControlClass(
+                          !!formErrors.attendees?.[index]?.given_name,
+                          "h-12 text-base"
+                        )}
+                        {...(() => {
+                          const field = form.register(`attendees.${index}.given_name`)
+                          return {
+                            ...field,
+                            onBlur: (e: React.FocusEvent<HTMLInputElement>) => {
+                              field.onBlur(e)
+                              form.trigger(`attendees.${index}.given_name`)
+                            },
+                          }
+                        })()}
+                        aria-label={`Attendee ${index + 1} name`}
+                        aria-required="true"
+                        aria-invalid={!!formErrors.attendees?.[index]?.given_name}
+                      />
+                      <FieldError message={formErrors.attendees?.[index]?.given_name?.message} />
+                    </FormField>
+                    <FormField>
+                      <FormFieldLabel required help={REGISTRATION_FIELD_TOOLTIPS.attendee_age}>
+                        Age
+                      </FormFieldLabel>
+                      <Input
+                        className={fieldControlClass(
+                          !!formErrors.attendees?.[index]?.age,
+                          "h-12 text-base"
+                        )}
+                        type="number"
+                        min={0}
+                        {...(() => {
+                          const field = form.register(`attendees.${index}.age`, { valueAsNumber: true })
+                          return {
+                            ...field,
+                            onBlur: (e: React.FocusEvent<HTMLInputElement>) => {
+                              field.onBlur(e)
+                              form.trigger(`attendees.${index}.age`)
+                            },
+                          }
+                        })()}
+                        aria-label={`Attendee ${index + 1} age`}
+                        aria-required="true"
+                        aria-invalid={!!formErrors.attendees?.[index]?.age}
+                      />
+                      <FieldError message={formErrors.attendees?.[index]?.age?.message} />
+                    </FormField>
+                    <FormField className="sm:col-span-2 md:col-span-1 md:w-auto">
+                      <FormLabelSpacer />
+                      <Button
+                        type="button"
+                        variant="destructive"
+                        size="lg"
+                        className="h-12 w-full md:w-auto"
+                        onClick={() => remove(index)}
+                        aria-label={`Remove attendee ${index + 1}`}
+                      >
+                        Remove
+                      </Button>
+                      <div className="min-h-5" aria-hidden="true" />
+                    </FormField>
                   </div>
-                  <div className="space-y-2">
-                    <RequiredLabel>Name</RequiredLabel>
-                    <Input
-                      className={fieldControlClass(
-                        !!formErrors.attendees?.[index]?.given_name,
-                        "h-12 text-base"
-                      )}
-                      {...(() => {
-                        const field = form.register(`attendees.${index}.given_name`)
-                        return {
-                          ...field,
-                          onBlur: (e: React.FocusEvent<HTMLInputElement>) => {
-                            field.onBlur(e)
-                            form.trigger(`attendees.${index}.given_name`)
-                          },
-                        }
-                      })()}
-                      aria-label={`Attendee ${index + 1} name`}
-                      aria-required="true"
-                      aria-invalid={!!formErrors.attendees?.[index]?.given_name}
-                    />
-                    <FieldError message={formErrors.attendees?.[index]?.given_name?.message} />
-                  </div>
-                  <div className="space-y-2">
-                    <FormFieldLabel required help={REGISTRATION_FIELD_TOOLTIPS.attendee_age}>
-                      Age
+                  <FormField>
+                    <FormFieldLabel help={REGISTRATION_FIELD_TOOLTIPS.dietary_requirements}>
+                      Food allergy &amp; dietary requirements
                     </FormFieldLabel>
-                    <Input
-                      className={fieldControlClass(
-                        !!formErrors.attendees?.[index]?.age,
-                        "h-12 text-base"
-                      )}
-                      type="number"
-                      min={0}
-                      {...(() => {
-                        const field = form.register(`attendees.${index}.age`, { valueAsNumber: true })
-                        return {
-                          ...field,
-                          onBlur: (e: React.FocusEvent<HTMLInputElement>) => {
-                            field.onBlur(e)
-                            form.trigger(`attendees.${index}.age`)
-                          },
-                        }
-                      })()}
-                      aria-label={`Attendee ${index + 1} age`}
-                      aria-required="true"
-                      aria-invalid={!!formErrors.attendees?.[index]?.age}
-                    />
-                    <FieldError message={formErrors.attendees?.[index]?.age?.message} />
-                  </div>
-                  <div className="flex items-end">
-                    <Button
-                      type="button"
-                      variant="destructive"
-                      onClick={() => remove(index)}
-                      aria-label={`Remove attendee ${index + 1}`}
-                    >
-                      Remove
-                    </Button>
-                  </div>
-                  <div className="space-y-2 md:col-span-4">
-                    <Label className="text-base">Food allergy &amp; dietary requirements</Label>
                     <Input
                       className="h-12 text-base"
                       {...form.register(`attendees.${index}.dietary_requirements`)}
                       aria-label={`Attendee ${index + 1} food allergy and dietary requirements`}
                       placeholder="e.g. nut allergy, vegetarian, halal"
                     />
-                  </div>
+                  </FormField>
                   {(form.watch(`attendees.${index}.age`) ?? 0) < 12 && (
-                    <label className="flex items-start gap-3 text-base md:col-span-4">
+                    <label className="flex items-center gap-3 text-base">
                       <input
                         type="checkbox"
-                        className="mt-1 h-5 w-5"
+                        className="h-5 w-5 shrink-0"
                         {...form.register(`attendees.${index}.needs_kids_supervision`)}
                         aria-label={`Kids supervision for attendee ${index + 1}`}
                       />
-                      <span className="inline-flex flex-wrap items-center gap-1">
+                      <span className="inline-flex flex-wrap items-center gap-1.5">
                         Kids supervision required (under 12)
                         <HelpTooltip
                           content={REGISTRATION_FIELD_TOOLTIPS.kids_supervision}
                           label="Help for kids supervision"
-                          className="ml-0.5"
                         />
                       </span>
                     </label>
@@ -1145,7 +1157,7 @@ const RegistrationForm = ({
               />
             </CardHeader>
             <CardContent className="space-y-5 overflow-visible">
-              <div className="space-y-2">
+              <FormField>
                 <FormFieldLabel
                   htmlFor="accommodation_type"
                   required
@@ -1178,7 +1190,7 @@ const RegistrationForm = ({
                   ))}
                 </select>
                 <FieldError message={formErrors.accommodation_type?.message} />
-              </div>
+              </FormField>
 
               {accommodationType === "billet" && (
                 <Alert variant="info">
@@ -1194,7 +1206,7 @@ const RegistrationForm = ({
                 </Alert>
               )}
 
-              <div className="space-y-2">
+              <FormField>
                 <FormFieldLabel
                   htmlFor="transport_option"
                   required
@@ -1227,7 +1239,7 @@ const RegistrationForm = ({
                   ))}
                 </select>
                 <FieldError message={formErrors.transport_option?.message} />
-              </div>
+              </FormField>
 
               {transportOption && transportOption !== "own" && (
                 <TransportScheduleAlert
@@ -1252,8 +1264,8 @@ const RegistrationForm = ({
                         Optional: if known, share where you are staying so transport coordinators
                         can plan pickup and/or drop-off.
                       </p>
-                      <div className="grid gap-4 md:grid-cols-2">
-                        <div className="space-y-2">
+                      <div className="grid items-start gap-4 md:grid-cols-2">
+                        <FormField>
                           <FormFieldLabel htmlFor="hotel_name" help={REGISTRATION_FIELD_TOOLTIPS.hotel_name}>
                             Hotel / accommodation name
                           </FormFieldLabel>
@@ -1264,8 +1276,8 @@ const RegistrationForm = ({
                             aria-label="Hotel or accommodation name"
                             placeholder="e.g. Mercure Melbourne"
                           />
-                        </div>
-                        <div className="space-y-2">
+                        </FormField>
+                        <FormField>
                           <FormFieldLabel
                             htmlFor="hotel_address"
                             help={REGISTRATION_FIELD_TOOLTIPS.hotel_address}
@@ -1279,7 +1291,7 @@ const RegistrationForm = ({
                             aria-label="Hotel or accommodation address"
                             placeholder="Street address"
                           />
-                        </div>
+                        </FormField>
                       </div>
                     </div>
                   )}
@@ -1287,8 +1299,8 @@ const RegistrationForm = ({
                   {showArrival && (
                     <div className="space-y-3">
                       <h3 className="text-lg font-semibold">Arrival flight</h3>
-                      <div className="grid gap-4 md:grid-cols-3">
-                        <div className="space-y-2">
+                      <div className="grid items-start gap-4 md:grid-cols-3">
+                        <FormField>
                           <FormFieldLabel required help={REGISTRATION_FIELD_TOOLTIPS.arrival_date}>
                             Date of arrival
                           </FormFieldLabel>
@@ -1300,22 +1312,22 @@ const RegistrationForm = ({
                             {...form.register("arrival_date")}
                             aria-label="Arrival date"
                           />
-                          {formErrors.arrival_date && (
-                            <FieldError message={formErrors.arrival_date?.message} />
-                          )}
-                        </div>
-                        <div className="space-y-2">
+                          <FieldError message={formErrors.arrival_date?.message} />
+                        </FormField>
+                        <FormField>
                           <FormFieldLabel help={REGISTRATION_FIELD_TOOLTIPS.arrival_airport}>
                             Airport
                           </FormFieldLabel>
                           <Input className="h-12 text-base" {...form.register("arrival_airport")} aria-label="Arrival airport" />
-                        </div>
-                        <div className="space-y-2">
+                          <FieldError />
+                        </FormField>
+                        <FormField>
                           <FormFieldLabel help={REGISTRATION_FIELD_TOOLTIPS.arrival_flight_no}>
                             Flight number
                           </FormFieldLabel>
                           <Input className="h-12 text-base" {...form.register("arrival_flight_no")} aria-label="Arrival flight number" />
-                        </div>
+                          <FieldError />
+                        </FormField>
                       </div>
                     </div>
                   )}
@@ -1323,8 +1335,8 @@ const RegistrationForm = ({
                   {showDeparture && (
                     <div className="space-y-3">
                       <h3 className="text-lg font-semibold">Departure flight</h3>
-                      <div className="grid gap-4 md:grid-cols-3">
-                        <div className="space-y-2">
+                      <div className="grid items-start gap-4 md:grid-cols-3">
+                        <FormField>
                           <FormFieldLabel required help={REGISTRATION_FIELD_TOOLTIPS.departure_date}>
                             Date of departure
                           </FormFieldLabel>
@@ -1336,22 +1348,22 @@ const RegistrationForm = ({
                             {...form.register("departure_date")}
                             aria-label="Departure date"
                           />
-                          {formErrors.departure_date && (
-                            <FieldError message={formErrors.departure_date?.message} />
-                          )}
-                        </div>
-                        <div className="space-y-2">
+                          <FieldError message={formErrors.departure_date?.message} />
+                        </FormField>
+                        <FormField>
                           <FormFieldLabel help={REGISTRATION_FIELD_TOOLTIPS.departure_airport}>
                             Airport
                           </FormFieldLabel>
                           <Input className="h-12 text-base" {...form.register("departure_airport")} aria-label="Departure airport" />
-                        </div>
-                        <div className="space-y-2">
+                          <FieldError />
+                        </FormField>
+                        <FormField>
                           <FormFieldLabel help={REGISTRATION_FIELD_TOOLTIPS.departure_flight_no}>
                             Flight number
                           </FormFieldLabel>
                           <Input className="h-12 text-base" {...form.register("departure_flight_no")} aria-label="Departure flight number" />
-                        </div>
+                          <FieldError />
+                        </FormField>
                       </div>
                     </div>
                   )}
@@ -1384,15 +1396,15 @@ const RegistrationForm = ({
               </p>
               <div className="grid gap-4 sm:grid-cols-2">
                 {TSHIRT_SIZES.map((size, index) => (
-                  <div key={size} className="space-y-2 rounded-md border border-gray-200 p-4">
+                  <div key={size} className="flex flex-col gap-2 rounded-md border border-gray-200 p-4">
                     <input
                       type="hidden"
                       {...form.register(`souvenir_orders.${index}.size`)}
                       defaultValue={size}
                     />
-                    <Label htmlFor={`souvenir-${size}`} className="text-base">
+                    <FormFieldLabel htmlFor={`souvenir-${size}`}>
                       {TSHIRT_SIZE_LABELS[size]}
-                    </Label>
+                    </FormFieldLabel>
                     <Input
                       id={`souvenir-${size}`}
                       type="number"

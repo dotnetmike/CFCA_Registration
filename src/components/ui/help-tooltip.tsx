@@ -19,10 +19,10 @@ export const HelpTooltip = ({ content, label, className }: HelpTooltipProps) => 
   const handleClose = () => setOpen(false)
 
   return (
-    <span className={cn("relative inline-flex align-middle", className)}>
+    <span className={cn("relative inline-flex shrink-0", className)}>
       <button
         type="button"
-        className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-ink-soft transition-colors hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--ring)] disabled:cursor-not-allowed"
+        className="inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-ink-soft transition-colors hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--ring)] disabled:cursor-not-allowed"
         aria-label={label}
         aria-describedby={open ? id : undefined}
         onMouseEnter={handleOpen}
@@ -30,7 +30,7 @@ export const HelpTooltip = ({ content, label, className }: HelpTooltipProps) => 
         onFocus={handleOpen}
         onBlur={handleClose}
       >
-        <CircleHelp className="h-4 w-4" aria-hidden="true" />
+        <CircleHelp className="h-3.5 w-3.5" aria-hidden="true" />
       </button>
       {open ? (
         <span

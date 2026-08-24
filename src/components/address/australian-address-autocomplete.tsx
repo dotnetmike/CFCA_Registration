@@ -146,7 +146,7 @@ export const AustralianAddressAutocomplete = ({
   }, [])
 
   return (
-    <div ref={containerRef} className="space-y-2">
+    <div ref={containerRef} className="flex flex-col gap-2">
       <FormFieldLabel htmlFor={inputId} help={labelHelp}>
         {label}
       </FormFieldLabel>

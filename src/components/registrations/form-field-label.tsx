@@ -4,9 +4,12 @@ import { Label } from "@/components/ui/label"
 import { HelpTooltip } from "@/components/ui/help-tooltip"
 import { cn } from "@/lib/utils"
 
+/** Shared label row height so fields with/without help icons stay aligned in grids. */
+export const FORM_LABEL_ROW_CLASS = "flex h-6 w-full items-center gap-1.5"
+
 const RequiredMark = () => (
   <span
-    className="ml-1 inline-flex align-middle text-[color:var(--danger)]"
+    className="inline-flex shrink-0 text-[color:var(--danger)]"
     aria-hidden="true"
     title="Required"
   >
@@ -36,13 +39,13 @@ export const FormFieldLabel = ({
     <Label
       htmlFor={htmlFor}
       className={cn(
-        "inline-flex flex-wrap items-center gap-y-1 text-base leading-snug",
-        required ? "font-semibold text-ink" : "font-semibold text-ink",
+        FORM_LABEL_ROW_CLASS,
+        "text-base font-semibold leading-none text-ink",
         className
       )}
     >
-      <span>{children}</span>
-      {help ? <HelpTooltip content={help} label={helpLabel} className="ml-1.5" /> : null}
+      <span className="min-w-0 truncate">{children}</span>
+      {help ? <HelpTooltip content={help} label={helpLabel} /> : null}
       {required ? (
         <>
           <RequiredMark />
@@ -52,3 +55,8 @@ export const FormFieldLabel = ({
     </Label>
   )
 }
+
+/** Invisible spacer matching FormFieldLabel height (e.g. align action buttons with inputs). */
+export const FormLabelSpacer = ({ className }: { className?: string }) => (
+  <div className={cn("h-6 w-full shrink-0", className)} aria-hidden="true" />
+)

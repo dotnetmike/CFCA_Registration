@@ -59,6 +59,7 @@ Single continuous conference registration page. Guests complete without login; l
 - On submit, **all** validation errors are shown together in a summary list (not one-at-a-time).
 - Controls use comfortable sizing (`text-base` / taller inputs) for readability and touch.
 - Fields that may need extra explanation show a **help icon** (?) beside the label. Hover or keyboard focus on the icon opens a short tooltip with guidance.
+- Multi-column field rows share a consistent label height, control height (`h-12`), and reserved error-message slot so siblings stay aligned (including action buttons such as **Remove**).
 
 ### Registration details
 
