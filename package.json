@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "db:deploy": "tsx scripts/db/deploy.ts",
+    "db:repair-supabase-migrations": "tsx scripts/db/repair-supabase-migrations.ts",
     "db:login": "npx supabase@latest login",
     "dev": "tsx scripts/db/deploy.ts && next dev --webpack",
     "build": "next build",
