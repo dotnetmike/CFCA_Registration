@@ -1,14 +1,18 @@
 {
   "name": "cfca-registration",
-  "version": "0.14.5",
+  "version": "0.14.6",
   "private": true,
   "scripts": {
-    "db:deploy": "tsx scripts/db/deploy.ts",
-    "db:repair-supabase-migrations": "tsx scripts/db/repair-supabase-migrations.ts",
+    "env:select": "tsx scripts/env/select-env.ts",
+    "db:deploy": "tsx scripts/env/select-env.ts && tsx scripts/db/deploy.ts",
+    "db:repair-supabase-migrations": "tsx scripts/env/select-env.ts && tsx scripts/db/repair-supabase-migrations.ts",
     "db:login": "npx supabase@latest login",
-    "dev": "tsx scripts/db/deploy.ts && next dev --webpack",
+    "dev": "tsx scripts/env/select-env.ts && tsx scripts/db/deploy.ts && next dev --webpack",
+    "dev:dev": "tsx scripts/env/select-env.ts --env=dev && tsx scripts/db/deploy.ts && next dev --webpack",
+    "dev:uat": "tsx scripts/env/select-env.ts --env=uat && tsx scripts/db/deploy.ts && next dev --webpack",
+    "dev:production": "tsx scripts/env/select-env.ts --env=production && tsx scripts/db/deploy.ts && next dev --webpack",
     "build": "next build",
-    "start": "tsx scripts/db/deploy.ts && next start",
+    "start": "tsx scripts/env/select-env.ts && tsx scripts/db/deploy.ts && next start",
     "lint": "eslint",
     "specs:stamp": "tsx scripts/specs/stamp.ts"
   },

@@ -38,6 +38,7 @@ Full index: **[INDEX.md](./INDEX.md)**
 - [Data model (ER)](./data/model.md)
 - [Data flow](./data/data-flow.md)
 - [Local development](./operations/local-dev.md)
+- [Environments (DEV / UAT / Production)](./operations/environments.md)
 - [Migrations](./operations/migrations.md)
 - [Fix a bug](./contributing/fix-a-bug.md)
 - [Code conventions](./contributing/code-conventions.md)

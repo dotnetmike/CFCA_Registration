@@ -4,7 +4,7 @@ Use this after [01-welcome.md](./01-welcome.md).
 
 ## Day 1–2 — Run & explore
 
-- [ ] `npm install`, copy `.env.example` → `.env`, fill Supabase + JWT secrets
+- [ ] `npm install`, copy `.env.*.example` → `.env.dev` / `.env.uat` / `.env.production`, fill Supabase + JWT secrets per env ([environments](../operations/environments.md))
 - [ ] `npm run dev` — confirm migrations apply
 - [ ] Guest registration end-to-end (including optional souvenir)
 - [ ] Create account from complete page / magic-link flow
