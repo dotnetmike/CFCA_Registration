@@ -23,7 +23,7 @@ import { pickRegistrationAuditSnapshot } from "@/lib/audit/registration"
 import { getRequestMeta } from "@/lib/auth/session"
 import { normalizeEmail } from "@/lib/utils"
 import {
-  EMAIL_IN_USE_MESSAGE,
+  getEmailInUseMessage,
   isRegistrationEmailAvailable,
 } from "@/lib/registrations/email-unique"
 import {
@@ -149,7 +149,7 @@ const handlePublicSubmit = async (request: NextRequest, body: unknown) => {
   }
   if (!emailCheck.available) {
     return NextResponse.json(
-      { error: EMAIL_IN_USE_MESSAGE, code: "EMAIL_IN_USE" },
+      { error: getEmailInUseMessage(emailCheck.reason), code: "EMAIL_IN_USE", reason: emailCheck.reason },
       { status: 409 }
     )
   }
@@ -265,7 +265,7 @@ const handleAuthenticatedPost = async (request: NextRequest, body: unknown) => {
   }
   if (!emailCheck.available) {
     return NextResponse.json(
-      { error: EMAIL_IN_USE_MESSAGE, code: "EMAIL_IN_USE" },
+      { error: getEmailInUseMessage(emailCheck.reason), code: "EMAIL_IN_USE", reason: emailCheck.reason },
       { status: 409 }
     )
   }

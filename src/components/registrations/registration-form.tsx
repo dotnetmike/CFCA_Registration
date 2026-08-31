@@ -233,6 +233,7 @@ const RegistrationForm = ({
   useBusyCursor(isBusy)
   const [error, setError] = useState("")
   const [emailInUse, setEmailInUse] = useState(false)
+  const [emailInUseReason, setEmailInUseReason] = useState<"unlinked_registration" | "account" | null>(null)
   const [registrationId, setRegistrationId] = useState<string | null>(null)
   const [participantReference, setParticipantReference] = useState<string | null>(null)
   const [submitted, setSubmitted] = useState(false)
@@ -385,11 +386,12 @@ const RegistrationForm = ({
     }
   }
 
-  const applyApiError = (data: { error?: string; code?: string }) => {
+  const applyApiError = (data: { error?: string; code?: string; reason?: "unlinked_registration" | "account" }) => {
     const message = data.error ?? "Request failed"
     setError(message)
     setValidationIssues([])
     setEmailInUse(data.code === "EMAIL_IN_USE" || message.includes("already registered"))
+    setEmailInUseReason(data.reason ?? null)
     errorBannerRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
   }
 
@@ -429,6 +431,7 @@ const RegistrationForm = ({
   const saveAuthenticated = async (submit = false): Promise<boolean> => {
     setError("")
     setEmailInUse(false)
+    setEmailInUseReason(null)
     setSaveAction("submit")
     const values = form.getValues()
     const payload = { ...values, submit, assign_participant_reference: submit }
@@ -491,11 +494,13 @@ const RegistrationForm = ({
       applyApiError({
         error: data.error ?? EMAIL_IN_USE_FALLBACK,
         code: data.available === false ? "EMAIL_IN_USE" : undefined,
+        reason: data.reason,
       })
       form.setFocus("email")
       return false
     }
     setEmailInUse(false)
+    setEmailInUseReason(null)
     return true
   }
 
@@ -522,6 +527,7 @@ const RegistrationForm = ({
   const submitAsGuest = async (): Promise<boolean> => {
     setError("")
     setEmailInUse(false)
+    setEmailInUseReason(null)
     setSaveAction("submit")
     const values = form.getValues()
     const payload = { ...values, submit: true, assign_participant_reference: true }
@@ -632,7 +638,18 @@ const RegistrationForm = ({
         {error && (
           <Alert variant="error">
             {error}
-            {emailInUse && (
+            {emailInUse && emailInUseReason === "unlinked_registration" && (
+              <>
+                {" "}
+                <Link
+                  href={`/signup?email=${encodeURIComponent(form.getValues("email") ?? "")}&redirect=/my-registration`}
+                  className="font-semibold underline"
+                >
+                  Create your account here
+                </Link>
+              </>
+            )}
+            {emailInUse && emailInUseReason !== "unlinked_registration" && (
               <>
                 {" "}
                 <Link
