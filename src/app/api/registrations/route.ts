@@ -11,7 +11,11 @@ import {
   mapFormToDb,
 } from "@/lib/registrations/service"
 import { assignParticipantReferenceIfNeeded } from "@/lib/registrations/participant-reference"
-import { createViewAndSignupTokens } from "@/lib/registrations/view-token"
+import {
+  createViewAndSignupTokens,
+  findUnlinkedRegistrationByEmail,
+  linkRegistrationToUser,
+} from "@/lib/registrations/view-token"
 import { checkPublicRegistrationRateLimit } from "@/lib/registrations/rate-limit"
 import { sendRegistrationEmail } from "@/lib/email/send"
 import { writeAuditLog } from "@/lib/audit/log"
@@ -19,7 +23,7 @@ import { pickRegistrationAuditSnapshot } from "@/lib/audit/registration"
 import { getRequestMeta } from "@/lib/auth/session"
 import { normalizeEmail } from "@/lib/utils"
 import {
-  EMAIL_IN_USE_MESSAGE,
+  getEmailInUseMessage,
   isRegistrationEmailAvailable,
 } from "@/lib/registrations/email-unique"
 import {
@@ -64,7 +68,11 @@ export const GET = async (request: NextRequest) => {
 
   const admin = createAdminClient()
 
-  if (auth.permissions.includes("registrations:read_all")) {
+  // "mine=true" forces the caller's own registration even for managers/admins,
+  // who otherwise get the full list below (used by the dashboard).
+  const wantsOwnOnly = request.nextUrl.searchParams.get("mine") === "true"
+
+  if (auth.permissions.includes("registrations:read_all") && !wantsOwnOnly) {
     const { data, error } = await admin
       .from("registrations")
       .select("id, registration_no, user_id, surname, given_name, email, mobile, dietary_requirements, address_line1, address_line2, suburb, address_state, postcode, cfca_position, state, spouse_surname, spouse_given_name, spouse_attending, spouse_email, spouse_mobile, spouse_dietary_requirements, accommodation_type, pickup_melbourne_airport, dropoff_melbourne_airport, hotel_transport_required, arrival_date, arrival_airport, arrival_flight_no, departure_date, departure_airport, departure_flight_no, hotel_name, hotel_address, accommodation_contact_name, accommodation_contact_phone, pickup_transport_contact_name, pickup_transport_contact_phone, dropoff_transport_contact_name, dropoff_transport_contact_phone, payment_status, amount_due, amount_paid, payment_last_updated_source, payment_last_updated_at, payment_last_updated_by, souvenir_orders, is_early_bird, early_bird_slot, submitted_at, created_at, updated_at, participant_reference, view_token_hash, registration_attendees(*)")
@@ -74,14 +82,38 @@ export const GET = async (request: NextRequest) => {
     return NextResponse.json({ registrations: data })
   }
 
+  const ownRegistrationSelect =
+    "id, registration_no, user_id, surname, given_name, email, mobile, dietary_requirements, address_line1, address_line2, suburb, address_state, postcode, cfca_position, state, spouse_surname, spouse_given_name, spouse_attending, spouse_email, spouse_mobile, spouse_dietary_requirements, accommodation_type, pickup_melbourne_airport, dropoff_melbourne_airport, hotel_transport_required, arrival_date, arrival_airport, arrival_flight_no, departure_date, departure_airport, departure_flight_no, hotel_name, hotel_address, accommodation_contact_name, accommodation_contact_phone, pickup_transport_contact_name, pickup_transport_contact_phone, dropoff_transport_contact_name, dropoff_transport_contact_phone, payment_status, amount_due, amount_paid, payment_last_updated_source, payment_last_updated_at, payment_last_updated_by, souvenir_orders, is_early_bird, early_bird_slot, submitted_at, created_at, updated_at, participant_reference, view_token_hash, registration_attendees(*)"
+
   const { data, error } = await admin
     .from("registrations")
-    .select("id, registration_no, user_id, surname, given_name, email, mobile, dietary_requirements, address_line1, address_line2, suburb, address_state, postcode, cfca_position, state, spouse_surname, spouse_given_name, spouse_attending, spouse_email, spouse_mobile, spouse_dietary_requirements, accommodation_type, pickup_melbourne_airport, dropoff_melbourne_airport, hotel_transport_required, arrival_date, arrival_airport, arrival_flight_no, departure_date, departure_airport, departure_flight_no, hotel_name, hotel_address, accommodation_contact_name, accommodation_contact_phone, pickup_transport_contact_name, pickup_transport_contact_phone, dropoff_transport_contact_name, dropoff_transport_contact_phone, payment_status, amount_due, amount_paid, payment_last_updated_source, payment_last_updated_at, payment_last_updated_by, souvenir_orders, is_early_bird, early_bird_slot, submitted_at, created_at, updated_at, participant_reference, view_token_hash, registration_attendees(*)")
+    .select(ownRegistrationSelect)
     .eq("user_id", auth.sub)
     .maybeSingle()
 
   if (error) return jsonSupabaseError(error.message, 500)
-  return NextResponse.json({ registration: data })
+  if (data) return NextResponse.json({ registration: data })
+
+  // Self-heal: a matching submitted registration may exist that was never linked
+  // to this account (e.g. submitted as a guest with the same email before login).
+  const unlinked = await findUnlinkedRegistrationByEmail(normalizeEmail(auth.email))
+  if (!unlinked) return NextResponse.json({ registration: null })
+
+  try {
+    await linkRegistrationToUser(unlinked.id, auth.sub)
+  } catch (err) {
+    console.error("[registrations] Failed to auto-link registration:", err)
+    return NextResponse.json({ registration: null })
+  }
+
+  const { data: linked, error: linkedError } = await admin
+    .from("registrations")
+    .select(ownRegistrationSelect)
+    .eq("id", unlinked.id)
+    .maybeSingle()
+
+  if (linkedError) return jsonSupabaseError(linkedError.message, 500)
+  return NextResponse.json({ registration: linked })
 }
 
 const handlePublicSubmit = async (request: NextRequest, body: unknown) => {
@@ -117,7 +149,7 @@ const handlePublicSubmit = async (request: NextRequest, body: unknown) => {
   }
   if (!emailCheck.available) {
     return NextResponse.json(
-      { error: EMAIL_IN_USE_MESSAGE, code: "EMAIL_IN_USE" },
+      { error: getEmailInUseMessage(emailCheck.reason), code: "EMAIL_IN_USE", reason: emailCheck.reason },
       { status: 409 }
     )
   }
@@ -233,7 +265,7 @@ const handleAuthenticatedPost = async (request: NextRequest, body: unknown) => {
   }
   if (!emailCheck.available) {
     return NextResponse.json(
-      { error: EMAIL_IN_USE_MESSAGE, code: "EMAIL_IN_USE" },
+      { error: getEmailInUseMessage(emailCheck.reason), code: "EMAIL_IN_USE", reason: emailCheck.reason },
       { status: 409 }
     )
   }

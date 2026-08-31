@@ -4,7 +4,7 @@ import { jsonError, getBearerToken } from "@/lib/auth/api"
 import { verifyAccessToken } from "@/lib/auth/jwt"
 import { normalizeEmail } from "@/lib/utils"
 import {
-  EMAIL_IN_USE_MESSAGE,
+  getEmailInUseMessage,
   isRegistrationEmailAvailable,
 } from "@/lib/registrations/email-unique"
 
@@ -34,7 +34,7 @@ export const GET = async (request: NextRequest) => {
     if (!result.available) {
       return NextResponse.json({
         available: false,
-        error: EMAIL_IN_USE_MESSAGE,
+        error: getEmailInUseMessage(result.reason),
         reason: result.reason,
       })
     }

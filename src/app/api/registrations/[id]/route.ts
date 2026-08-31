@@ -22,7 +22,7 @@ import { writeAuditLog, pickChangedFields } from "@/lib/audit/log"
 import { pickRegistrationAuditSnapshot, REGISTRATION_AUDIT_FIELDS } from "@/lib/audit/registration"
 import { normalizeEmail } from "@/lib/utils"
 import {
-  EMAIL_IN_USE_MESSAGE,
+  getEmailInUseMessage,
   isRegistrationEmailAvailable,
 } from "@/lib/registrations/email-unique"
 import {
@@ -166,7 +166,7 @@ export const PUT = async (request: NextRequest, { params }: RouteParams) => {
     })
     if (!emailCheck.available) {
       return NextResponse.json(
-        { error: EMAIL_IN_USE_MESSAGE, code: "EMAIL_IN_USE" },
+        { error: getEmailInUseMessage(emailCheck.reason), code: "EMAIL_IN_USE", reason: emailCheck.reason },
         { status: 409 }
       )
     }

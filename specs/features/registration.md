@@ -101,6 +101,9 @@ Single continuous conference registration page. Guests complete without login; l
 
 - Already registered? Login → `/login?redirect=/my-registration`.
 - Email uniqueness checked on email blur and on submit. DB/API errors fail closed (HTTP 500), never report `available: true`.
+- Duplicate-email conflicts distinguish two cases so the CTA matches reality:
+  - `reason: "account"` — an account already exists for that email → show **Login here** (`/login?redirect=/my-registration`).
+  - `reason: "unlinked_registration"` — a submitted registration exists but no account has been created for it yet → show **Create your account here** (`/signup?email=<email>&redirect=/my-registration`), never a login link (there is nothing to log into).
 - Accommodation and airport transport mandatory with no default.
 - Submit → public `POST /api/registrations` → `/register/complete`.
 - When registration is closed, public submit is blocked with a friendly message to contact Chapter Leaders.

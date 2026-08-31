@@ -72,7 +72,7 @@ const MyRegistrationPage = () => {
 
   useEffect(() => {
     const load = async () => {
-      const res = await authFetch("/api/registrations")
+      const res = await authFetch("/api/registrations?mine=true")
       if (res.ok) {
         const data = await res.json()
         setRegistration(data.registration)
