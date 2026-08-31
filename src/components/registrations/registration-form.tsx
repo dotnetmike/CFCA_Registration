@@ -285,7 +285,7 @@ const RegistrationForm = ({
     }
 
     setIsLoading(true)
-    const res = await authFetch("/api/registrations")
+    const res = await authFetch("/api/registrations?mine=true")
     if (res.ok) {
       const data = await res.json()
       if (data.registration) {
@@ -436,7 +436,7 @@ const RegistrationForm = ({
     let currentId = registrationId
 
     if (!currentId) {
-      const existingRes = await authFetch("/api/registrations")
+      const existingRes = await authFetch("/api/registrations?mine=true")
       if (existingRes.ok) {
         const existingData = await existingRes.json()
         if (existingData.registration?.id) {
