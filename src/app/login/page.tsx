@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert } from "@/components/ui/alert"
+import { ClientOnly } from "@/components/client-only"
 
 const LoginForm = () => {
   const { login } = useAuth()
@@ -54,57 +55,67 @@ const LoginForm = () => {
           <CardTitle className="text-xl">Login</CardTitle>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <fieldset disabled={isLoading} className="m-0 min-w-0 space-y-4 border-0 p-0">
-              {resetSuccess && (
-                <Alert variant="success">
-                  Your password has been reset. You can log in now.
-                </Alert>
-              )}
-              {error && <Alert variant="error">{error}</Alert>}
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                  autoComplete="email"
-                  aria-label="Email address"
-                />
+          <ClientOnly
+            fallback={
+              <div className="space-y-4" aria-busy="true" aria-label="Loading login form">
+                <div className="h-11 animate-pulse rounded-md bg-mist/80" />
+                <div className="h-11 animate-pulse rounded-md bg-mist/80" />
+                <div className="h-11 animate-pulse rounded-md bg-accent/20" />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  autoComplete="current-password"
-                  aria-label="Password"
-                />
-              </div>
-              <p className="text-right text-sm">
-                <Link
-                  href="/forgot-password"
-                  className="font-medium text-accent-ink transition-colors hover:text-ink"
+            }
+          >
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <fieldset disabled={isLoading} className="m-0 min-w-0 space-y-4 border-0 p-0">
+                {resetSuccess && (
+                  <Alert variant="success">
+                    Your password has been reset. You can log in now.
+                  </Alert>
+                )}
+                {error && <Alert variant="error">{error}</Alert>}
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                    autoComplete="email"
+                    aria-label="Email address"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="password">Password</Label>
+                  <Input
+                    id="password"
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    autoComplete="current-password"
+                    aria-label="Password"
+                  />
+                </div>
+                <p className="text-right text-sm">
+                  <Link
+                    href="/forgot-password"
+                    className="font-medium text-accent-ink transition-colors hover:text-ink"
+                  >
+                    Forgot password?
+                  </Link>
+                </p>
+                <Button
+                  type="submit"
+                  className="w-full"
+                  isLoading={isLoading}
+                  loadingText="Logging in..."
+                  disabled={isLoading}
                 >
-                  Forgot password?
-                </Link>
-              </p>
-              <Button
-                type="submit"
-                className="w-full"
-                isLoading={isLoading}
-                loadingText="Logging in..."
-                disabled={isLoading}
-              >
-                Login
-              </Button>
-            </fieldset>
-          </form>
+                  Login
+                </Button>
+              </fieldset>
+            </form>
+          </ClientOnly>
           <p className="mt-5 text-center text-sm text-ink-soft">
             Haven&apos;t registered yet?{" "}
             <Link href="/" className="font-semibold text-ink underline-offset-4 hover:underline">

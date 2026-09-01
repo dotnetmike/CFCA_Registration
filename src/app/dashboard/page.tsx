@@ -14,7 +14,6 @@ import { formatCurrency } from "@/lib/pricing/calculate"
 import { AUSTRALIAN_STATES } from "@/lib/registrations/schema"
 import {
   booleansToTransportOption,
-  getTransportOptionLabel,
 } from "@/lib/registrations/transport"
 import {
   clearDashboardRegistrationsCache,
@@ -23,6 +22,12 @@ import {
   setDashboardRegistrationsCache,
   type DashboardRegistrationRow,
 } from "@/lib/dashboard/registrations-list-cache"
+import {
+  filterRegistrationList,
+  type RegistrationListFilterState,
+} from "@/lib/dashboard/registration-list-filters"
+import { buildDetailedRegistrationsCsv } from "@/lib/dashboard/reports-csv"
+import { downloadTextFile } from "@/lib/dashboard/download-csv"
 
 const PAGE_SIZE = 100
 const PAYMENT_STATUSES = ["pending", "partial", "paid", "overpaid"] as const
@@ -70,14 +75,43 @@ const formatTranspoContacts = (r: DashboardRegistrationRow) => {
   if (option === "dropoff") return dropoff
 
   if (pickup === dropoff) {
-    return pickup === "—" ? "—" : `Both: ${pickup}`
+    return pickup === "—" ? "—" : pickup
+  }
+
+  return `P: ${pickup} · D: ${dropoff}`
+}
+
+const formatSubmittedDate = (value: string | null | undefined) => {
+  if (!value) return "Draft"
+  return new Date(value).toLocaleDateString("en-AU", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  })
+}
+
+const paymentStatusClass = (status: string) => {
+  if (status === "paid") return "bg-emerald-100 text-emerald-800"
+  if (status === "partial") return "bg-sky-100 text-sky-800"
+  if (status === "overpaid") return "bg-violet-100 text-violet-800"
+  return "bg-amber-100 text-amber-900"
+}
+
+const CellText = ({
+  value,
+  className,
+}: {
+  value: string
+  className?: string
+}) => {
+  if (value === "—") {
+    return <span className="text-ink-soft/50">—</span>
   }
 
   return (
-    <>
-      <div>Pickup: {pickup}</div>
-      <div>Drop-off: {dropoff}</div>
-    </>
+    <span className={className} title={value}>
+      {value}
+    </span>
   )
 }
 
@@ -98,8 +132,14 @@ const DashboardPage = () => {
   const [page, setPage] = useState(1)
   const [isLoading, setIsLoading] = useState(true)
   const [isRefreshing, setIsRefreshing] = useState(false)
+  const [isExporting, setIsExporting] = useState(false)
+  const [exportError, setExportError] = useState("")
   const [loadError, setLoadError] = useState("")
-  useBusyCursor(isRefreshing)
+  useBusyCursor(isRefreshing || isExporting)
+
+  const canEditRegistrations = !!user?.permissions.includes("registrations:write_all")
+  const canEditAccommodation = !!user?.permissions.includes("accommodation:write_all")
+  const canOpenEditor = canEditRegistrations || canEditAccommodation
 
   const loadRegistrations = useCallback(
     async (forceRefresh: boolean) => {
@@ -159,52 +199,29 @@ const DashboardPage = () => {
     setPage(1)
   }, [search, paymentFilter, accommodationFilter, transpoFilter, stateFilter, souvenirFilter])
 
-  const filtered = useMemo(() => {
-    return registrations.filter((r) => {
-      const q = search.toLowerCase()
-      const matchesSearch =
-        !q ||
-        r.registration_no?.toLowerCase().includes(q) ||
-        r.surname?.toLowerCase().includes(q) ||
-        r.given_name?.toLowerCase().includes(q) ||
-        r.email?.toLowerCase().includes(q) ||
-        r.state?.toLowerCase().includes(q) ||
-        r.accommodation_contact_name?.toLowerCase().includes(q) ||
-        r.pickup_transport_contact_name?.toLowerCase().includes(q) ||
-        r.dropoff_transport_contact_name?.toLowerCase().includes(q)
+  const listFilters = useMemo<RegistrationListFilterState>(
+    () => ({
+      search,
+      paymentFilter,
+      accommodationFilter,
+      transpoFilter,
+      stateFilter,
+      souvenirFilter,
+    }),
+    [
+      search,
+      paymentFilter,
+      accommodationFilter,
+      transpoFilter,
+      stateFilter,
+      souvenirFilter,
+    ]
+  )
 
-      if (!matchesSearch) return false
-      if (paymentFilter && r.payment_status !== paymentFilter) return false
-      if (accommodationFilter === "yes" && r.accommodation_type !== "billet") return false
-      if (accommodationFilter === "no" && r.accommodation_type !== "own") return false
-
-      if (transpoFilter) {
-        const option = booleansToTransportOption(
-          r.pickup_melbourne_airport,
-          r.dropoff_melbourne_airport
-        )
-        if (transpoFilter === "none" && option !== "own") return false
-        if (transpoFilter === "pickup" && option !== "pickup") return false
-        if (transpoFilter === "dropoff" && option !== "dropoff") return false
-        if (transpoFilter === "both" && option !== "pickup_dropoff") return false
-      }
-
-      if (stateFilter && r.state !== stateFilter) return false
-
-      if (souvenirFilter === "yes" && !(r.souvenir_quantity > 0)) return false
-      if (souvenirFilter === "no" && r.souvenir_quantity > 0) return false
-
-      return true
-    })
-  }, [
-    registrations,
-    search,
-    paymentFilter,
-    accommodationFilter,
-    transpoFilter,
-    stateFilter,
-    souvenirFilter,
-  ])
+  const filtered = useMemo(
+    () => filterRegistrationList(registrations, listFilters),
+    [registrations, listFilters]
+  )
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
   const currentPage = Math.min(page, totalPages)
@@ -215,6 +232,28 @@ const DashboardPage = () => {
 
   const handleRefresh = () => {
     void loadRegistrations(true)
+  }
+
+  const handleExportCsv = async () => {
+    setIsExporting(true)
+    setExportError("")
+    try {
+      const res = await authFetch("/api/registrations")
+      if (!res.ok) {
+        setExportError("Could not export registrations. Please try again.")
+        return
+      }
+      const data = await res.json()
+      const allRows = (data.registrations ?? []) as Record<string, unknown>[]
+      const exportRows = filterRegistrationList(allRows, listFilters)
+      const csv = buildDetailedRegistrationsCsv(exportRows)
+      const dateStamp = new Date().toISOString().slice(0, 10)
+      downloadTextFile(`registrations-filtered-${dateStamp}.csv`, csv)
+    } catch {
+      setExportError("Could not export registrations. Please try again.")
+    } finally {
+      setIsExporting(false)
+    }
   }
 
   if (isLoading) return <p className="text-center text-ink-soft">Loading dashboard...</p>
@@ -235,10 +274,22 @@ const DashboardPage = () => {
             type="button"
             variant="outline"
             size="sm"
+            onClick={() => void handleExportCsv()}
+            isLoading={isExporting}
+            loadingText="Exporting..."
+            disabled={isExporting || isRefreshing || filtered.length === 0}
+            aria-label="Export filtered registrations to CSV"
+          >
+            Export CSV
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
             onClick={handleRefresh}
             isLoading={isRefreshing}
             loadingText="Refreshing..."
-            disabled={isRefreshing}
+            disabled={isRefreshing || isExporting}
             aria-label="Refresh registrations list"
           >
             Refresh
@@ -254,6 +305,7 @@ const DashboardPage = () => {
         </p>
       )}
       {loadError && <p className="text-sm text-red-600" role="alert">{loadError}</p>}
+      {exportError && <p className="text-sm text-red-600" role="alert">{exportError}</p>}
 
       <Input
         placeholder="Search by name, email, registration no, state, contact..."
@@ -348,85 +400,178 @@ const DashboardPage = () => {
               : " registrations"}
           </CardTitle>
           <p className="text-sm text-gray-600" aria-live="polite">
-            Showing {rangeStart}–{rangeEnd} · Page {currentPage} of {totalPages}
+            Showing {rangeStart}–{rangeEnd} of {filtered.length} matching
+            {" · "}
+            Page {currentPage} of {totalPages}
             {" · "}
             {PAGE_SIZE} per page
           </p>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[1100px] text-left text-sm">
+        <CardContent className="space-y-0 p-0">
+          <p className="border-b border-[color:var(--line)] px-6 py-2 text-xs text-ink-soft sm:hidden">
+            Swipe horizontally to see all columns and actions.
+          </p>
+          <div
+            className="cfca-registrations-table-wrap"
+            tabIndex={0}
+            role="region"
+            aria-label="Registrations table, scroll horizontally for more columns"
+          >
+            <table className="cfca-registrations-table">
               <thead>
-                <tr className="border-b">
-                  <th className="p-2">Reg No</th>
-                  <th className="p-2">Name</th>
-                  <th className="p-2">State</th>
-                  <th className="p-2">Accommodation required</th>
-                  <th className="p-2">Transpo required</th>
-                  <th className="p-2">Accommodation contact</th>
-                  <th className="p-2">Transpo contact</th>
-                  <th className="p-2">Souvenir</th>
-                  <th className="p-2">Payment</th>
-                  <th className="p-2">Amount</th>
-                  <th className="p-2">Submitted</th>
+                <tr>
+                  <th className="cfca-registrations-table__sticky-left w-[7.5rem] whitespace-nowrap" scope="col" title="Registration number">
+                    Reg #
+                  </th>
+                  <th className="min-w-[9rem] whitespace-nowrap" scope="col">
+                    Name
+                  </th>
+                  <th className="w-12 whitespace-nowrap" scope="col">
+                    St
+                  </th>
+                  <th className="w-16 whitespace-nowrap" scope="col" title="Accommodation required">
+                    Billet
+                  </th>
+                  <th className="w-20 whitespace-nowrap" scope="col" title="Transport required">
+                    Transpo
+                  </th>
+                  <th className="min-w-[8rem] max-w-[11rem]" scope="col" title="Accommodation contact">
+                    Billet contact
+                  </th>
+                  <th className="min-w-[8rem] max-w-[11rem]" scope="col" title="Transport contact">
+                    Transpo contact
+                  </th>
+                  <th className="w-16 whitespace-nowrap" scope="col" title="Souvenir pre-order">
+                    Shirt
+                  </th>
+                  <th className="w-24 whitespace-nowrap" scope="col">
+                    Payment
+                  </th>
+                  <th className="w-24 whitespace-nowrap text-right" scope="col">
+                    Amount
+                  </th>
+                  <th className="w-28 whitespace-nowrap" scope="col">
+                    Submitted
+                  </th>
+                  <th
+                    className="cfca-registrations-table__sticky-right w-[9.5rem] whitespace-nowrap text-right"
+                    scope="col"
+                  >
+                    Actions
+                  </th>
                 </tr>
               </thead>
               <tbody>
                 {pageRows.length === 0 ? (
                   <tr>
-                    <td className="p-4 text-gray-500" colSpan={11}>
+                    <td className="p-6 text-ink-soft" colSpan={12}>
                       No registrations match the current filters.
                     </td>
                   </tr>
                 ) : (
-                  pageRows.map((r) => (
-                    <tr key={r.id} className="border-b border-[color:var(--line)] transition-colors hover:bg-surface-muted/80">
-                      <td className="p-2">
-                        <Link
-                          href={`/dashboard/registrations/${r.id}`}
-                          className="font-semibold text-ink underline-offset-4 hover:text-accent-ink hover:underline"
-                          title={getTransportOptionLabel(
-                            booleansToTransportOption(
-                              r.pickup_melbourne_airport,
-                              r.dropoff_melbourne_airport
-                            )
+                  pageRows.map((r) => {
+                    const billetContact = formatContact(
+                      r.accommodation_contact_name,
+                      r.accommodation_contact_phone
+                    )
+                    const transpoContact = formatTranspoContacts(r)
+                    const souvenirLabel =
+                      r.souvenir_quantity > 0 ? String(r.souvenir_quantity) : "—"
+
+                    return (
+                      <tr key={r.id}>
+                        <td className="cfca-registrations-table__sticky-left whitespace-nowrap font-semibold">
+                          <Link
+                            href={`/dashboard/registrations/${r.id}`}
+                            className="text-accent-ink underline-offset-4 hover:text-ink hover:underline"
+                            title={`View ${r.registration_no}`}
+                          >
+                            {r.registration_no}
+                          </Link>
+                        </td>
+                        <td className="min-w-[9rem]">
+                          <span className="block font-medium text-ink">
+                            {r.given_name} {r.surname}
+                          </span>
+                        </td>
+                        <td className="whitespace-nowrap text-center text-ink-soft">{r.state}</td>
+                        <td className="whitespace-nowrap">
+                          {getAccommodationRequiredLabel(r.accommodation_type)}
+                        </td>
+                        <td className="whitespace-nowrap">
+                          {getTranspoRequiredLabel(
+                            r.pickup_melbourne_airport,
+                            r.dropoff_melbourne_airport
                           )}
-                        >
-                          {r.registration_no}
-                        </Link>
-                      </td>
-                      <td className="p-2">{r.given_name} {r.surname}</td>
-                      <td className="p-2">{r.state}</td>
-                      <td className="p-2">{getAccommodationRequiredLabel(r.accommodation_type)}</td>
-                      <td className="p-2">
-                        {getTranspoRequiredLabel(
-                          r.pickup_melbourne_airport,
-                          r.dropoff_melbourne_airport
-                        )}
-                      </td>
-                      <td className="p-2">
-                        {formatContact(
-                          r.accommodation_contact_name,
-                          r.accommodation_contact_phone
-                        )}
-                      </td>
-                      <td className="p-2">{formatTranspoContacts(r)}</td>
-                      <td className="p-2">
-                        {r.souvenir_quantity > 0 ? `${r.souvenir_quantity} shirt(s)` : "—"}
-                      </td>
-                      <td className="p-2">{r.payment_status}</td>
-                      <td className="p-2">{formatCurrency(Number(r.amount_due))}</td>
-                      <td className="p-2">
-                        {r.submitted_at ? new Date(r.submitted_at).toLocaleDateString() : "Draft"}
-                      </td>
-                    </tr>
-                  ))
+                        </td>
+                        <td className="max-w-[11rem]">
+                          <CellText
+                            value={billetContact}
+                            className="block truncate"
+                          />
+                        </td>
+                        <td className="max-w-[11rem]">
+                          <CellText
+                            value={transpoContact}
+                            className="block truncate"
+                          />
+                        </td>
+                        <td className="whitespace-nowrap text-center">
+                          <CellText value={souvenirLabel} />
+                        </td>
+                        <td className="whitespace-nowrap">
+                          <span
+                            className={`inline-flex rounded-full px-2 py-0.5 text-xs font-semibold capitalize ${paymentStatusClass(r.payment_status)}`}
+                          >
+                            {r.payment_status}
+                          </span>
+                        </td>
+                        <td className="whitespace-nowrap text-right font-medium tabular-nums">
+                          {formatCurrency(Number(r.amount_due))}
+                        </td>
+                        <td className="whitespace-nowrap text-xs text-ink-soft">
+                          {formatSubmittedDate(r.submitted_at)}
+                        </td>
+                        <td className="cfca-registrations-table__sticky-right">
+                          <div className="flex flex-nowrap items-center justify-end gap-1.5">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-8 shrink-0 px-2.5 text-xs"
+                              asChild
+                            >
+                              <Link
+                                href={`/dashboard/registrations/${r.id}`}
+                                aria-label={`View registration ${r.registration_no}`}
+                              >
+                                View
+                              </Link>
+                            </Button>
+                            {canOpenEditor ? (
+                              <Button
+                                size="sm"
+                                className="h-8 shrink-0 px-2.5 text-xs"
+                                asChild
+                              >
+                                <Link
+                                  href={`/dashboard/registrations/${r.id}?edit=1`}
+                                  aria-label={`Edit registration ${r.registration_no}`}
+                                >
+                                  Edit
+                                </Link>
+                              </Button>
+                            ) : null}
+                          </div>
+                        </td>
+                      </tr>
+                    )
+                  })
                 )}
               </tbody>
             </table>
           </div>
 
-          <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[color:var(--line)] px-6 py-4">
             <Button
               type="button"
               variant="outline"

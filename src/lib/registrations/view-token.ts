@@ -25,6 +25,22 @@ export const createViewAndSignupTokens = async (registrationId: string) => {
   return { viewToken, signupToken }
 }
 
+/** Issue a new magic-link view token without changing signup token state. */
+export const refreshViewToken = async (registrationId: string) => {
+  const viewToken = generateRefreshToken()
+  const admin = createAdminClient()
+  const { error } = await admin
+    .from("registrations")
+    .update({
+      view_token_hash: hashRefreshToken(viewToken),
+      view_token_created_at: new Date().toISOString(),
+    })
+    .eq("id", registrationId)
+
+  if (error) throw new Error(error.message)
+  return viewToken
+}
+
 export const getRegistrationByViewToken = async (rawToken: string) => {
   const admin = createAdminClient()
   const { data, error } = await admin
