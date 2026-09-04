@@ -19,7 +19,9 @@ export type ComparableRegistrationSnapshot = {
   suburb: string
   address_state: string
   postcode: string
+  ministry: string
   cfca_position: string
+  elder_assembly_attending: boolean
   state: string
   spouse_surname: string
   spouse_given_name: string
@@ -94,7 +96,9 @@ export const snapshotFromFormValues = (
     suburb: str(values.suburb),
     address_state: str(values.address_state),
     postcode: str(values.postcode),
+    ministry: str(values.ministry) || "cfca",
     cfca_position: str(values.cfca_position) || "member",
+    elder_assembly_attending: !!values.elder_assembly_attending,
     state: str(values.state),
     spouse_surname: str(values.spouse_surname),
     spouse_given_name: str(values.spouse_given_name),
@@ -144,7 +148,9 @@ export const snapshotFromRegistration = (
     suburb: str(reg.suburb),
     address_state: str(reg.address_state),
     postcode: str(reg.postcode),
+    ministry: str(reg.ministry) || "cfca",
     cfca_position: str(reg.cfca_position) || "member",
+    elder_assembly_attending: !!reg.elder_assembly_attending,
     state: str(reg.state),
     spouse_surname: str(reg.spouse_surname),
     spouse_given_name: str(reg.spouse_given_name),

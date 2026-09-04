@@ -8,6 +8,16 @@ const CSV_EXCLUDED_KEYS = new Set([
 
 const NESTED_RELATION_KEY = "registration_attendees"
 const SOUVENIR_ORDERS_KEY = "souvenir_orders"
+const REGISTRATION_FORM_COLUMN_ORDER = [
+  "surname", "given_name", "email", "mobile", "dietary_requirements", "address_line1",
+  "suburb", "address_state", "postcode", "state", "ministry", "cfca_position",
+  "elder_assembly_attending", "spouse_attending", "spouse_surname", "spouse_given_name",
+  "spouse_email", "spouse_mobile", "spouse_dietary_requirements", "accommodation_type",
+  "pickup_melbourne_airport", "arrival_date", "arrival_airport", "arrival_flight_no",
+  "dropoff_melbourne_airport", "departure_date", "departure_airport", "departure_flight_no",
+  "hotel_transport_required", "hotel_name", "hotel_address", "souvenir_orders",
+  "amount_due", "amount_paid", "payment_status", "participant_reference", "registration_no",
+] as const
 
 const TSHIRT_SIZE_LABELS: Record<string, string> = {
   S: "Small (S)",
@@ -93,7 +103,10 @@ export const buildDetailedRegistrationsCsv = (
     }
   }
 
-  const baseColumns = [...columnSet].sort((a, b) => a.localeCompare(b))
+  const baseColumns = [
+    ...REGISTRATION_FORM_COLUMN_ORDER.filter((column) => columnSet.delete(column)),
+    ...[...columnSet].sort((a, b) => a.localeCompare(b)),
+  ]
   const headers = [...baseColumns, "additional_attendees", "kids_count", "attendees_count"]
 
   const rows = registrations.map((reg) => {

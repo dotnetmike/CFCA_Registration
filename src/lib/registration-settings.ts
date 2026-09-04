@@ -9,6 +9,9 @@ type RuntimeSettingsRow = {
   registration_open: boolean
   early_bird_start: string
   early_bird_end: string
+  early_bird_payment_due_date: string
+  payment_reminder_dates: unknown
+  notification_recipient_email: string
   adult_early_bird: number
   adult_regular: number
   age_12_plus: number
@@ -18,16 +21,20 @@ type RuntimeSettingsRow = {
 export type RegistrationRuntimeSettings = {
   registrationOpen: boolean
   pricing: PricingConfig
+  paymentReminderDates: string[]
+  notificationRecipientEmail: string
 }
 
 export const DEFAULT_REGISTRATION_RUNTIME_SETTINGS: RegistrationRuntimeSettings = {
   registrationOpen: true,
   pricing: DEFAULT_PRICING_CONFIG,
+  paymentReminderDates: [],
+  notificationRecipientEmail: "",
 }
 
 const SETTINGS_TABLE = "runtime_registration_settings"
 const SETTINGS_SELECT =
-  "registration_open, early_bird_start, early_bird_end, adult_early_bird, adult_regular, age_12_plus, age_2_to_12"
+  "registration_open, early_bird_start, early_bird_end, early_bird_payment_due_date, payment_reminder_dates, notification_recipient_email, adult_early_bird, adult_regular, age_12_plus, age_2_to_12"
 
 const toNumber = (value: unknown, fallback: number) => {
   const n = Number(value)
@@ -38,6 +45,11 @@ const toDateString = (value: unknown, fallback: string) => {
   const raw = String(value ?? "").trim()
   return raw ? raw.slice(0, 10) : fallback
 }
+
+const toDateStrings = (value: unknown) =>
+  Array.isArray(value)
+    ? [...new Set(value.map((date) => String(date).slice(0, 10)).filter((date) => /^\d{4}-\d{2}-\d{2}$/.test(date)))].sort()
+    : []
 
 const mapRow = (row: RuntimeSettingsRow | null | undefined): RegistrationRuntimeSettings => {
   if (!row) return DEFAULT_REGISTRATION_RUNTIME_SETTINGS
@@ -52,7 +64,13 @@ const mapRow = (row: RuntimeSettingsRow | null | undefined): RegistrationRuntime
       ageFree: DEFAULT_PRICING_CONFIG.ageFree,
       earlyBirdStart: toDateString(row.early_bird_start, DEFAULT_PRICING_CONFIG.earlyBirdStart),
       earlyBirdEnd: toDateString(row.early_bird_end, DEFAULT_PRICING_CONFIG.earlyBirdEnd),
+      earlyBirdPaymentDueDate: toDateString(
+        row.early_bird_payment_due_date,
+        DEFAULT_PRICING_CONFIG.earlyBirdPaymentDueDate
+      ),
     },
+    paymentReminderDates: toDateStrings(row.payment_reminder_dates),
+    notificationRecipientEmail: String(row.notification_recipient_email ?? "").trim(),
   }
 }
 
@@ -81,6 +99,9 @@ export const updateRegistrationRuntimeSettings = async (
         registration_open: values.registrationOpen,
         early_bird_start: values.pricing.earlyBirdStart,
         early_bird_end: values.pricing.earlyBirdEnd,
+        early_bird_payment_due_date: values.pricing.earlyBirdPaymentDueDate,
+        payment_reminder_dates: values.paymentReminderDates,
+        notification_recipient_email: values.notificationRecipientEmail.trim(),
         adult_early_bird: values.pricing.adultEarlyBird,
         adult_regular: values.pricing.adultRegular,
         age_12_plus: values.pricing.age12Plus,

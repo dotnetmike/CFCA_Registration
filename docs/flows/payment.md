@@ -18,6 +18,10 @@ sequenceDiagram
 
 Participant pays **outside** the app via bank transfer using the Unique Code in Message and Ref.
 
+## Daily payment reminders and early-bird expiry
+
+The authorized payment-reminder cron runs daily. It first reprices submitted, unpaid or partially paid early-bird registrations to regular pricing when the configured early-bird payment due date has passed. It then sends reminder emails only when today is one of the configured reminder dates. Repricing clears the early-bird marker, making reruns idempotent; paid registrations are not changed.
+
 ## Admin manual payment update
 
 ```mermaid

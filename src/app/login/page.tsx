@@ -111,6 +111,15 @@ const LoginForm = () => {
               Click here to register
             </Link>
           </p>
+          <p className="mt-3 text-center text-sm text-ink-soft">
+            Already registered but need an account?{" "}
+            <Link
+              href="/create-account"
+              className="font-semibold text-ink underline-offset-4 hover:underline"
+            >
+              Create an account
+            </Link>
+          </p>
         </CardContent>
       </Card>
     </div>

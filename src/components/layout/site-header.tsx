@@ -213,6 +213,13 @@ export const SiteHeader = () => {
               >
                 Login
               </Link>
+              <Link
+                href="/create-account"
+                className="cfca-nav-link"
+                aria-current={pathname === "/create-account" ? "page" : undefined}
+              >
+                Create Account
+              </Link>
               <Link href="/">
                 <Button size="sm" aria-label="Register for conference">
                   Register

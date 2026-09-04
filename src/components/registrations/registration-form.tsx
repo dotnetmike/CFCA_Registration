@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { useForm, useFieldArray } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useAuth } from "@/lib/auth/context"
@@ -12,6 +12,9 @@ import {
   type RegistrationFormInput,
   CFCA_POSITIONS,
   CFCA_POSITION_LABELS,
+  MINISTRIES,
+  MINISTRY_LABELS,
+  ELDER_ASSEMBLY_POSITIONS,
   AUSTRALIAN_STATES,
   getAirportTransportDateWindow,
   getAirportTransportValidationError,
@@ -87,6 +90,7 @@ const RegistrationForm = ({
 }) => {
   const { authFetch, user, getAuthHeaders, isLoading: authLoading } = useAuth()
   const router = useRouter()
+  const searchParams = useSearchParams()
   const errorBannerRef = useRef<HTMLDivElement>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [saveAction, setSaveAction] = useState<"submit" | "email-check" | null>(null)
@@ -94,6 +98,7 @@ const RegistrationForm = ({
   useBusyCursor(isBusy)
   const [error, setError] = useState("")
   const [emailInUse, setEmailInUse] = useState(false)
+  const [emailInUseReason, setEmailInUseReason] = useState<"unlinked_registration" | "account" | null>(null)
   const [registrationId, setRegistrationId] = useState<string | null>(null)
   const [participantReference, setParticipantReference] = useState<string | null>(null)
   const [submitted, setSubmitted] = useState(false)
@@ -108,7 +113,9 @@ const RegistrationForm = ({
       email: user?.email ?? "",
       mobile: "",
       dietary_requirements: "",
+      ministry: "cfca",
       cfca_position: "member",
+      elder_assembly_attending: false,
       state: undefined,
       accommodation_type: "",
       spouse_attending: false,
@@ -136,6 +143,17 @@ const RegistrationForm = ({
   const dropoffDateWindow = getAirportTransportDateWindow("dropoff", watchAll.cfca_position)
   const souvenirQty = souvenirTotalQuantity(watchAll.souvenir_orders)
   const souvenirAmount = souvenirTotalAmount(watchAll.souvenir_orders)
+  const isNonMemberMinistry = watchAll.ministry === "non_member"
+  const showsElderAssembly = ELDER_ASSEMBLY_POSITIONS.includes(
+    (watchAll.cfca_position ?? "") as (typeof ELDER_ASSEMBLY_POSITIONS)[number]
+  )
+
+  useEffect(() => {
+    if (isNonMemberMinistry) {
+      form.setValue("cfca_position", "non_member", { shouldValidate: true })
+      form.setValue("elder_assembly_attending", false)
+    }
+  }, [form, isNonMemberMinistry])
 
   const loadRegistration = useCallback(async () => {
     if (!user) {
@@ -144,7 +162,7 @@ const RegistrationForm = ({
     }
 
     setIsLoading(true)
-    const res = await authFetch("/api/registrations")
+    const res = await authFetch("/api/registrations?mine=true")
     if (res.ok) {
       const data = await res.json()
       if (data.registration) {
@@ -164,7 +182,9 @@ const RegistrationForm = ({
           suburb: data.registration.suburb,
           address_state: data.registration.address_state ?? undefined,
           postcode: data.registration.postcode,
+          ministry: data.registration.ministry ?? "cfca",
           cfca_position: data.registration.cfca_position ?? "member",
+          elder_assembly_attending: data.registration.elder_assembly_attending ?? false,
           state: data.registration.state,
           spouse_surname: data.registration.spouse_surname,
           spouse_given_name: data.registration.spouse_given_name,
@@ -241,10 +261,11 @@ const RegistrationForm = ({
     }
   }
 
-  const applyApiError = (data: { error?: string; code?: string }) => {
+  const applyApiError = (data: { error?: string; code?: string; reason?: "unlinked_registration" | "account" }) => {
     const message = data.error ?? "Request failed"
     setError(message)
     setEmailInUse(data.code === "EMAIL_IN_USE" || message.includes("already registered"))
+    setEmailInUseReason(data.reason ?? null)
     errorBannerRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
   }
 
@@ -276,6 +297,7 @@ const RegistrationForm = ({
   const saveAuthenticated = async (submit = false): Promise<boolean> => {
     setError("")
     setEmailInUse(false)
+    setEmailInUseReason(null)
     setSaveAction("submit")
     const values = form.getValues()
     const payload = { ...values, submit, assign_participant_reference: submit }
@@ -283,7 +305,7 @@ const RegistrationForm = ({
     let currentId = registrationId
 
     if (!currentId) {
-      const existingRes = await authFetch("/api/registrations")
+      const existingRes = await authFetch("/api/registrations?mine=true")
       if (existingRes.ok) {
         const existingData = await existingRes.json()
         if (existingData.registration?.id) {
@@ -338,11 +360,13 @@ const RegistrationForm = ({
       applyApiError({
         error: data.error ?? EMAIL_IN_USE_FALLBACK,
         code: data.available === false ? "EMAIL_IN_USE" : undefined,
+        reason: data.reason,
       })
       form.setFocus("email")
       return false
     }
     setEmailInUse(false)
+    setEmailInUseReason(null)
     return true
   }
 
@@ -357,6 +381,7 @@ const RegistrationForm = ({
   const submitAsGuest = async (): Promise<boolean> => {
     setError("")
     setEmailInUse(false)
+    setEmailInUseReason(null)
     setSaveAction("submit")
     const values = form.getValues()
     const payload = { ...values, submit: true, assign_participant_reference: true }
@@ -505,13 +530,30 @@ const RegistrationForm = ({
           at the bottom of the page. Fields marked with <strong className="text-ink">*</strong> are
           required.
         </p>
+        {searchParams.get("create-account") === "true" && !user && (
+          <Alert variant="info">
+            Already registered? Enter the email used for your registration below. You will be able
+            to create an account without submitting another registration.
+          </Alert>
+        )}
       </div>
 
       <div ref={errorBannerRef} tabIndex={-1} className="outline-none space-y-3">
         {error && (
           <Alert variant="error">
             {error}
-            {emailInUse && (
+            {emailInUse && emailInUseReason === "unlinked_registration" && (
+              <>
+                {" "}
+                <Link
+                  href={`/signup?email=${encodeURIComponent(form.getValues("email") ?? "")}&redirect=/my-registration`}
+                  className="font-semibold underline"
+                >
+                  Create your account here
+                </Link>
+              </>
+            )}
+            {emailInUse && emailInUseReason !== "unlinked_registration" && (
               <>
                 {" "}
                 <Link
@@ -706,18 +748,43 @@ const RegistrationForm = ({
                 <FieldError message={form.formState.errors.state?.message} />
               </div>
               <div className="space-y-2 md:col-span-2">
-                <Label htmlFor="cfca_position" className="text-base">Position in CFCA</Label>
+                <Label htmlFor="ministry" className="text-base">Ministry</Label>
+                <select
+                  id="ministry"
+                  className={selectClassName}
+                  {...form.register("ministry")}
+                  aria-label="Ministry"
+                >
+                  {MINISTRIES.map((ministry) => (
+                    <option key={ministry} value={ministry}>{MINISTRY_LABELS[ministry]}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="space-y-2 md:col-span-2">
+                <Label htmlFor="cfca_position" className="text-base">Ministry Role</Label>
                 <select
                   id="cfca_position"
                   className={selectClassName}
                   {...form.register("cfca_position")}
-                  aria-label="CFCA position"
+                  aria-label="Ministry Role"
+                  disabled={isNonMemberMinistry}
                 >
                   {CFCA_POSITIONS.map((p) => (
                     <option key={p} value={p}>{CFCA_POSITION_LABELS[p]}</option>
                   ))}
                 </select>
               </div>
+              {showsElderAssembly && (
+                <label className="flex items-start gap-3 text-base md:col-span-2">
+                  <input
+                    type="checkbox"
+                    className="mt-1 h-5 w-5"
+                    {...form.register("elder_assembly_attending")}
+                    aria-label="Attending the elder's assembly"
+                  />
+                  <span>Are you attending the elder&apos;s assembly on Thursday, 8 April 2027?</span>
+                </label>
+              )}
 
               <div className="space-y-4 border-t pt-5 md:col-span-2">
                 <label className="flex items-start gap-3 text-base">
@@ -1041,7 +1108,6 @@ const RegistrationForm = ({
               {transportOption && transportOption !== "own" && (
                 <TransportScheduleAlert
                   transportOption={transportOption}
-                  cfcaPosition={watchAll.cfca_position}
                 />
               )}
 

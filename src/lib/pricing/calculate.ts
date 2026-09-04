@@ -17,6 +17,7 @@ export type PricingConfig = {
   ageFree: number
   earlyBirdStart: string
   earlyBirdEnd: string
+  earlyBirdPaymentDueDate: string
 }
 
 export const DEFAULT_PRICING_CONFIG: PricingConfig = {
@@ -27,6 +28,7 @@ export const DEFAULT_PRICING_CONFIG: PricingConfig = {
   ageFree: 0,
   earlyBirdStart: "2026-08-01",
   earlyBirdEnd: "2027-02-28",
+  earlyBirdPaymentDueDate: "2027-02-28",
 }
 
 export const getAdultEarlyBirdSaving = (config: PricingConfig = DEFAULT_PRICING_CONFIG) =>
@@ -121,7 +123,11 @@ export const isEarlyBirdWindow = (
   config: PricingConfig = DEFAULT_PRICING_CONFIG
 ) => {
   const start = new Date(config.earlyBirdStart)
-  const end = new Date(config.earlyBirdEnd)
+  const end = new Date(
+    config.earlyBirdEnd < config.earlyBirdPaymentDueDate
+      ? config.earlyBirdEnd
+      : config.earlyBirdPaymentDueDate
+  )
   return date >= start && date <= end
 }
 

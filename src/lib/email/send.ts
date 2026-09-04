@@ -1,7 +1,7 @@
 import { Resend } from "resend"
 import { createAdminClient } from "@/lib/supabase/admin"
 import { formatCurrency } from "@/lib/pricing/calculate"
-import { CFCA_POSITION_LABELS } from "@/lib/registrations/schema"
+import { CFCA_POSITION_LABELS, MINISTRY_LABELS } from "@/lib/registrations/schema"
 import {
   booleansToTransportOption,
   getAccommodationLabel,
@@ -13,6 +13,7 @@ import {
   souvenirTotalAmount,
 } from "@/lib/registrations/souvenirs"
 import { getRequestSiteUrl } from "@/lib/site-url"
+import { getRegistrationRuntimeSettings } from "@/lib/registration-settings"
 import {
   paragraphHtml,
   renderEmail,
@@ -44,6 +45,8 @@ export type RegistrationEmailRecord = {
   mobile?: string
   state?: string | null
   cfca_position?: string | null
+  ministry?: string | null
+  elder_assembly_attending?: boolean | null
   address_line1?: string
   suburb?: string
   address_state?: string | null
@@ -141,6 +144,9 @@ const buildRegistrationSections = (reg: RegistrationEmailRecord): EmailSection[]
     ? CFCA_POSITION_LABELS[reg.cfca_position as keyof typeof CFCA_POSITION_LABELS] ??
       reg.cfca_position
     : "—"
+  const ministry = reg.ministry
+    ? MINISTRY_LABELS[reg.ministry as keyof typeof MINISTRY_LABELS] ?? reg.ministry
+    : "—"
 
   const sections: EmailSection[] = [
     {
@@ -152,7 +158,9 @@ const buildRegistrationSections = (reg: RegistrationEmailRecord): EmailSection[]
         { label: "Email", value: reg.email },
         { label: "Mobile", value: reg.mobile ?? "—" },
         { label: "Conference State", value: reg.state ?? "—" },
-        { label: "CFCA Position", value: position },
+        { label: "Ministry", value: ministry },
+        { label: "Ministry Role", value: position },
+        ...(reg.elder_assembly_attending ? [{ label: "Elder's assembly", value: "Attending" }] : []),
       ],
     },
   ]
@@ -290,6 +298,9 @@ const buildFullRegistrationDetails = (
     ? CFCA_POSITION_LABELS[reg.cfca_position as keyof typeof CFCA_POSITION_LABELS] ??
       reg.cfca_position
     : "—"
+  const ministry = reg.ministry
+    ? MINISTRY_LABELS[reg.ministry as keyof typeof MINISTRY_LABELS] ?? reg.ministry
+    : "—"
 
   const lines = [...options.introLines, ""]
 
@@ -301,7 +312,9 @@ const buildFullRegistrationDetails = (
     `Email: ${reg.email}`,
     `Mobile: ${reg.mobile ?? "—"}`,
     `Conference State: ${reg.state ?? "—"}`,
-    `CFCA Position: ${position}`
+    `Ministry: ${ministry}`,
+    `Ministry Role: ${position}`,
+    `Elder's assembly: ${reg.elder_assembly_attending ? "Attending" : "Not attending"}`
   )
 
   if (reg.address_line1 || reg.suburb || reg.postcode) {
@@ -601,9 +614,13 @@ export const sendRegistrationEmail = async (
   const html = buildHtml(type, registration, { viewUrl, portalUrl, siteUrl })
   assertEmailIncludesLogo(html)
   const logoAttachment = getEmailLogoAttachment()
+  const registrationUpdate = type === "registration_submitted" || type === "registration_updated" || type === "accommodation_updated"
+  const notificationRecipient = registrationUpdate
+    ? (await getRegistrationRuntimeSettings()).notificationRecipientEmail
+    : ""
 
   if (!resend) {
-    console.log(`[email] (dev) ${type} to ${registration.email}: ${subject}`)
+    console.log(`[email] (dev) ${type} to ${registration.email}${notificationRecipient ? `; bcc ${notificationRecipient}` : ""}: ${subject}`)
     console.log(`[email] (dev) logo attached as cid:${logoAttachment.inlineContentId}`)
     if (viewUrl) console.log(`[email] (dev) view link: ${viewUrl}`)
     if (type === "registration_updated" || type === "accommodation_updated") {
@@ -616,6 +633,7 @@ export const sendRegistrationEmail = async (
   const { data, error } = await resend.emails.send({
     from: getFrom(),
     to: registration.email,
+    ...(notificationRecipient ? { bcc: notificationRecipient } : {}),
     subject,
     text,
     html,

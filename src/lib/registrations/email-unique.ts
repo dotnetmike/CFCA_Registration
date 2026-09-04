@@ -4,6 +4,12 @@ import { normalizeEmail } from "@/lib/utils"
 export const EMAIL_IN_USE_MESSAGE =
   "This email is already registered. Please log in to your account instead."
 
+export const EMAIL_IN_USE_NO_ACCOUNT_MESSAGE =
+  "This email already has a submitted registration, but no account has been created for it yet. Create your account to view and manage it."
+
+export const getEmailInUseMessage = (reason?: "unlinked_registration" | "account") =>
+  reason === "unlinked_registration" ? EMAIL_IN_USE_NO_ACCOUNT_MESSAGE : EMAIL_IN_USE_MESSAGE
+
 type EmailCheckOptions = {
   excludeRegistrationId?: string | null
   allowUserId?: string | null
@@ -12,7 +18,7 @@ type EmailCheckOptions = {
 export const isRegistrationEmailAvailable = async (
   email: string,
   options: EmailCheckOptions = {}
-): Promise<{ available: boolean; reason?: "registration" | "account" }> => {
+): Promise<{ available: boolean; reason?: "unlinked_registration" | "account" }> => {
   const normalized = normalizeEmail(email)
   if (!normalized) return { available: true }
 
@@ -31,7 +37,9 @@ export const isRegistrationEmailAvailable = async (
     (row) => row.id !== options.excludeRegistrationId
   )
   if (conflict) {
-    return { available: false, reason: "registration" }
+    return conflict.user_id
+      ? { available: false, reason: "account" }
+      : { available: false, reason: "unlinked_registration" }
   }
 
   const { data: user, error: userError } = await admin

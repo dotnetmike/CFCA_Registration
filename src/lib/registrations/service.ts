@@ -26,6 +26,24 @@ export const computeAmountDue = (
   calculateTotal({ attendees: buildAttendeesForPricing(data), earlyBirdSlot }, pricingConfig) +
   souvenirTotalAmount(data.souvenir_orders)
 
+export const computeRegularAmountDue = (
+  registration: {
+    spouse_attending?: boolean | null
+    souvenir_orders?: unknown
+    attendees?: { age: number }[] | null
+    registration_attendees?: { age: number }[] | null
+  },
+  pricingConfig: PricingConfig = DEFAULT_PRICING_CONFIG
+) => {
+  const attendees: AttendeeInput[] = [{ age: 18, isPrimary: true }]
+  if (registration.spouse_attending) attendees.push({ age: 18, isSpouse: true })
+  for (const attendee of registration.registration_attendees ?? registration.attendees ?? []) {
+    attendees.push({ age: attendee.age })
+  }
+  return calculateTotal({ attendees, earlyBirdSlot: "none" }, pricingConfig) +
+    souvenirTotalAmount(registration.souvenir_orders)
+}
+
 export const claimEarlyBirdSlot = async (
   state: string,
   pricingConfig: PricingConfig = DEFAULT_PRICING_CONFIG
@@ -78,7 +96,9 @@ export const mapFormToDb = (data: RegistrationFormData, extras: {
   suburb: data.suburb ?? "",
   address_state: data.address_state === "" ? null : (data.address_state ?? null),
   postcode: data.postcode ?? "",
-  cfca_position: data.cfca_position ?? "member",
+  ministry: data.ministry ?? "cfca",
+  cfca_position: data.ministry === "non_member" ? "non_member" : (data.cfca_position ?? "member"),
+  elder_assembly_attending: data.elder_assembly_attending ?? false,
   state: data.state,
   spouse_surname: data.spouse_surname ?? "",
   spouse_given_name: data.spouse_given_name ?? "",
@@ -115,7 +135,7 @@ export const getRegistrationWithAttendees = async (id: string) => {
   const admin = createAdminClient()
   const { data: registration, error } = await admin
     .from("registrations")
-    .select("id, registration_no, user_id, surname, given_name, email, mobile, dietary_requirements, address_line1, address_line2, suburb, address_state, postcode, cfca_position, state, spouse_surname, spouse_given_name, spouse_attending, spouse_email, spouse_mobile, spouse_dietary_requirements, accommodation_type, pickup_melbourne_airport, dropoff_melbourne_airport, hotel_transport_required, arrival_date, arrival_airport, arrival_flight_no, departure_date, departure_airport, departure_flight_no, hotel_name, hotel_address, accommodation_contact_name, accommodation_contact_phone, pickup_transport_contact_name, pickup_transport_contact_phone, dropoff_transport_contact_name, dropoff_transport_contact_phone, payment_status, amount_due, amount_paid, payment_last_updated_source, payment_last_updated_at, payment_last_updated_by, souvenir_orders, is_early_bird, early_bird_slot, submitted_at, created_at, updated_at, participant_reference, view_token_hash")
+    .select("id, registration_no, user_id, surname, given_name, email, mobile, dietary_requirements, address_line1, address_line2, suburb, address_state, postcode, ministry, cfca_position, elder_assembly_attending, state, spouse_surname, spouse_given_name, spouse_attending, spouse_email, spouse_mobile, spouse_dietary_requirements, accommodation_type, pickup_melbourne_airport, dropoff_melbourne_airport, hotel_transport_required, arrival_date, arrival_airport, arrival_flight_no, departure_date, departure_airport, departure_flight_no, hotel_name, hotel_address, accommodation_contact_name, accommodation_contact_phone, pickup_transport_contact_name, pickup_transport_contact_phone, dropoff_transport_contact_name, dropoff_transport_contact_phone, payment_status, amount_due, amount_paid, payment_last_updated_source, payment_last_updated_at, payment_last_updated_by, souvenir_orders, is_early_bird, early_bird_slot, submitted_at, created_at, updated_at, participant_reference, view_token_hash")
     .eq("id", id)
     .single()
 
