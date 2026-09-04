@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createAdminClient } from "@/lib/supabase/admin"
 import { sendRegistrationEmail } from "@/lib/email/send"
+import { getRegistrationRuntimeSettings } from "@/lib/registration-settings"
+import { computeRegularAmountDue } from "@/lib/registrations/service"
 
 export const GET = async (request: NextRequest) => {
   const secret = request.headers.get("authorization")?.replace("Bearer ", "")
@@ -8,18 +10,30 @@ export const GET = async (request: NextRequest) => {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
 
-  const reminderDates = [
-    process.env.PAYMENT_REMINDER_DATE_1,
-    process.env.PAYMENT_REMINDER_DATE_2,
-    process.env.PAYMENT_REMINDER_DATE_3,
-  ].filter(Boolean)
-
   const today = new Date().toISOString().slice(0, 10)
-  if (!reminderDates.includes(today)) {
-    return NextResponse.json({ message: "No reminders scheduled for today", sent: 0 })
+  const settings = await getRegistrationRuntimeSettings()
+  const admin = createAdminClient()
+  let repriced = 0
+  if (today > settings.pricing.earlyBirdPaymentDueDate) {
+    const { data: overdueEarlyBird } = await admin
+      .from("registrations")
+      .select("id, spouse_attending, souvenir_orders, registration_attendees(age)")
+      .eq("is_early_bird", true)
+      .in("payment_status", ["pending", "partial"])
+
+    for (const registration of overdueEarlyBird ?? []) {
+      const amountDue = computeRegularAmountDue(registration, settings.pricing)
+      const { error } = await admin
+        .from("registrations")
+        .update({ amount_due: amountDue, is_early_bird: false, early_bird_slot: "none", updated_at: new Date().toISOString() })
+        .eq("id", registration.id)
+      if (!error) repriced++
+    }
   }
 
-  const admin = createAdminClient()
+  if (!settings.paymentReminderDates.includes(today)) {
+    return NextResponse.json({ message: "No reminders scheduled for today", sent: 0, repriced, date: today })
+  }
   const { data: unpaid } = await admin
     .from("registrations")
     .select("*")
@@ -32,5 +46,5 @@ export const GET = async (request: NextRequest) => {
     sent++
   }
 
-  return NextResponse.json({ message: "Reminders sent", sent, date: today })
+  return NextResponse.json({ message: "Reminders sent", sent, repriced, date: today })
 }

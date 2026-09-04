@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { useForm, useFieldArray, type FieldErrors } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { cn } from "@/lib/utils"
@@ -13,6 +13,9 @@ import {
   type RegistrationFormInput,
   CFCA_POSITIONS,
   CFCA_POSITION_LABELS,
+  MINISTRIES,
+  MINISTRY_LABELS,
+  ELDER_ASSEMBLY_POSITIONS,
   AUSTRALIAN_STATES,
   getAirportTransportDateWindow,
 } from "@/lib/registrations/schema"
@@ -226,6 +229,7 @@ const RegistrationForm = ({
 }) => {
   const { authFetch, user, getAuthHeaders, isLoading: authLoading } = useAuth()
   const router = useRouter()
+  const searchParams = useSearchParams()
   const errorBannerRef = useRef<HTMLDivElement>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [saveAction, setSaveAction] = useState<"submit" | "email-check" | null>(null)
@@ -249,7 +253,9 @@ const RegistrationForm = ({
       email: user?.email ?? "",
       mobile: "",
       dietary_requirements: "",
+      ministry: "cfca",
       cfca_position: "member",
+      elder_assembly_attending: false,
       state: undefined,
       accommodation_type: "",
       spouse_attending: false,
@@ -278,6 +284,17 @@ const RegistrationForm = ({
   const dropoffDateWindow = getAirportTransportDateWindow("dropoff", watchAll.cfca_position)
   const souvenirQty = souvenirTotalQuantity(watchAll.souvenir_orders)
   const souvenirAmount = souvenirTotalAmount(watchAll.souvenir_orders)
+  const isNonMemberMinistry = watchAll.ministry === "non_member"
+  const showsElderAssembly = ELDER_ASSEMBLY_POSITIONS.includes(
+    (watchAll.cfca_position ?? "") as (typeof ELDER_ASSEMBLY_POSITIONS)[number]
+  )
+
+  useEffect(() => {
+    if (isNonMemberMinistry) {
+      form.setValue("cfca_position", "non_member", { shouldValidate: true })
+      form.setValue("elder_assembly_attending", false)
+    }
+  }, [form, isNonMemberMinistry])
 
   const loadRegistration = useCallback(async () => {
     if (!user) {
@@ -306,7 +323,9 @@ const RegistrationForm = ({
           suburb: data.registration.suburb,
           address_state: data.registration.address_state ?? undefined,
           postcode: data.registration.postcode,
+          ministry: data.registration.ministry ?? "cfca",
           cfca_position: data.registration.cfca_position ?? "member",
+          elder_assembly_attending: data.registration.elder_assembly_attending ?? false,
           state: data.registration.state,
           spouse_surname: data.registration.spouse_surname,
           spouse_given_name: data.registration.spouse_given_name,
@@ -631,6 +650,12 @@ const RegistrationForm = ({
           <strong className="font-semibold text-[color:var(--danger)]">red asterisk (*)</strong>.
           If anything is missing, we will show every issue at once so you can fix them in one go.
         </p>
+        {searchParams.get("create-account") === "true" && !user && (
+          <Alert variant="info">
+            Already registered? Enter the email used for your registration below. You will be able
+            to create an account without submitting another registration.
+          </Alert>
+        )}
       </div>
 
       <div ref={errorBannerRef} tabIndex={-1} className="outline-none space-y-3">
@@ -851,16 +876,30 @@ const RegistrationForm = ({
                   ))}
                 </select>
               </FormField>
+              <FormField className="md:col-span-2">
+                <FormFieldLabel htmlFor="ministry">Ministry</FormFieldLabel>
+                <select
+                  id="ministry"
+                  className={selectClassName}
+                  {...form.register("ministry")}
+                  aria-label="Ministry"
+                >
+                  {MINISTRIES.map((ministry) => (
+                    <option key={ministry} value={ministry}>{MINISTRY_LABELS[ministry]}</option>
+                  ))}
+                </select>
+              </FormField>
               <div className="grid items-start gap-5 md:col-span-2 md:grid-cols-2">
                 <FormField>
                   <FormFieldLabel htmlFor="cfca_position" help={REGISTRATION_FIELD_TOOLTIPS.cfca_position}>
-                    Position in CFCA
+                    Ministry Role
                   </FormFieldLabel>
                   <select
                     id="cfca_position"
                     className={selectClassName}
                     {...form.register("cfca_position")}
-                    aria-label="CFCA position"
+                    aria-label="Ministry Role"
+                    disabled={isNonMemberMinistry}
                   >
                     {CFCA_POSITIONS.map((p) => (
                       <option key={p} value={p}>{CFCA_POSITION_LABELS[p]}</option>
@@ -897,6 +936,17 @@ const RegistrationForm = ({
                   <FieldError message={formErrors.state?.message} />
                 </FormField>
               </div>
+              {showsElderAssembly && (
+                <label className="flex items-start gap-3 text-base md:col-span-2">
+                  <input
+                    type="checkbox"
+                    className="mt-1 h-5 w-5"
+                    {...form.register("elder_assembly_attending")}
+                    aria-label="Attending the elder's assembly"
+                  />
+                  <span>Are you attending the elder&apos;s assembly on Thursday, 8 April 2027?</span>
+                </label>
+              )}
 
               <div className="space-y-4 border-t pt-5 md:col-span-2">
                 <label className="flex items-center gap-3 text-base">
@@ -1261,7 +1311,6 @@ const RegistrationForm = ({
               {transportOption && transportOption !== "own" && (
                 <TransportScheduleAlert
                   transportOption={transportOption}
-                  cfcaPosition={watchAll.cfca_position}
                 />
               )}
 

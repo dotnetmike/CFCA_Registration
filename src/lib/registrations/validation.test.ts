@@ -19,9 +19,9 @@ test("rejects invalid Australian mobile numbers", () => {
   assert.equal(isAustralianMobileNumber("+1-555-123-4567"), false)
 })
 
-test("restricts airport pickup dates to the conference window and CFCA exception positions", () => {
+test("allows airport pickup dates from Thursday for every ministry role", () => {
   assert.deepEqual(getAirportTransportDateWindow("pickup", "member"), {
-    min: "2027-04-09",
+    min: "2027-04-08",
     max: "2027-04-10",
   })
 
@@ -30,8 +30,7 @@ test("restricts airport pickup dates to the conference window and CFCA exception
     max: "2027-04-10",
   })
 
-  assert.equal(getAirportTransportValidationError("pickup", "member", "2027-04-08"), "Please choose a pickup date between Friday, 9 April 2027 and Saturday, 10 April 2027.")
-  assert.equal(getAirportTransportValidationError("pickup", "chapter_leader", "2027-04-07"), "Please choose a pickup date between Thursday, 8 April 2027 and Saturday, 10 April 2027 for this CFCA position.")
+  assert.equal(getAirportTransportValidationError("pickup", "member", "2027-04-07"), "Please choose a pickup date between Thursday, 8 April 2027 and Saturday, 10 April 2027.")
 })
 
 test("restricts dropoff dates to the conference end date", () => {

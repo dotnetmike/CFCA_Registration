@@ -7,6 +7,7 @@ synced_at: 2026-08-20
 owners: [team]
 files:
   - src/app/signup/page.tsx
+  - src/app/create-account/page.tsx
   - src/app/api/auth/signup/route.ts
   - src/app/api/auth/register-signup/route.ts
   - src/lib/registrations/view-token.ts
@@ -20,9 +21,10 @@ Let people who **already registered** create a password / account to edit later.
 
 ## Behavior
 
-- No standalone open signup in the header.
+- Public navigation and Login link to `/create-account` for people who have already registered but did not create an account.
 - `/signup` is allowed when linking context exists: `?email=` (e.g. magic-link Edit) and/or signup token flows from registration complete.
 - Without linking context, page explains account setup is only after registration and links to `/`.
+- `/create-account` accepts the registrant's name, registration email, and password, then links the existing submitted registration after account setup. It does not submit another registration.
 - API signup must link an existing registration for the email (do not create a brand-new draft for cold signup).
 - Fields: name, email, password (min 8).
 - Default redirect: `/my-registration` (or query redirect).

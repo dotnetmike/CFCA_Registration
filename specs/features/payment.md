@@ -11,6 +11,10 @@ files:
   - src/app/my-registration/page.tsx
   - src/app/r/[token]/page.tsx
   - src/lib/email/send.ts
+  - src/app/api/cron/payment-reminders/route.ts
+  - src/lib/registration-settings.ts
+  - src/app/dashboard/settings/page.tsx
+  - supabase/migrations/016_registration_operations_settings.sql
 ---
 
 # Payment information
@@ -27,12 +31,15 @@ Show bank details and how to pay using the **Unique Code**.
 - Sections order: Your Registration ? Bank Transfer Details ? reminder ? **How to Pay** (mockup last).
 - Mockup uses unique code + outstanding/amount due.
 - Public env bank fields: `NEXT_PUBLIC_BANK_*`.
+- Administrators configure payment reminder dates in Registration Settings. The authorized daily cron sends reminders only to submitted registrations with `pending` or `partial` payment status.
+- After the configurable early-bird payment due date, that cron updates pending/partial early-bird registrations to regular pricing and clears their early-bird status. Fully paid registrations retain their original price.
 
 ## Acceptance criteria
 
 - [ ] Unique Code emphasized for Message and Ref.
 - [ ] Remaining balance is shown where payment amounts are shown
 - [ ] How to Pay is the last section
+- [ ] Reminder dates and early-bird payment due date are configurable without deployment
 
 ## Related specs
 

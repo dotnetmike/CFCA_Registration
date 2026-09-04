@@ -37,8 +37,6 @@ export const isRegistrationEmailAvailable = async (
     (row) => row.id !== options.excludeRegistrationId
   )
   if (conflict) {
-    // A registration with no linked account isn't "in use" by an account yet —
-    // the owner just needs to create one, not log in to something that doesn't exist.
     return conflict.user_id
       ? { available: false, reason: "account" }
       : { available: false, reason: "unlinked_registration" }

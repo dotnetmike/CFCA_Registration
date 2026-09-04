@@ -67,7 +67,6 @@ export const GET = async (request: NextRequest) => {
   if (auth instanceof NextResponse) return auth
 
   const admin = createAdminClient()
-
   // "mine=true" forces the caller's own registration even for managers/admins,
   // who otherwise get the full list below (used by the dashboard).
   const wantsOwnOnly = request.nextUrl.searchParams.get("mine") === "true"
@@ -75,7 +74,7 @@ export const GET = async (request: NextRequest) => {
   if (auth.permissions.includes("registrations:read_all") && !wantsOwnOnly) {
     const { data, error } = await admin
       .from("registrations")
-      .select("id, registration_no, user_id, surname, given_name, email, mobile, dietary_requirements, address_line1, address_line2, suburb, address_state, postcode, cfca_position, state, spouse_surname, spouse_given_name, spouse_attending, spouse_email, spouse_mobile, spouse_dietary_requirements, accommodation_type, pickup_melbourne_airport, dropoff_melbourne_airport, hotel_transport_required, arrival_date, arrival_airport, arrival_flight_no, departure_date, departure_airport, departure_flight_no, hotel_name, hotel_address, accommodation_contact_name, accommodation_contact_phone, pickup_transport_contact_name, pickup_transport_contact_phone, dropoff_transport_contact_name, dropoff_transport_contact_phone, payment_status, amount_due, amount_paid, payment_last_updated_source, payment_last_updated_at, payment_last_updated_by, souvenir_orders, is_early_bird, early_bird_slot, submitted_at, created_at, updated_at, participant_reference, view_token_hash, registration_attendees(*)")
+      .select("id, registration_no, user_id, surname, given_name, email, mobile, dietary_requirements, address_line1, address_line2, suburb, address_state, postcode, ministry, cfca_position, elder_assembly_attending, state, spouse_surname, spouse_given_name, spouse_attending, spouse_email, spouse_mobile, spouse_dietary_requirements, accommodation_type, pickup_melbourne_airport, dropoff_melbourne_airport, hotel_transport_required, arrival_date, arrival_airport, arrival_flight_no, departure_date, departure_airport, departure_flight_no, hotel_name, hotel_address, accommodation_contact_name, accommodation_contact_phone, pickup_transport_contact_name, pickup_transport_contact_phone, dropoff_transport_contact_name, dropoff_transport_contact_phone, payment_status, amount_due, amount_paid, payment_last_updated_source, payment_last_updated_at, payment_last_updated_by, souvenir_orders, is_early_bird, early_bird_slot, submitted_at, created_at, updated_at, participant_reference, view_token_hash, registration_attendees(*)")
       .order("created_at", { ascending: false })
 
     if (error) return jsonSupabaseError(error.message, 500)
@@ -83,8 +82,7 @@ export const GET = async (request: NextRequest) => {
   }
 
   const ownRegistrationSelect =
-    "id, registration_no, user_id, surname, given_name, email, mobile, dietary_requirements, address_line1, address_line2, suburb, address_state, postcode, cfca_position, state, spouse_surname, spouse_given_name, spouse_attending, spouse_email, spouse_mobile, spouse_dietary_requirements, accommodation_type, pickup_melbourne_airport, dropoff_melbourne_airport, hotel_transport_required, arrival_date, arrival_airport, arrival_flight_no, departure_date, departure_airport, departure_flight_no, hotel_name, hotel_address, accommodation_contact_name, accommodation_contact_phone, pickup_transport_contact_name, pickup_transport_contact_phone, dropoff_transport_contact_name, dropoff_transport_contact_phone, payment_status, amount_due, amount_paid, payment_last_updated_source, payment_last_updated_at, payment_last_updated_by, souvenir_orders, is_early_bird, early_bird_slot, submitted_at, created_at, updated_at, participant_reference, view_token_hash, registration_attendees(*)"
-
+    "id, registration_no, user_id, surname, given_name, email, mobile, dietary_requirements, address_line1, address_line2, suburb, address_state, postcode, ministry, cfca_position, elder_assembly_attending, state, spouse_surname, spouse_given_name, spouse_attending, spouse_email, spouse_mobile, spouse_dietary_requirements, accommodation_type, pickup_melbourne_airport, dropoff_melbourne_airport, hotel_transport_required, arrival_date, arrival_airport, arrival_flight_no, departure_date, departure_airport, departure_flight_no, hotel_name, hotel_address, accommodation_contact_name, accommodation_contact_phone, pickup_transport_contact_name, pickup_transport_contact_phone, dropoff_transport_contact_name, dropoff_transport_contact_phone, payment_status, amount_due, amount_paid, payment_last_updated_source, payment_last_updated_at, payment_last_updated_by, souvenir_orders, is_early_bird, early_bird_slot, submitted_at, created_at, updated_at, participant_reference, view_token_hash, registration_attendees(*)"
   const { data, error } = await admin
     .from("registrations")
     .select(ownRegistrationSelect)

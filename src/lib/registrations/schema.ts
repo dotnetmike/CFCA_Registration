@@ -2,6 +2,7 @@ import { z } from "zod"
 
 export const CFCA_POSITIONS = [
   "member",
+  "non_member",
   "hh_leader",
   "unit_leader",
   "chapter_leader",
@@ -11,10 +12,20 @@ export const CFCA_POSITIONS = [
   "national_council",
 ] as const
 
+export const MINISTRIES = [
+  "cfca",
+  "hold",
+  "sold",
+  "lia",
+  "family_ministry",
+  "non_member",
+] as const
+
 export const AUSTRALIAN_STATES = ["NSW", "VIC", "QLD", "SA", "WA", "TAS", "NT", "ACT"] as const
 
 export const CFCA_POSITION_LABELS: Record<(typeof CFCA_POSITIONS)[number], string> = {
   member: "Member",
+  non_member: "Non-member",
   hh_leader: "HH Leader",
   unit_leader: "Unit Leader",
   chapter_leader: "Chapter Leader",
@@ -24,7 +35,16 @@ export const CFCA_POSITION_LABELS: Record<(typeof CFCA_POSITIONS)[number], strin
   national_council: "National Council",
 }
 
-export const CFCA_AIRPORT_PICKUP_EXCEPTION_POSITIONS = [
+export const MINISTRY_LABELS: Record<(typeof MINISTRIES)[number], string> = {
+  cfca: "CFCA",
+  hold: "HOLD",
+  sold: "SOLD",
+  lia: "LIA",
+  family_ministry: "Family Ministry",
+  non_member: "Non-member",
+}
+
+export const ELDER_ASSEMBLY_POSITIONS = [
   "chapter_leader",
   "ministry_coordinator",
   "area_coordinator",
@@ -49,13 +69,9 @@ export const getAirportTransportDateWindow = (
   transportType: "pickup" | "dropoff",
   position: string | null | undefined
 ) => {
+  void position
   if (transportType === "pickup") {
-    const isException = CFCA_AIRPORT_PICKUP_EXCEPTION_POSITIONS.includes(
-      (position ?? "") as (typeof CFCA_AIRPORT_PICKUP_EXCEPTION_POSITIONS)[number]
-    )
-    return isException
-      ? { min: "2027-04-08", max: "2027-04-10" }
-      : { min: "2027-04-09", max: "2027-04-10" }
+    return { min: "2027-04-08", max: "2027-04-10" }
   }
 
   return { min: "2027-04-10", max: "2027-04-11" }
@@ -69,15 +85,9 @@ export const getAirportTransportValidationError = (
   if (!selectedDate) return null
 
   const window = getAirportTransportDateWindow(transportType, position)
-  const isException = transportType === "pickup" && CFCA_AIRPORT_PICKUP_EXCEPTION_POSITIONS.includes(
-    (position ?? "") as (typeof CFCA_AIRPORT_PICKUP_EXCEPTION_POSITIONS)[number]
-  )
-
   if (selectedDate < window.min || selectedDate > window.max) {
     if (transportType === "pickup") {
-      return isException
-        ? "Please choose a pickup date between Thursday, 8 April 2027 and Saturday, 10 April 2027 for this CFCA position."
-        : "Please choose a pickup date between Friday, 9 April 2027 and Saturday, 10 April 2027."
+      return "Please choose a pickup date between Thursday, 8 April 2027 and Saturday, 10 April 2027."
     }
     return "Please choose a drop-off date between Saturday, 10 April 2027 and Sunday, 11 April 2027."
   }
@@ -131,7 +141,9 @@ export const registrationBaseSchema = z.object({
   suburb: optionalString,
   address_state: emptyableState,
   postcode: optionalString,
+  ministry: z.enum(MINISTRIES).default("cfca"),
   cfca_position: z.enum(CFCA_POSITIONS).default("member"),
+  elder_assembly_attending: z.boolean().default(false),
   state: emptyableState,
   spouse_surname: optionalString,
   spouse_given_name: optionalString,
@@ -170,6 +182,14 @@ export const registrationBaseSchema = z.object({
 })
 
 export const registrationSchema = registrationBaseSchema.superRefine((data, ctx) => {
+  if (data.ministry === "non_member" && data.cfca_position !== "non_member") {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Ministry Role must be Non-member when Ministry is Non-member",
+      path: ["cfca_position"],
+    })
+  }
+
   // Spouse and attendee fields validate live (like surname/mobile), not gated by submit.
   if (data.spouse_attending) {
     if (!data.spouse_surname || !data.spouse_surname.trim()) {
@@ -326,7 +346,7 @@ export const accommodationOnlySchema = z.object({
 export const REGISTRATION_FIELDS = {
   registration: [
     "surname", "given_name", "email", "mobile", "dietary_requirements", "address_line1",
-    "suburb", "address_state", "postcode", "cfca_position", "state",
+    "suburb", "address_state", "postcode", "ministry", "cfca_position", "elder_assembly_attending", "state",
     "spouse_surname", "spouse_given_name", "spouse_attending", "spouse_email", "spouse_mobile",
     "spouse_dietary_requirements", "souvenir_orders",
   ],

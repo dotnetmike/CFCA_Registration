@@ -37,6 +37,9 @@ erDiagram
     numeric amount_due
     numeric amount_paid
     payment_status payment_status
+    text ministry
+    cfca_position cfca_position
+    bool elder_assembly_attending
     jsonb souvenir_orders
     payment_source payment_last_updated_source
   }
@@ -51,6 +54,9 @@ erDiagram
     bool registration_open
     date early_bird_start
     date early_bird_end
+    date early_bird_payment_due_date
+    jsonb payment_reminder_dates
+    text notification_recipient_email
     numeric adult_early_bird
     numeric adult_regular
     numeric age_12_plus
@@ -75,6 +81,8 @@ erDiagram
 | `pickup_*` / `dropoff_*` | Transport flags + admin contacts |
 | `hotel_name` / `hotel_address` | UI: Accommodation name/address |
 | `runtime_registration_settings` | Admin runtime controls for registration open/close, early bird window, and pricing |
+| `ministry` / `cfca_position` | Ministry and Ministry Role; Non-member ministry requires Non-member role |
+| `elder_assembly_attending` | Attendance response shown for eligible leadership roles |
 | `view_token_hash` / signup tokens | Magic link + account link |
 
 ## Groups (seeded)

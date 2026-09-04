@@ -37,6 +37,7 @@ Postgres via Supabase; schema changes only through numbered SQL migrations.
   - `012_souvenir_orders.sql` — `souvenir_orders` JSONB (t-shirt size/qty pre-orders)
   - `013_enable_rls_revoke_anon.sql` — RLS on + revoke public Data API grants
   - `015_runtime_registration_settings.sql` — runtime registration open toggle + early bird window + attendee pricing
+  - `016_registration_operations_settings.sql` — ministry/elder assembly fields plus payment deadline, reminder dates, and registration update recipient
 
 ## Acceptance criteria
 

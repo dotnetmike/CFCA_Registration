@@ -15,11 +15,14 @@ type Settings = {
   pricing: {
     earlyBirdStart: string
     earlyBirdEnd: string
+    earlyBirdPaymentDueDate: string
     adultEarlyBird: number
     adultRegular: number
     age12Plus: number
     age2To12: number
   }
+  paymentReminderDates: string[]
+  notificationRecipientEmail: string
 }
 
 const emptySettings: Settings = {
@@ -27,11 +30,14 @@ const emptySettings: Settings = {
   pricing: {
     earlyBirdStart: "",
     earlyBirdEnd: "",
+    earlyBirdPaymentDueDate: "",
     adultEarlyBird: 0,
     adultRegular: 0,
     age12Plus: 0,
     age2To12: 0,
   },
+  paymentReminderDates: [],
+  notificationRecipientEmail: "",
 }
 
 const RegistrationSettingsPage = () => {
@@ -74,7 +80,7 @@ const RegistrationSettingsPage = () => {
       pricing: {
         ...current.pricing,
         [key]:
-          key === "earlyBirdStart" || key === "earlyBirdEnd"
+          key === "earlyBirdStart" || key === "earlyBirdEnd" || key === "earlyBirdPaymentDueDate"
             ? value
             : Number(value),
       },
@@ -163,6 +169,16 @@ const RegistrationSettingsPage = () => {
                 />
               </div>
               <div className="space-y-2">
+                <Label htmlFor="earlyBirdPaymentDueDate">Payment due date</Label>
+                <Input
+                  id="earlyBirdPaymentDueDate"
+                  type="date"
+                  value={settings.pricing.earlyBirdPaymentDueDate}
+                  onChange={(e) => updatePricing("earlyBirdPaymentDueDate", e.target.value)}
+                  aria-label="Early bird payment due date"
+                />
+              </div>
+              <div className="space-y-2">
                 <Label htmlFor="earlyBirdEnd">End date</Label>
                 <Input
                   id="earlyBirdEnd"
@@ -170,6 +186,50 @@ const RegistrationSettingsPage = () => {
                   value={settings.pricing.earlyBirdEnd}
                   onChange={(e) => updatePricing("earlyBirdEnd", e.target.value)}
                   aria-label="Early bird end date"
+                />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Payment Reminders</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="paymentReminderDates">Reminder dates</Label>
+                <Input
+                  id="paymentReminderDates"
+                  type="text"
+                  value={settings.paymentReminderDates.join(", ")}
+                  onChange={(e) => setSettings((current) => ({
+                    ...current,
+                    paymentReminderDates: e.target.value.split(",").map((date) => date.trim()).filter(Boolean),
+                  }))}
+                  placeholder="YYYY-MM-DD, YYYY-MM-DD"
+                  aria-label="Payment reminder dates"
+                />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Registration Updates</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="notificationRecipientEmail">Registration updates email</Label>
+                <Input
+                  id="notificationRecipientEmail"
+                  type="email"
+                  value={settings.notificationRecipientEmail}
+                  onChange={(e) => setSettings((current) => ({
+                    ...current,
+                    notificationRecipientEmail: e.target.value,
+                  }))}
+                  placeholder="registrations@example.org"
+                  aria-label="Registration updates email"
                 />
               </div>
             </CardContent>

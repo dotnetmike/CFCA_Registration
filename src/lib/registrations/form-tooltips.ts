@@ -12,7 +12,7 @@ export const REGISTRATION_FIELD_TOOLTIPS = {
   address_state:
     "Optional. The state or territory for your home address. When you change this, CFCA Membership State updates to match.",
   cfca_position:
-    "Your role in Couples for Christ Australia. Some leadership roles have extended airport pick-up dates.",
+    "Your ministry role for conference registration. Select your ministry first; choosing Non-member locks this role to Non-member.",
   state:
     "The Australian state chapter you belong to. This is required for registration and may affect early-bird pricing.",
   spouse_attending:

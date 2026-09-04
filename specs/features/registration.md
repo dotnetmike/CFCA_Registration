@@ -34,6 +34,7 @@ files:
   - src/lib/email/send.ts
   - supabase/migrations/015_runtime_registration_settings.sql
   - supabase/migrations/014_registration_dietary_requirements.sql
+  - supabase/migrations/016_registration_operations_settings.sql
 ---
 
 # Registration form
@@ -66,20 +67,18 @@ Single continuous conference registration page. Guests complete without login; l
 - Primary registrant and attendee fields include an optional food allergy and dietary requirements field.
 - Australian mobile numbers are validated to the local format (`04xx xxx xxx` or `+61...`).
 - Address fields use labels **Address Suburb**, **Address Postcode**, and **Address State** (optional).
-- **CFCA Membership State** (required, DB column `state`) is shown on the same row as **Position in CFCA** on medium+ screens; on small screens membership state stacks below position.
+- **Ministry** is selected before **Ministry Role**: CFCA, HOLD, SOLD, LIA, Family Ministry, or Non-member. Selecting Non-member locks Ministry Role to Non-member.
+- **CFCA Membership State** (required, DB column `state`) is shown on the same row as **Ministry Role** on medium+ screens; on small screens membership state stacks below ministry role.
 - When the user selects or changes **Address State** (including via address autocomplete), **CFCA Membership State** is set to the same value automatically.
+- Chapter Leader, Ministry Coordinator, Area Coordinator, Area Head, and National Council roles may record elder's assembly attendance on Thursday, 8 April 2027.
 
 ### Airport transport
 
-- Pickup is available from Friday, 9 April 2027 to Saturday, 10 April 2027, 5am–10pm.
+- Pickup is available from Thursday, 8 April 2027 to Saturday, 10 April 2027, 5am–10pm for every ministry role.
 - Drop-off is available from Saturday, 10 April 2027 to Sunday, 11 April 2027, 5am–10pm.
 - When **Pick-up and/or Drop-off** is selected, users can optionally provide their hotel/accommodation name and address to support transport planning.
-- Pickup exception: Chapter Leader, Ministry Coordinator, Area Coordinator, Area Head, and National Council roles may choose Thursday, 8 April 2027 to Saturday, 10 April 2027, 5am–10pm only.
-- On-screen schedule alert copy reflects the selected transport option and CFCA position:
-  - Pickup only, standard position: "Pick-up at Tullamarine is available only on Friday, 9 April 2027, 5am–10pm."
-  - Pickup only, exception position: "Pick-up at Tullamarine is available from Thursday, 8 April 2027, 5am–10pm."
-  - Pickup + drop-off, standard position: "Pick-up and drop-off at Tullamarine: pick-up Friday, 9 April 2027, 5am–10pm and drop-off Sunday, 11 April 2027, 5am–10pm."
-  - Pickup + drop-off, exception position: "Pick-up and drop-off at Tullamarine: pick-up from Thursday, 8 April 2027, 5am–10pm and drop-off Sunday, 11 April 2027, 5am–10pm."
+  - Pickup only: "Pick-up at Tullamarine is available from Thursday, 8 April 2027, 5am–10pm."
+  - Pickup + drop-off: "Pick-up and drop-off at Tullamarine: pick-up from Thursday, 8 April 2027, 5am–10pm and drop-off Sunday, 11 April 2027, 5am–10pm."
   - Drop-off only (any position): "Drop-off at Tullamarine is available only on Sunday, 11 April 2027, 5am–10pm."
   - All variants note transport from other airports (e.g. Avalon) may not be available.
 - Spouse records include an optional food allergy and dietary requirements field if attending.
@@ -118,6 +117,7 @@ Single continuous conference registration page. Guests complete without login; l
 
 - Early bird window and attendee pricing are loaded from runtime registration settings (DB-backed), not hardcoded constants.
 - Form pricing preview and server-side amount calculations use the same runtime settings.
+- The early-bird payment due date, payment reminder dates, and registration-updates recipient are runtime settings. The daily payment cron changes unpaid/part-paid early-bird registrations to regular pricing after the deadline, sends reminders on configured dates, and BCCs new/modified registration emails to the configured address.
 
 ### API
 
@@ -141,12 +141,15 @@ Single continuous conference registration page. Guests complete without login; l
 - [ ] National Conference reminder shown as National Conference 2027
 - [ ] Food allergy and dietary requirements field is available for registrants, spouses, and attendees
 - [ ] Australian mobile validation is enforced
-- [ ] Airport pickup/drop-off dates are restricted to the conference windows with the CFCA pickup exception
+- [ ] Ministry and Ministry Role enforce the Non-member role invariant
+- [ ] Eligible ministry roles can record elder's assembly attendance
+- [ ] Airport pickup/drop-off dates are restricted to the conference windows, including Thursday pickup for all roles
 - [ ] Pick-up and/or drop-off selections allow optional hotel/accommodation name and address capture
 - [ ] No-op saves do not write empty audits
 - [ ] Update notification emails include full registration details and contacts when applicable
 - [ ] Update emails include a link that leads to My Registration after login
 - [ ] Early bird window and attendee pricing can be changed without redeploy
+- [ ] Early-bird payment deadline, payment reminders, and registration update recipient can be changed without redeploy
 - [ ] Closed registration blocks public/participant registration writes while allowing manager/admin role updates
 - [ ] Field help tooltips are available on hover/focus for key registration questions
 

@@ -16,6 +16,8 @@ import {
   AUSTRALIAN_STATES,
   CFCA_POSITIONS,
   CFCA_POSITION_LABELS,
+  MINISTRIES,
+  MINISTRY_LABELS,
 } from "@/lib/registrations/schema"
 import {
   ACCOMMODATION_OPTIONS,
@@ -338,14 +340,15 @@ const RegistrationDetailPage = () => {
 
     const checkboxes = [
       "spouse_attending",
+      "elder_assembly_attending",
       "pickup_melbourne_airport",
       "dropoff_melbourne_airport",
       "hotel_transport_required",
     ]
     for (const cb of checkboxes) {
       if (!(cb in payload) && (canEditRegistration || canEditAccommodation)) {
-        if (cb === "spouse_attending" && canEditRegistration) payload[cb] = false
-        if (cb !== "spouse_attending" && canEditAccommodation) payload[cb] = false
+        if ((cb === "spouse_attending" || cb === "elder_assembly_attending") && canEditRegistration) payload[cb] = false
+        if (cb !== "spouse_attending" && cb !== "elder_assembly_attending" && canEditAccommodation) payload[cb] = false
       }
     }
 
@@ -530,7 +533,22 @@ const RegistrationDetailPage = () => {
                 </select>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="cfca_position">CFCA Position</Label>
+                <Label htmlFor="ministry">Ministry</Label>
+                <select
+                  id="ministry"
+                  name="ministry"
+                  defaultValue={str("ministry") || "cfca"}
+                  disabled={readOnly || !canEditRegistration}
+                  className="flex h-10 w-full rounded-md border border-gray-300 px-3 text-sm disabled:bg-gray-50"
+                  aria-label="Ministry"
+                >
+                  {MINISTRIES.map((ministry) => (
+                    <option key={ministry} value={ministry}>{MINISTRY_LABELS[ministry]}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="cfca_position">Ministry Role</Label>
                 <select
                   id="cfca_position"
                   name="cfca_position"
@@ -544,6 +562,16 @@ const RegistrationDetailPage = () => {
                   ))}
                 </select>
               </div>
+              <label className="flex items-center gap-2 text-sm md:col-span-2">
+                <input
+                  type="checkbox"
+                  name="elder_assembly_attending"
+                  defaultChecked={!!reg.elder_assembly_attending}
+                  disabled={readOnly || !canEditRegistration}
+                  aria-label="Attending the elder's assembly"
+                />
+                Attending the elder&apos;s assembly on Thursday, 8 April 2027
+              </label>
               <label className="flex items-center gap-2 text-sm md:col-span-2">
                 <input
                   type="checkbox"
