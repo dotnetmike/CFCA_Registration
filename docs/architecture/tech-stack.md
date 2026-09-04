@@ -13,24 +13,35 @@
 
 ## Environment
 
-Copy `.env.example` → `.env`. Typical needs:
+Branch-specific secrets: see [operations/environments.md](../operations/environments.md).
 
-- Supabase URL + **service role** key (server only)
-- `JWT_SECRET` / access expiry
+| Local file | Branch | Notes |
+|------------|--------|-------|
+| `.env.dev` | `dev` | Separate DEV Supabase project |
+| `.env.uat` | `uat` | Separate UAT Supabase project |
+| `.env.production` | `master` / `main` | Production Supabase only |
+
+Copy from `.env.<env>.example`. `npm run env:select` (also run by `dev` / `start` / `db:deploy`) writes `.env.local` for Next.js.
+
+Typical keys per env:
+
+- Supabase URL + **service role** key (server only) for **that** project
+- `JWT_ACCESS_SECRET` / `JWT_REFRESH_SECRET` / access expiry (unique per env)
 - `NEXT_PUBLIC_BANK_*` for payment page
 - `RESEND_API_KEY`, `EMAIL_FROM`
 - Absolute links in emails use the request Host / `X-Forwarded-*` headers (`getRequestSiteUrl`) — no site URL env var
 
-Never commit secrets. Never expose service role to the client.
+Never commit secrets. Never expose service role to the client. Never point DEV/UAT at the production Supabase project.
 
 ## Scripts
 
 | Command | Use |
 |---------|-----|
-| `npm run dev` | Migrate + hot reload |
+| `npm run env:select` | Sync `.env.local` from branch / `--env=` |
+| `npm run dev` | Select env + migrate + hot reload |
 | `npm run build` | Production compile |
-| `npm run start` | Migrate + serve **last build** (rebuild after code changes!) |
-| `npm run db:deploy` | Migrations / admin seed only |
+| `npm run start` | Select env + migrate + serve **last build** (rebuild after code changes!) |
+| `npm run db:deploy` | Select env + migrations / admin seed |
 | `npm run specs:stamp` | Stamp spec `synced_commit` to HEAD |
 
 ## Versioning

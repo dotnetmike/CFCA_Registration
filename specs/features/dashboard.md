@@ -23,7 +23,9 @@ files:
   - src/app/api/admin/registration-settings/route.ts
   - src/app/api/registration-settings/route.ts
   - src/app/api/admin/reports/route.ts
-  - src/lib/dashboard/reports-csv.ts
+  - src/app/api/registrations/[id]/resend-email/route.ts
+  - src/lib/dashboard/registration-list-filters.ts
+  - src/lib/dashboard/download-csv.ts
   - src/app/api/admin/audit-log/route.ts
   - src/app/api/payments/reconcile/route.ts
   - src/app/api/registrations/[id]/payment/route.ts
@@ -55,6 +57,8 @@ Staff tools: list registrations, users, reports, payment reconcile.
 - **Paging**: default **100** rows per page; prev/next and page indicator (Registrations, Users, Audit).
 - **Client cache**: list/summary pages use in-browser caches (memory + sessionStorage when small; TTL + max row cap) to avoid repeat fetches when navigating back; **Refresh** forces a re-fetch and replaces the cache.
 - Registration list columns include: Reg No, Name, State, Payment, Amount, Submitted, plus:
+  - **Actions** column with explicit **View** and **Edit** buttons (Edit opens detail in edit mode when permitted)
+  - **Export CSV** exports **all rows matching current filters** (not only the current page), using the same detailed column set as Reports
   - **Accommodation required** (`billet` → Yes, `own` → No)
   - **Transpo required** (none / pickup / dropoff / both, from airport flags)
   - **Accommodation contact** (name + phone)
@@ -94,6 +98,7 @@ Staff tools: list registrations, users, reports, payment reconcile.
 - **Edit** button (when user has `registrations:write_all` and/or `accommodation:write_all`) enables editing for permitted sections.
 - Entering edit mode shows a **warning**; **Save** requires confirmation.
 - If Save detects **no field changes**, do not call the API; show “No changes to save”.
+- **Resend email** button (when user can edit) calls `POST /api/registrations/[id]/resend-email` to send the confirmation or update email again; confirmation resends include a **new magic-link view token**. Action is audited (`registration.email_resend`).
 
 ### Payment (admin)
 
@@ -126,6 +131,8 @@ Staff tools: list registrations, users, reports, payment reconcile.
 - [ ] Admin can update user roles/groups from Users page
 - [ ] Role update is audited and revokes target user sessions
 - [ ] Dashboard submenu (and header Dashboard dropdown) for staff navigation
+- [ ] Registrations list has View/Edit actions and filtered CSV export (all matching rows)
+- [ ] Admin can resend registration email from registration detail with audit log
 - [ ] Admin can update runtime registration settings without redeploy
 
 ## Related specs

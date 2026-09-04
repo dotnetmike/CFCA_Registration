@@ -55,11 +55,26 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   ) => {
     const busy = !!isLoading
 
-    const Comp = asChild ? Slot : "button"
+    if (asChild) {
+      return (
+        <Slot
+          className={cn(
+            buttonVariants({ variant, size, className }),
+            busy ? "cursor-wait" : "disabled:cursor-not-allowed disabled:pointer-events-none"
+          )}
+          ref={ref}
+          aria-busy={busy || undefined}
+          {...props}
+        >
+          {children}
+        </Slot>
+      )
+    }
+
     const label = busy && loadingText ? loadingText : children
 
     return (
-      <Comp
+      <button
         className={cn(
           buttonVariants({ variant, size, className }),
           busy ? "cursor-wait" : "disabled:cursor-not-allowed disabled:pointer-events-none"
@@ -76,7 +91,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
           />
         )}
         {label}
-      </Comp>
+      </button>
     )
   }
 )

@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { useParams, useRouter } from "next/navigation"
+import { useParams, useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
 import { useAuth } from "@/lib/auth/context"
 import { isManager } from "@/lib/auth/permissions-client"
@@ -76,6 +76,7 @@ const Field = ({
 
 const RegistrationDetailPage = () => {
   const params = useParams()
+  const searchParams = useSearchParams()
   const id = params.id as string
   const { user, authFetch } = useAuth()
   const router = useRouter()
@@ -96,9 +97,10 @@ const RegistrationDetailPage = () => {
   const [noteBody, setNoteBody] = useState("")
   const [isSavingPayment, setIsSavingPayment] = useState(false)
   const [isSavingNote, setIsSavingNote] = useState(false)
+  const [isResendingEmail, setIsResendingEmail] = useState(false)
   const [paymentAmountPaid, setPaymentAmountPaid] = useState("")
   const [paymentStatus, setPaymentStatus] = useState("pending")
-  useBusyCursor(isSaving || isSavingPayment || isSavingNote)
+  useBusyCursor(isSaving || isSavingPayment || isSavingNote || isResendingEmail)
 
   const canEditRegistration = !!user?.permissions.includes("registrations:write_all")
   const canEditAccommodation = !!user?.permissions.includes("accommodation:write_all")
@@ -139,6 +141,13 @@ const RegistrationDetailPage = () => {
     }
     load()
   }, [user, authFetch, id, router])
+
+  useEffect(() => {
+    if (!canEdit || isLoading || !registration) return
+    if (searchParams.get("edit") === "1") {
+      setIsEditing(true)
+    }
+  }, [canEdit, isLoading, registration, searchParams])
 
   useEffect(() => {
     if (!registration) return
@@ -237,6 +246,36 @@ const RegistrationDetailPage = () => {
       setSuccess("Note added.")
     }
     setIsSavingNote(false)
+  }
+
+  const handleResendEmail = async () => {
+    if (!registration || !canEdit) return
+
+    const recipient = String(registration.email ?? "")
+    const confirmed = window.confirm(
+      `Resend the registration email to ${recipient}? A new view link will be included if this is a confirmation email.`
+    )
+    if (!confirmed) return
+
+    setError("")
+    setSuccess("")
+    setIsResendingEmail(true)
+
+    const res = await authFetch(`/api/registrations/${id}/resend-email`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({}),
+    })
+
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}))
+      setError((data as { error?: string }).error ?? "Could not resend email")
+    } else {
+      const data = (await res.json()) as { recipient?: string; email_type?: string }
+      setSuccess(`Email resent to ${data.recipient ?? recipient}.`)
+    }
+
+    setIsResendingEmail(false)
   }
 
   const handleSave = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -396,11 +435,38 @@ const RegistrationDetailPage = () => {
           </Link>
           <h1 className="text-2xl font-bold">{str("registration_no")}</h1>
         </div>
-        {canEdit && !isEditing && (
-          <Button type="button" onClick={handleStartEdit} aria-label="Edit registration">
-            Edit
-          </Button>
-        )}
+        <div className="flex flex-wrap items-center gap-2">
+          {canEdit && (
+            <>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => void handleResendEmail()}
+                isLoading={isResendingEmail}
+                loadingText="Sending..."
+                disabled={isResendingEmail || isEditing || isSaving}
+                aria-label="Resend registration email to registrant"
+              >
+                Resend email
+              </Button>
+              {!isEditing ? (
+                <Button type="button" onClick={handleStartEdit} aria-label="Edit registration">
+                  Edit registration
+                </Button>
+              ) : (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleCancelEdit}
+                  disabled={isSaving}
+                  aria-label="Cancel editing registration"
+                >
+                  Cancel edit
+                </Button>
+              )}
+            </>
+          )}
+        </div>
       </div>
 
       {error && <Alert variant="error">{error}</Alert>}

@@ -3,12 +3,15 @@ id: features.registration
 title: Registration form
 status: active
 synced_commit: working-tree
-synced_at: 2026-08-22
+synced_at: 2026-08-24
 owners: [team]
 files:
   - src/app/page.tsx
   - src/app/register/page.tsx
   - src/components/layout/site-header.tsx
+  - src/components/registrations/form-field-label.tsx
+  - src/components/ui/help-tooltip.tsx
+  - src/lib/registrations/form-tooltips.ts
   - src/components/registrations/registration-form.tsx
   - src/components/registrations/registration-review-summary.tsx
   - src/components/registrations/transport-schedule-alert.tsx
@@ -53,14 +56,20 @@ Single continuous conference registration page. Guests complete without login; l
   5. Review & submit
 - Short intro: fill in the form, then press Submit once at the bottom.
 - National Conference reminder shown on the page: **National Conference 2027**.
-- Required fields marked with `*`; selects use plain-language placeholders.
+- Required fields marked with a prominent **red asterisk**; invalid fields show a red border on submit.
+- On submit, **all** validation errors are shown together in a summary list (not one-at-a-time).
 - Controls use comfortable sizing (`text-base` / taller inputs) for readability and touch.
+- Fields that may need extra explanation show a **help icon** (?) beside the label. Hover or keyboard focus on the icon opens a short tooltip with guidance.
+- Multi-column field rows share a consistent label height, control height (`h-12`), and reserved error-message slot so siblings stay aligned (including action buttons such as **Remove**).
 
 ### Registration details
 
 - Primary registrant and attendee fields include an optional food allergy and dietary requirements field.
 - Australian mobile numbers are validated to the local format (`04xx xxx xxx` or `+61...`).
+- Address fields use labels **Address Suburb**, **Address Postcode**, and **Address State** (optional).
 - **Ministry** is selected before **Ministry Role**: CFCA, HOLD, SOLD, LIA, Family Ministry, or Non-member. Selecting Non-member locks Ministry Role to Non-member.
+- **CFCA Membership State** (required, DB column `state`) is shown on the same row as **Ministry Role** on medium+ screens; on small screens membership state stacks below ministry role.
+- When the user selects or changes **Address State** (including via address autocomplete), **CFCA Membership State** is set to the same value automatically.
 - Chapter Leader, Ministry Coordinator, Area Coordinator, Area Head, and National Council roles may record elder's assembly attendance on Thursday, 8 April 2027.
 
 ### Airport transport
@@ -91,7 +100,9 @@ Single continuous conference registration page. Guests complete without login; l
 
 - Already registered? Login → `/login?redirect=/my-registration`.
 - Email uniqueness checked on email blur and on submit. DB/API errors fail closed (HTTP 500), never report `available: true`.
-- Duplicate-email conflicts distinguish an existing account from an unlinked submitted registration. Existing accounts show a login link; unlinked registrations show a create-account link to `/signup?email=<email>&redirect=/my-registration`.
+- Duplicate-email conflicts distinguish two cases so the CTA matches reality:
+  - `reason: "account"` — an account already exists for that email → show **Login here** (`/login?redirect=/my-registration`).
+  - `reason: "unlinked_registration"` — a submitted registration exists but no account has been created for it yet → show **Create your account here** (`/signup?email=<email>&redirect=/my-registration`), never a login link (there is nothing to log into).
 - Accommodation and airport transport mandatory with no default.
 - Submit → public `POST /api/registrations` → `/register/complete`.
 - When registration is closed, public submit is blocked with a friendly message to contact Chapter Leaders.
@@ -122,7 +133,8 @@ Single continuous conference registration page. Guests complete without login; l
 
 ## Acceptance criteria
 
-- [ ] Continuous single-page registration
+- [ ] On submit, all validation errors are shown together in a summary list
+- [ ] Required fields use a prominent red asterisk and red border when invalid
 - [ ] Optional t-shirt pre-order with size/qty at $30 each
 - [ ] Love In Action proceeds note shown
 - [ ] Souvenir total included in amount due
@@ -139,6 +151,7 @@ Single continuous conference registration page. Guests complete without login; l
 - [ ] Early bird window and attendee pricing can be changed without redeploy
 - [ ] Early-bird payment deadline, payment reminders, and registration update recipient can be changed without redeploy
 - [ ] Closed registration blocks public/participant registration writes while allowing manager/admin role updates
+- [ ] Field help tooltips are available on hover/focus for key registration questions
 
 ## Related specs
 

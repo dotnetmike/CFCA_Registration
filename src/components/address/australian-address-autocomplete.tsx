@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useId, useRef, useState } from "react"
 import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
+import { FormFieldLabel } from "@/components/registrations/form-field-label"
 import { cn } from "@/lib/utils"
 import type { AustralianAddress } from "@/lib/address/parse"
 
@@ -15,6 +15,7 @@ type Suggestion = {
 
 type AustralianAddressAutocompleteProps = {
   label?: string
+  labelHelp?: string
   value: string
   onChange: (value: string) => void
   onAddressSelect: (address: AustralianAddress) => void
@@ -25,6 +26,7 @@ type AustralianAddressAutocompleteProps = {
 
 export const AustralianAddressAutocomplete = ({
   label = "Address",
+  labelHelp,
   value,
   onChange,
   onAddressSelect,
@@ -144,8 +146,10 @@ export const AustralianAddressAutocomplete = ({
   }, [])
 
   return (
-    <div ref={containerRef} className="space-y-2">
-      <Label htmlFor={inputId}>{label}</Label>
+    <div ref={containerRef} className="flex flex-col gap-2">
+      <FormFieldLabel htmlFor={inputId} help={labelHelp}>
+        {label}
+      </FormFieldLabel>
       <div className="relative">
         <Input
           id={inputId}

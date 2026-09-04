@@ -197,6 +197,45 @@
     backdrop-filter: blur(8px);
   }
 
+  .cfca-registrations-table-wrap {
+    @apply overflow-x-auto overscroll-x-contain;
+    scrollbar-gutter: stable;
+  }
+
+  .cfca-registrations-table {
+    @apply w-full min-w-[72rem] border-collapse text-sm;
+  }
+
+  .cfca-registrations-table thead th {
+    @apply border-b border-[color:var(--line)] bg-surface-muted/60 px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wide text-ink-soft;
+  }
+
+  .cfca-registrations-table tbody td {
+    @apply border-b border-[color:var(--line)] px-3 py-2.5 align-top text-ink;
+  }
+
+  .cfca-registrations-table tbody tr {
+    @apply transition-colors hover:bg-surface-muted/80;
+  }
+
+  .cfca-registrations-table__sticky-left {
+    @apply sticky left-0 z-10 bg-surface shadow-[4px_0_8px_-6px_rgba(15,23,42,0.18)];
+  }
+
+  .cfca-registrations-table tbody tr:hover .cfca-registrations-table__sticky-left,
+  .cfca-registrations-table tbody tr:hover .cfca-registrations-table__sticky-right {
+    @apply bg-surface-muted/95;
+  }
+
+  .cfca-registrations-table__sticky-right {
+    @apply sticky right-0 z-10 bg-surface shadow-[-4px_0_8px_-6px_rgba(15,23,42,0.18)];
+  }
+
+  .cfca-registrations-table thead .cfca-registrations-table__sticky-left,
+  .cfca-registrations-table thead .cfca-registrations-table__sticky-right {
+    @apply z-20 bg-surface-muted/95;
+  }
+
   .cfca-auth-shell {
     @apply relative mx-auto max-w-md;
     animation: rise-in 560ms cubic-bezier(0.22, 1, 0.36, 1) both;

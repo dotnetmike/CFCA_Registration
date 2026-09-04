@@ -54,6 +54,7 @@ Re-check the folder when onboarding — this table can lag; **filesystem is auth
 - Keep SQL idempotent where practical (`IF NOT EXISTS`).
 - Document enums / check constraints in the SQL file comments if non-obvious.
 - **Always enable RLS** on new `public` tables. Do not grant `anon` / `authenticated` table access. App DB access goes through the server **service role** client.
+- Run `npm run db:deploy` only after `env:select` has targeted the intended Supabase project (see [environments.md](./environments.md)). Prefer **one** migration path per project (app deploy **or** Supabase Git), not both.
 
 ## Rollback mindset
 
