@@ -53,6 +53,8 @@ export const claimEarlyBirdSlot = async (
   const admin = createAdminClient()
   const { data, error } = await admin.rpc("claim_early_bird_slot", {
     p_state: state,
+    p_interstate_limit: pricingConfig.earlyBirdInterstateLimit,
+    p_vic_limit: pricingConfig.earlyBirdVicLimit,
   })
 
   if (error) return "none"
@@ -75,10 +77,32 @@ export const mapFormToDb = (data: RegistrationFormData, extras: {
   is_early_bird: boolean
   submitted_at?: string | null
 }) => {
-  const transport =
-    data.transport_option !== undefined && data.transport_option !== null && data.transport_option !== ""
-      ? transportOptionToBooleans(data.transport_option as Parameters<typeof transportOptionToBooleans>[0])
-      : transportOptionToBooleans("own")
+  let transport: {
+    pickup_melbourne_airport: boolean
+    dropoff_melbourne_airport: boolean
+    hotel_transport_required: boolean
+  }
+
+  if (
+    data.transport_option !== undefined &&
+    data.transport_option !== null &&
+    data.transport_option !== ""
+  ) {
+    transport = transportOptionToBooleans(
+      data.transport_option as Parameters<typeof transportOptionToBooleans>[0]
+    )
+  } else if (
+    data.pickup_melbourne_airport !== undefined ||
+    data.dropoff_melbourne_airport !== undefined
+  ) {
+    transport = {
+      pickup_melbourne_airport: !!data.pickup_melbourne_airport,
+      dropoff_melbourne_airport: !!data.dropoff_melbourne_airport,
+      hotel_transport_required: !!data.hotel_transport_required,
+    }
+  } else {
+    transport = transportOptionToBooleans("own")
+  }
 
   const needsAssistance = data.accommodation_type === "billet"
   const needsAirportTransport =

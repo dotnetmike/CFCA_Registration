@@ -12,6 +12,8 @@ import { useBusyCursor } from "@/hooks/use-busy-cursor"
 
 type Settings = {
   registrationOpen: boolean
+  registrationStartDate: string
+  registrationEndDate: string
   pricing: {
     earlyBirdStart: string
     earlyBirdEnd: string
@@ -20,6 +22,8 @@ type Settings = {
     adultRegular: number
     age12Plus: number
     age2To12: number
+    earlyBirdInterstateLimit: number
+    earlyBirdVicLimit: number
   }
   paymentReminderDates: string[]
   notificationRecipientEmail: string
@@ -27,6 +31,8 @@ type Settings = {
 
 const emptySettings: Settings = {
   registrationOpen: true,
+  registrationStartDate: "",
+  registrationEndDate: "",
   pricing: {
     earlyBirdStart: "",
     earlyBirdEnd: "",
@@ -35,6 +41,8 @@ const emptySettings: Settings = {
     adultRegular: 0,
     age12Plus: 0,
     age2To12: 0,
+    earlyBirdInterstateLimit: 200,
+    earlyBirdVicLimit: 250,
   },
   paymentReminderDates: [],
   notificationRecipientEmail: "",
@@ -132,7 +140,7 @@ const RegistrationSettingsPage = () => {
             <CardHeader>
               <CardTitle>Registration Availability</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-3">
+            <CardContent className="space-y-4">
               <label className="flex items-start gap-3 text-sm text-ink">
                 <input
                   type="checkbox"
@@ -143,19 +151,57 @@ const RegistrationSettingsPage = () => {
                       registrationOpen: e.target.checked,
                     }))
                   }
-                  aria-label="Registration open"
+                  aria-label="Enable registration"
                 />
                 <span>
-                  Registration is open to participants. When off, guests/participants will see a
-                  closed notice page.
+                  <strong>Enable registration (force override)</strong>. Uncheck to force registration closed immediately regardless of set dates.
                 </span>
               </label>
+
+              <div className="grid gap-4 md:grid-cols-2 pt-2">
+                <div className="space-y-2">
+                  <Label htmlFor="registrationStartDate">Opening date</Label>
+                  <Input
+                    id="registrationStartDate"
+                    type="date"
+                    value={settings.registrationStartDate}
+                    onChange={(e) =>
+                      setSettings((current) => ({
+                        ...current,
+                        registrationStartDate: e.target.value,
+                      }))
+                    }
+                    aria-label="Registration opening date"
+                  />
+                  <p className="text-xs text-ink-soft">
+                    Registration automatically opens on this date.
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="registrationEndDate">Closing date</Label>
+                  <Input
+                    id="registrationEndDate"
+                    type="date"
+                    value={settings.registrationEndDate}
+                    onChange={(e) =>
+                      setSettings((current) => ({
+                        ...current,
+                        registrationEndDate: e.target.value,
+                      }))
+                    }
+                    aria-label="Registration closing date"
+                  />
+                  <p className="text-xs text-ink-soft">
+                    Registration automatically closes after this date.
+                  </p>
+                </div>
+              </div>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader>
-              <CardTitle>Early Bird Window</CardTitle>
+              <CardTitle>Early Bird Window & Capacity Limits</CardTitle>
             </CardHeader>
             <CardContent className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
@@ -187,6 +233,32 @@ const RegistrationSettingsPage = () => {
                   onChange={(e) => updatePricing("earlyBirdEnd", e.target.value)}
                   aria-label="Early bird end date"
                 />
+              </div>
+              <div className="space-y-2 md:col-span-2 grid gap-4 md:grid-cols-2 pt-2 border-t">
+                <div className="space-y-2">
+                  <Label htmlFor="earlyBirdInterstateLimit">Interstate delegates early bird cap</Label>
+                  <Input
+                    id="earlyBirdInterstateLimit"
+                    type="number"
+                    min={0}
+                    value={settings.pricing.earlyBirdInterstateLimit}
+                    onChange={(e) => updatePricing("earlyBirdInterstateLimit", e.target.value)}
+                    aria-label="Interstate delegates early bird cap"
+                  />
+                  <p className="text-xs text-ink-soft">Default: 200</p>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="earlyBirdVicLimit">Victoria delegates early bird cap</Label>
+                  <Input
+                    id="earlyBirdVicLimit"
+                    type="number"
+                    min={0}
+                    value={settings.pricing.earlyBirdVicLimit}
+                    onChange={(e) => updatePricing("earlyBirdVicLimit", e.target.value)}
+                    aria-label="Victoria delegates early bird cap"
+                  />
+                  <p className="text-xs text-ink-soft">Default: 250</p>
+                </div>
               </div>
             </CardContent>
           </Card>

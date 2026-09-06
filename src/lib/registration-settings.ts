@@ -7,9 +7,13 @@ import type { AccessTokenPayload } from "@/lib/auth/jwt"
 
 type RuntimeSettingsRow = {
   registration_open: boolean
+  registration_start_date?: string | null
+  registration_end_date?: string | null
   early_bird_start: string
   early_bird_end: string
   early_bird_payment_due_date: string
+  early_bird_interstate_limit?: number | null
+  early_bird_vic_limit?: number | null
   payment_reminder_dates: unknown
   notification_recipient_email: string
   adult_early_bird: number
@@ -20,6 +24,8 @@ type RuntimeSettingsRow = {
 
 export type RegistrationRuntimeSettings = {
   registrationOpen: boolean
+  registrationStartDate: string
+  registrationEndDate: string
   pricing: PricingConfig
   paymentReminderDates: string[]
   notificationRecipientEmail: string
@@ -27,6 +33,8 @@ export type RegistrationRuntimeSettings = {
 
 export type RegistrationRuntimeSettingsInput = {
   registrationOpen: boolean
+  registrationStartDate?: string
+  registrationEndDate?: string
   pricing: Omit<PricingConfig, "ageFree"> & { ageFree?: number }
   paymentReminderDates: string[]
   notificationRecipientEmail: string
@@ -36,9 +44,13 @@ const normalizeSettings = (
   values: RegistrationRuntimeSettingsInput
 ): RegistrationRuntimeSettings => ({
   registrationOpen: values.registrationOpen,
+  registrationStartDate: values.registrationStartDate ? values.registrationStartDate.slice(0, 10) : "",
+  registrationEndDate: values.registrationEndDate ? values.registrationEndDate.slice(0, 10) : "",
   pricing: {
     ...values.pricing,
     ageFree: values.pricing.ageFree ?? DEFAULT_PRICING_CONFIG.ageFree,
+    earlyBirdInterstateLimit: values.pricing.earlyBirdInterstateLimit ?? DEFAULT_PRICING_CONFIG.earlyBirdInterstateLimit,
+    earlyBirdVicLimit: values.pricing.earlyBirdVicLimit ?? DEFAULT_PRICING_CONFIG.earlyBirdVicLimit,
   },
   paymentReminderDates: toDateStrings(values.paymentReminderDates),
   notificationRecipientEmail: values.notificationRecipientEmail.trim(),
@@ -46,6 +58,8 @@ const normalizeSettings = (
 
 export const DEFAULT_REGISTRATION_RUNTIME_SETTINGS: RegistrationRuntimeSettings = {
   registrationOpen: true,
+  registrationStartDate: "",
+  registrationEndDate: "",
   pricing: DEFAULT_PRICING_CONFIG,
   paymentReminderDates: [],
   notificationRecipientEmail: "",
@@ -53,7 +67,7 @@ export const DEFAULT_REGISTRATION_RUNTIME_SETTINGS: RegistrationRuntimeSettings 
 
 const SETTINGS_TABLE = "runtime_registration_settings"
 const SETTINGS_SELECT =
-  "registration_open, early_bird_start, early_bird_end, early_bird_payment_due_date, payment_reminder_dates, notification_recipient_email, adult_early_bird, adult_regular, age_12_plus, age_2_to_12"
+  "registration_open, registration_start_date, registration_end_date, early_bird_start, early_bird_end, early_bird_payment_due_date, early_bird_interstate_limit, early_bird_vic_limit, payment_reminder_dates, notification_recipient_email, adult_early_bird, adult_regular, age_12_plus, age_2_to_12"
 
 const toNumber = (value: unknown, fallback: number) => {
   const n = Number(value)
@@ -65,16 +79,41 @@ const toDateString = (value: unknown, fallback: string) => {
   return raw ? raw.slice(0, 10) : fallback
 }
 
+const toOptionalDateString = (value: unknown) => {
+  const raw = String(value ?? "").trim()
+  return raw ? raw.slice(0, 10) : ""
+}
+
 const toDateStrings = (value: unknown) =>
   Array.isArray(value)
     ? [...new Set(value.map((date) => String(date).slice(0, 10)).filter((date) => /^\d{4}-\d{2}-\d{2}$/.test(date)))].sort()
     : []
 
+export const computeIsRegistrationOpen = (
+  forceOpen: boolean,
+  startDate?: string | null,
+  endDate?: string | null,
+  nowDate = new Date()
+): boolean => {
+  if (!forceOpen) return false
+  const today = nowDate.toISOString().slice(0, 10)
+  if (startDate && startDate.trim() !== "" && today < startDate.trim()) return false
+  if (endDate && endDate.trim() !== "" && today > endDate.trim()) return false
+  return true
+}
+
 const mapRow = (row: RuntimeSettingsRow | null | undefined): RegistrationRuntimeSettings => {
   if (!row) return DEFAULT_REGISTRATION_RUNTIME_SETTINGS
 
+  const forceOpen = !!row.registration_open
+  const startDate = toOptionalDateString(row.registration_start_date)
+  const endDate = toOptionalDateString(row.registration_end_date)
+  const effectiveOpen = computeIsRegistrationOpen(forceOpen, startDate, endDate)
+
   return {
-    registrationOpen: !!row.registration_open,
+    registrationOpen: effectiveOpen,
+    registrationStartDate: startDate,
+    registrationEndDate: endDate,
     pricing: {
       adultEarlyBird: toNumber(row.adult_early_bird, DEFAULT_PRICING_CONFIG.adultEarlyBird),
       adultRegular: toNumber(row.adult_regular, DEFAULT_PRICING_CONFIG.adultRegular),
@@ -86,6 +125,14 @@ const mapRow = (row: RuntimeSettingsRow | null | undefined): RegistrationRuntime
       earlyBirdPaymentDueDate: toDateString(
         row.early_bird_payment_due_date,
         DEFAULT_PRICING_CONFIG.earlyBirdPaymentDueDate
+      ),
+      earlyBirdInterstateLimit: toNumber(
+        row.early_bird_interstate_limit,
+        DEFAULT_PRICING_CONFIG.earlyBirdInterstateLimit
+      ),
+      earlyBirdVicLimit: toNumber(
+        row.early_bird_vic_limit,
+        DEFAULT_PRICING_CONFIG.earlyBirdVicLimit
       ),
     },
     paymentReminderDates: toDateStrings(row.payment_reminder_dates),
@@ -104,6 +151,25 @@ export const getRegistrationRuntimeSettings = async (): Promise<RegistrationRunt
   return mapRow(data as RuntimeSettingsRow | null)
 }
 
+export const getRawRegistrationRuntimeSettings = async (): Promise<{
+  rawRegistrationOpen: boolean
+  settings: RegistrationRuntimeSettings
+}> => {
+  const admin = createAdminClient()
+  const { data } = await admin
+    .from(SETTINGS_TABLE)
+    .select(SETTINGS_SELECT)
+    .eq("id", true)
+    .maybeSingle()
+
+  const row = data as RuntimeSettingsRow | null
+  const settings = mapRow(row)
+  return {
+    rawRegistrationOpen: row ? !!row.registration_open : true,
+    settings,
+  }
+}
+
 export const updateRegistrationRuntimeSettings = async (
   values: RegistrationRuntimeSettingsInput,
   updatedBy?: string
@@ -117,9 +183,13 @@ export const updateRegistrationRuntimeSettings = async (
       {
         id: true,
         registration_open: normalized.registrationOpen,
+        registration_start_date: normalized.registrationStartDate || null,
+        registration_end_date: normalized.registrationEndDate || null,
         early_bird_start: normalized.pricing.earlyBirdStart,
         early_bird_end: normalized.pricing.earlyBirdEnd,
         early_bird_payment_due_date: normalized.pricing.earlyBirdPaymentDueDate,
+        early_bird_interstate_limit: normalized.pricing.earlyBirdInterstateLimit,
+        early_bird_vic_limit: normalized.pricing.earlyBirdVicLimit,
         payment_reminder_dates: normalized.paymentReminderDates,
         notification_recipient_email: normalized.notificationRecipientEmail,
         adult_early_bird: normalized.pricing.adultEarlyBird,

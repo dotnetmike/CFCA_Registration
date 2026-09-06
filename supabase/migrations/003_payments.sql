@@ -1,10 +1,16 @@
 -- Payments, bank statements, email log
 
-CREATE TYPE public.payment_source AS ENUM ('manual', 'bank_reconcile');
-
-CREATE TYPE public.bank_statement_status AS ENUM ('processing', 'completed', 'failed');
-
-CREATE TYPE public.match_status AS ENUM ('auto_matched', 'unmatched', 'confirmed', 'skipped');
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'payment_source') THEN
+    CREATE TYPE public.payment_source AS ENUM ('manual', 'bank_reconcile');
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'bank_statement_status') THEN
+    CREATE TYPE public.bank_statement_status AS ENUM ('processing', 'completed', 'failed');
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'match_status') THEN
+    CREATE TYPE public.match_status AS ENUM ('auto_matched', 'unmatched', 'confirmed', 'skipped');
+  END IF;
+END $$;
 
 CREATE TABLE IF NOT EXISTS public.bank_statements (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -40,10 +46,14 @@ CREATE TABLE IF NOT EXISTS public.payments (
   created_at timestamptz NOT NULL DEFAULT now()
 );
 
-CREATE TYPE public.email_type AS ENUM (
-  'registration_submitted', 'registration_updated',
-  'accommodation_updated', 'payment_received', 'payment_reminder'
-);
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'email_type') THEN
+    CREATE TYPE public.email_type AS ENUM (
+      'registration_submitted', 'registration_updated',
+      'accommodation_updated', 'payment_received', 'payment_reminder'
+    );
+  END IF;
+END $$;
 
 CREATE TABLE IF NOT EXISTS public.email_log (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),

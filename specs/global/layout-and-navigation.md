@@ -2,8 +2,8 @@
 id: global.layout-and-navigation
 title: Layout and navigation
 status: active
-synced_commit: 743bec3
-synced_at: 2026-08-20
+synced_commit: 8ee5938
+synced_at: 2026-09-06
 owners: [team]
 files:
   - src/app/layout.tsx
@@ -30,9 +30,9 @@ Shell of every page: header, main content width, and which routes require login.
 - **Protected paths**: `/my-registration`, `/payment`, `/dashboard`, `/account` (and subpaths).
 - **Public paths** (examples): `/`, `/register` (redirects to `/`), `/register/complete`, `/r/[token]`, `/login`, `/signup` (post-registration only), `/forgot-password`, `/reset-password`.
 - Header when logged out: **Login**, **Register** (→ `/`) — except on the registration page (`/` / `/register`), where those links are hidden (visitor is already registering).
-- Header when logged in: My Registration, Payment, Account, **Dashboard dropdown** (managers — submenu of staff pages), name, Logout.
+- Header when logged in: My Registration, Payment, Account, **Dashboard dropdown** (managers — submenu of staff pages), name, Logout. On mobile screens, header provides a collapsible mobile menu drawer for clean navigation.
 - Brand logo link goes to `/` (registration form).
-- Staff pages under `/dashboard` also show the shared **DashboardSubnav** bar (see `features.dashboard`).
+- Staff pages under `/dashboard` also show the shared **DashboardSubnav** bar (see `features.dashboard`), which scrolls horizontally on mobile view without overlapping or vertical indicator clipping.
 
 ## Acceptance criteria
 

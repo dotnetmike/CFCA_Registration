@@ -2,8 +2,8 @@
 id: global.database
 title: Database and migrations
 status: active
-synced_commit: 743bec3
-synced_at: 2026-08-20
+synced_commit: 8ee5938
+synced_at: 2026-09-06
 owners: [team]
 files:
   - supabase/migrations/
@@ -38,6 +38,7 @@ Postgres via Supabase; schema changes only through numbered SQL migrations.
   - `013_enable_rls_revoke_anon.sql` — RLS on + revoke public Data API grants
   - `015_runtime_registration_settings.sql` — runtime registration open toggle + early bird window + attendee pricing
   - `016_registration_operations_settings.sql` — ministry/elder assembly fields plus payment deadline, reminder dates, and registration update recipient
+  - `017_registration_open_dates_and_early_bird_limits.sql` — registration opening/closing dates and configurable early bird capacity limits
 
 ## Acceptance criteria
 

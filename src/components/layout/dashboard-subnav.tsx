@@ -14,7 +14,9 @@ type NavItem = {
 
 type Indicator = {
   left: number
+  top: number
   width: number
+  height: number
 }
 
 export const DashboardSubnav = () => {
@@ -88,14 +90,21 @@ export const DashboardSubnav = () => {
       const navRect = navRef.current.getBoundingClientRect()
       const itemRect = el.getBoundingClientRect()
       setIndicator({
-        left: itemRect.left - navRect.left,
+        left: itemRect.left - navRect.left + navRef.current.scrollLeft,
+        top: itemRect.top - navRect.top + navRef.current.scrollTop,
         width: itemRect.width,
+        height: itemRect.height,
       })
     }
 
     update()
+    const currentNav = navRef.current
     window.addEventListener("resize", update)
-    return () => window.removeEventListener("resize", update)
+    currentNav?.addEventListener("scroll", update)
+    return () => {
+      window.removeEventListener("resize", update)
+      currentNav?.removeEventListener("scroll", update)
+    }
   }, [user, activeHref, pathname, visible.length])
 
   if (!user) return null
@@ -104,15 +113,17 @@ export const DashboardSubnav = () => {
     <nav
       ref={navRef}
       aria-label="Dashboard submenu"
-      className="cfca-dashboard-subnav relative flex flex-wrap gap-1 rounded-xl border border-[color:var(--line)] bg-surface/80 p-1.5 shadow-[0_8px_24px_-18px_rgba(11,31,51,0.45)] backdrop-blur-md"
+      className="cfca-dashboard-subnav relative flex items-center gap-1 overflow-x-auto scrollbar-none whitespace-nowrap rounded-xl border border-[color:var(--line)] bg-surface/80 p-1.5 shadow-[0_8px_24px_-18px_rgba(11,31,51,0.45)] backdrop-blur-md"
     >
       {indicator && (
         <span
           aria-hidden="true"
-          className="cfca-dashboard-subnav__indicator pointer-events-none absolute top-1.5 bottom-1.5 rounded-lg bg-ink shadow-sm"
+          className="cfca-dashboard-subnav__indicator pointer-events-none absolute rounded-lg bg-ink shadow-sm"
           style={{
             left: indicator.left,
+            top: indicator.top,
             width: indicator.width,
+            height: indicator.height,
           }}
         />
       )}

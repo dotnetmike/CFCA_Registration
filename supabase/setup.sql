@@ -129,20 +129,28 @@ WHERE g.name = 'participant'
 ON CONFLICT DO NOTHING;
 -- Registration schema
 
-CREATE TYPE public.cfca_position AS ENUM (
-  'member', 'hh_leader', 'unit_leader', 'chapter_leader',
-  'ministry_coordinator', 'area_coordinator', 'area_head', 'national_council'
-);
-
-CREATE TYPE public.australian_state AS ENUM (
-  'NSW', 'VIC', 'QLD', 'SA', 'WA', 'TAS', 'NT', 'ACT'
-);
-
-CREATE TYPE public.accommodation_type AS ENUM ('own', 'billet');
-
-CREATE TYPE public.payment_status AS ENUM ('pending', 'partial', 'paid', 'overpaid');
-
-CREATE TYPE public.early_bird_slot AS ENUM ('interstate', 'melbourne', 'none');
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'cfca_position') THEN
+    CREATE TYPE public.cfca_position AS ENUM (
+      'member', 'hh_leader', 'unit_leader', 'chapter_leader',
+      'ministry_coordinator', 'area_coordinator', 'area_head', 'national_council'
+    );
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'australian_state') THEN
+    CREATE TYPE public.australian_state AS ENUM (
+      'NSW', 'VIC', 'QLD', 'SA', 'WA', 'TAS', 'NT', 'ACT'
+    );
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'accommodation_type') THEN
+    CREATE TYPE public.accommodation_type AS ENUM ('own', 'billet');
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'payment_status') THEN
+    CREATE TYPE public.payment_status AS ENUM ('pending', 'partial', 'paid', 'overpaid');
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'early_bird_slot') THEN
+    CREATE TYPE public.early_bird_slot AS ENUM ('interstate', 'melbourne', 'none');
+  END IF;
+END $$;
 
 CREATE SEQUENCE IF NOT EXISTS registration_no_seq START 1;
 
@@ -254,26 +262,41 @@ BEGIN
 END;
 $$;
 
-CREATE OR REPLACE FUNCTION public.claim_early_bird_slot(p_state public.australian_state)
+CREATE OR REPLACE FUNCTION public.claim_early_bird_slot(
+  p_state public.australian_state,
+  p_interstate_limit integer DEFAULT NULL,
+  p_vic_limit integer DEFAULT NULL
+)
 RETURNS public.early_bird_slot
 LANGUAGE plpgsql
 AS $$
 DECLARE
-  counters public.early_bird_counters%ROWTYPE;
-  slot public.early_bird_slot := 'none';
+  v_settings public.runtime_registration_settings%ROWTYPE;
+  v_interstate_limit integer;
+  v_vic_limit integer;
+  v_count integer;
 BEGIN
-  SELECT * INTO counters FROM public.early_bird_counters WHERE id = 1 FOR UPDATE;
+  SELECT * INTO v_settings FROM public.runtime_registration_settings WHERE id = true;
 
-  IF current_date < counters.window_start OR current_date > counters.window_end THEN
-    RETURN 'none';
+  v_interstate_limit := COALESCE(p_interstate_limit, v_settings.early_bird_interstate_limit, 200);
+  v_vic_limit := COALESCE(p_vic_limit, v_settings.early_bird_vic_limit, 250);
+
+  IF v_settings.early_bird_start IS NOT NULL AND v_settings.early_bird_end IS NOT NULL THEN
+    IF current_date < v_settings.early_bird_start OR current_date > v_settings.early_bird_end THEN
+      RETURN 'none';
+    END IF;
   END IF;
 
-  IF p_state = 'VIC' AND counters.melbourne_remaining > 0 THEN
-    UPDATE public.early_bird_counters SET melbourne_remaining = melbourne_remaining - 1 WHERE id = 1;
-    RETURN 'melbourne';
-  ELSIF p_state != 'VIC' AND counters.interstate_remaining > 0 THEN
-    UPDATE public.early_bird_counters SET interstate_remaining = interstate_remaining - 1 WHERE id = 1;
-    RETURN 'interstate';
+  IF p_state = 'VIC' THEN
+    SELECT count(*) INTO v_count FROM public.registrations WHERE is_early_bird = true AND state = 'VIC';
+    IF v_count < v_vic_limit THEN
+      RETURN 'melbourne';
+    END IF;
+  ELSE
+    SELECT count(*) INTO v_count FROM public.registrations WHERE is_early_bird = true AND state != 'VIC';
+    IF v_count < v_interstate_limit THEN
+      RETURN 'interstate';
+    END IF;
   END IF;
 
   RETURN 'none';
@@ -281,11 +304,17 @@ END;
 $$;
 -- Payments, bank statements, email log
 
-CREATE TYPE public.payment_source AS ENUM ('manual', 'bank_reconcile');
-
-CREATE TYPE public.bank_statement_status AS ENUM ('processing', 'completed', 'failed');
-
-CREATE TYPE public.match_status AS ENUM ('auto_matched', 'unmatched', 'confirmed', 'skipped');
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'payment_source') THEN
+    CREATE TYPE public.payment_source AS ENUM ('manual', 'bank_reconcile');
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'bank_statement_status') THEN
+    CREATE TYPE public.bank_statement_status AS ENUM ('processing', 'completed', 'failed');
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'match_status') THEN
+    CREATE TYPE public.match_status AS ENUM ('auto_matched', 'unmatched', 'confirmed', 'skipped');
+  END IF;
+END $$;
 
 CREATE TABLE IF NOT EXISTS public.bank_statements (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -321,10 +350,14 @@ CREATE TABLE IF NOT EXISTS public.payments (
   created_at timestamptz NOT NULL DEFAULT now()
 );
 
-CREATE TYPE public.email_type AS ENUM (
-  'registration_submitted', 'registration_updated',
-  'accommodation_updated', 'payment_received', 'payment_reminder'
-);
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'email_type') THEN
+    CREATE TYPE public.email_type AS ENUM (
+      'registration_submitted', 'registration_updated',
+      'accommodation_updated', 'payment_received', 'payment_reminder'
+    );
+  END IF;
+END $$;
 
 CREATE TABLE IF NOT EXISTS public.email_log (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),

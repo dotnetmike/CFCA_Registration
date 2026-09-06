@@ -2,8 +2,8 @@
 id: features.signup
 title: Account setup (post-registration)
 status: active
-synced_commit: 743bec3
-synced_at: 2026-08-20
+synced_commit: 8ee5938
+synced_at: 2026-09-06
 owners: [team]
 files:
   - src/app/signup/page.tsx

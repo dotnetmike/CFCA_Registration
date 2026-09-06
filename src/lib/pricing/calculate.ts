@@ -18,6 +18,8 @@ export type PricingConfig = {
   earlyBirdStart: string
   earlyBirdEnd: string
   earlyBirdPaymentDueDate: string
+  earlyBirdInterstateLimit: number
+  earlyBirdVicLimit: number
 }
 
 export const DEFAULT_PRICING_CONFIG: PricingConfig = {
@@ -29,6 +31,8 @@ export const DEFAULT_PRICING_CONFIG: PricingConfig = {
   earlyBirdStart: "2026-08-01",
   earlyBirdEnd: "2027-02-28",
   earlyBirdPaymentDueDate: "2027-02-28",
+  earlyBirdInterstateLimit: 200,
+  earlyBirdVicLimit: 250,
 }
 
 export const getAdultEarlyBirdSaving = (config: PricingConfig = DEFAULT_PRICING_CONFIG) =>

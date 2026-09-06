@@ -19,11 +19,13 @@ export const SiteHeader = () => {
   const pathname = usePathname()
   const [isLoggingOut, setIsLoggingOut] = useState(false)
   const [isDashOpen, setIsDashOpen] = useState(false)
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const dashRef = useRef<HTMLDivElement>(null)
   useBusyCursor(isLoggingOut)
 
   useEffect(() => {
     setIsDashOpen(false)
+    setIsMobileMenuOpen(false)
   }, [pathname])
 
   useEffect(() => {
@@ -99,21 +101,54 @@ export const SiteHeader = () => {
 
   return (
     <header className="sticky top-0 z-40 border-b border-[color:var(--line)] bg-white/95 backdrop-blur-xl animate-fade">
-      <div className="mx-auto grid max-w-6xl grid-cols-[minmax(0,1.35fr)_auto_minmax(0,1fr)] items-center gap-3 px-4 py-3 md:gap-6 md:py-3.5">
-        <Link
-          href="/"
-          className="cfca-brand-mark group justify-self-start"
-          aria-label="Couples for Christ Australia — Conference Registration home"
-        >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src="/brand/cfca-logo-official.jpg"
-            alt="Couples for Christ Australia"
-            width={220}
-            height={78}
-            className="h-20 w-auto object-contain transition-opacity group-hover:opacity-90"
-          />
-        </Link>
+      <div className="mx-auto flex max-w-6xl flex-col gap-3 px-4 py-3 md:grid md:grid-cols-[minmax(0,1.35fr)_auto_minmax(0,1fr)] md:items-center md:gap-6 md:py-3.5">
+        <div className="flex items-center justify-between">
+          <Link
+            href="/"
+            className="cfca-brand-mark group"
+            aria-label="Couples for Christ Australia — Conference Registration home"
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/brand/cfca-logo-official.jpg"
+              alt="Couples for Christ Australia"
+              width={220}
+              height={78}
+              className="h-14 w-auto object-contain transition-opacity group-hover:opacity-90 md:h-20"
+            />
+          </Link>
+
+          <button
+            type="button"
+            className="inline-flex items-center justify-center rounded-lg border border-[color:var(--line)] p-2 text-ink transition-colors hover:bg-surface-muted md:hidden"
+            aria-label="Toggle menu"
+            aria-expanded={isMobileMenuOpen}
+            onClick={() => setIsMobileMenuOpen((open) => !open)}
+          >
+            <svg
+              className="h-6 w-6"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              {isMobileMenuOpen ? (
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M6 18L18 6M6 6l12 12"
+                />
+              ) : (
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M4 6h16M4 12h16M4 18h16"
+                />
+              )}
+            </svg>
+          </button>
+        </div>
 
         <div className="cfca-header-title" aria-label="National Conference 2027">
           <span>National Conference 2027</span>
@@ -123,7 +158,7 @@ export const SiteHeader = () => {
         </div>
 
         <nav
-          className="flex flex-wrap items-center justify-end gap-x-5 gap-y-2 justify-self-end"
+          className="hidden md:flex md:flex-wrap md:items-center md:justify-end md:gap-x-5 md:gap-y-2 md:justify-self-end"
           aria-label="Main navigation"
         >
           {!isLoading && user ? (
@@ -228,6 +263,95 @@ export const SiteHeader = () => {
             </>
           ) : null}
         </nav>
+
+        {/* Mobile Navigation Drawer */}
+        {isMobileMenuOpen && (
+          <nav className="flex flex-col gap-3 rounded-xl border border-[color:var(--line)] bg-surface p-4 shadow-lg md:hidden animate-rise">
+            {!isLoading && user ? (
+              <>
+                <div className="pb-2 border-b text-sm font-semibold text-ink">
+                  Signed in as {user.name}
+                </div>
+                <Link
+                  href="/my-registration"
+                  className="px-2 py-1 text-base font-medium text-ink hover:text-blue-600"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  My Registration
+                </Link>
+                <Link
+                  href="/payment"
+                  className="px-2 py-1 text-base font-medium text-ink hover:text-blue-600"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  Payment
+                </Link>
+                <Link
+                  href="/account"
+                  className="px-2 py-1 text-base font-medium text-ink hover:text-blue-600"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  Account
+                </Link>
+
+                {isManager(user) && (
+                  <div className="space-y-1 pl-2 border-l-2 border-blue-500 my-1">
+                    <div className="px-2 text-xs font-semibold uppercase tracking-wider text-ink-soft">
+                      Dashboard
+                    </div>
+                    {visibleDashLinks.map((link) => (
+                      <Link
+                        key={link.href}
+                        href={link.href}
+                        className="block px-2 py-1 text-sm font-medium text-ink-soft hover:text-ink"
+                        onClick={() => setIsMobileMenuOpen(false)}
+                      >
+                        {link.label}
+                      </Link>
+                    ))}
+                  </div>
+                )}
+
+                <div className="pt-2 border-t">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full justify-center"
+                    onClick={handleLogout}
+                    isLoading={isLoggingOut}
+                    loadingText="Logging out..."
+                    disabled={isLoggingOut}
+                    aria-label="Log out"
+                  >
+                    Logout
+                  </Button>
+                </div>
+              </>
+            ) : !isRegistrationPage ? (
+              <>
+                <Link
+                  href="/login"
+                  className="px-2 py-1 text-base font-medium text-ink hover:text-blue-600"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  Login
+                </Link>
+                <Link
+                  href="/create-account"
+                  className="px-2 py-1 text-base font-medium text-ink hover:text-blue-600"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  Create Account
+                </Link>
+                <Link href="/" onClick={() => setIsMobileMenuOpen(false)}>
+                  <Button size="sm" className="w-full justify-center" aria-label="Register for conference">
+                    Register
+                  </Button>
+                </Link>
+              </>
+            ) : null}
+          </nav>
+        )}
       </div>
     </header>
   )

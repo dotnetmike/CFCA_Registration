@@ -2,14 +2,21 @@ import { NextRequest, NextResponse } from "next/server"
 import { z } from "zod"
 import { requireAuth, requirePermission, jsonError } from "@/lib/auth/api"
 import {
-  getRegistrationRuntimeSettings,
+  getRawRegistrationRuntimeSettings,
   updateRegistrationRuntimeSettings,
 } from "@/lib/registration-settings"
 import { DEFAULT_PRICING_CONFIG } from "@/lib/pricing/calculate"
 
+const optionalDateSchema = z.union([
+  z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  z.literal(""),
+])
+
 const settingsSchema = z
   .object({
     registrationOpen: z.boolean(),
+    registrationStartDate: optionalDateSchema.optional().default(""),
+    registrationEndDate: optionalDateSchema.optional().default(""),
     pricing: z.object({
       earlyBirdStart: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
       earlyBirdEnd: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
@@ -18,11 +25,24 @@ const settingsSchema = z
       adultRegular: z.coerce.number().min(0),
       age12Plus: z.coerce.number().min(0),
       age2To12: z.coerce.number().min(0),
+      earlyBirdInterstateLimit: z.coerce.number().min(0).default(200),
+      earlyBirdVicLimit: z.coerce.number().min(0).default(250),
     }),
     paymentReminderDates: z.array(z.string().regex(/^\d{4}-\d{2}-\d{2}$/)).max(12),
     notificationRecipientEmail: z.union([z.string().email(), z.literal("")]),
   })
   .superRefine((data, ctx) => {
+    if (
+      data.registrationStartDate &&
+      data.registrationEndDate &&
+      data.registrationStartDate > data.registrationEndDate
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["registrationStartDate"],
+        message: "Registration opening date must be before or equal to closing date",
+      })
+    }
     if (data.pricing.earlyBirdStart > data.pricing.earlyBirdEnd) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
@@ -46,9 +66,14 @@ export const GET = async (request: NextRequest) => {
   const forbidden = requirePermission(auth, "users:manage")
   if (forbidden) return forbidden
 
-  const settings = await getRegistrationRuntimeSettings()
+  const { rawRegistrationOpen, settings } = await getRawRegistrationRuntimeSettings()
   return NextResponse.json(
-    { settings },
+    {
+      settings: {
+        ...settings,
+        registrationOpen: rawRegistrationOpen,
+      },
+    },
     { headers: { "Cache-Control": "no-store" } }
   )
 }
