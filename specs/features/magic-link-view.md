@@ -2,8 +2,8 @@
 id: features.magic-link-view
 title: Magic-link registration view
 status: active
-synced_commit: working-tree
-synced_at: 2026-08-22
+synced_commit: 8ee5938
+synced_at: 2026-09-06
 owners: [team]
 files:
   - src/app/r/[token]/page.tsx

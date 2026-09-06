@@ -1,19 +1,27 @@
 -- Registration schema
 
-CREATE TYPE public.cfca_position AS ENUM (
-  'member', 'hh_leader', 'unit_leader', 'chapter_leader',
-  'ministry_coordinator', 'area_coordinator', 'area_head', 'national_council'
-);
-
-CREATE TYPE public.australian_state AS ENUM (
-  'NSW', 'VIC', 'QLD', 'SA', 'WA', 'TAS', 'NT', 'ACT'
-);
-
-CREATE TYPE public.accommodation_type AS ENUM ('own', 'billet');
-
-CREATE TYPE public.payment_status AS ENUM ('pending', 'partial', 'paid', 'overpaid');
-
-CREATE TYPE public.early_bird_slot AS ENUM ('interstate', 'melbourne', 'none');
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'cfca_position') THEN
+    CREATE TYPE public.cfca_position AS ENUM (
+      'member', 'hh_leader', 'unit_leader', 'chapter_leader',
+      'ministry_coordinator', 'area_coordinator', 'area_head', 'national_council'
+    );
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'australian_state') THEN
+    CREATE TYPE public.australian_state AS ENUM (
+      'NSW', 'VIC', 'QLD', 'SA', 'WA', 'TAS', 'NT', 'ACT'
+    );
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'accommodation_type') THEN
+    CREATE TYPE public.accommodation_type AS ENUM ('own', 'billet');
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'payment_status') THEN
+    CREATE TYPE public.payment_status AS ENUM ('pending', 'partial', 'paid', 'overpaid');
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'early_bird_slot') THEN
+    CREATE TYPE public.early_bird_slot AS ENUM ('interstate', 'melbourne', 'none');
+  END IF;
+END $$;
 
 CREATE SEQUENCE IF NOT EXISTS registration_no_seq START 1;
 

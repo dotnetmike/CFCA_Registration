@@ -67,11 +67,19 @@ export const isAustralianMobileNumber = (value: string) => {
 
 export const getAirportTransportDateWindow = (
   transportType: "pickup" | "dropoff",
-  position: string | null | undefined
+  position: string | null | undefined,
+  elderAssemblyAttending?: boolean | null
 ) => {
-  void position
   if (transportType === "pickup") {
-    return { min: "2027-04-08", max: "2027-04-10" }
+    const isEldersAssembly =
+      !!position &&
+      (ELDER_ASSEMBLY_POSITIONS as readonly string[]).includes(position) &&
+      !!elderAssemblyAttending
+
+    return {
+      min: isEldersAssembly ? "2027-04-08" : "2027-04-09",
+      max: "2027-04-10",
+    }
   }
 
   return { min: "2027-04-10", max: "2027-04-11" }
@@ -80,14 +88,18 @@ export const getAirportTransportDateWindow = (
 export const getAirportTransportValidationError = (
   transportType: "pickup" | "dropoff",
   position: string | null | undefined,
-  selectedDate: string | null | undefined
+  selectedDate: string | null | undefined,
+  elderAssemblyAttending?: boolean | null
 ) => {
   if (!selectedDate) return null
 
-  const window = getAirportTransportDateWindow(transportType, position)
+  const window = getAirportTransportDateWindow(transportType, position, elderAssemblyAttending)
   if (selectedDate < window.min || selectedDate > window.max) {
     if (transportType === "pickup") {
-      return "Please choose a pickup date between Thursday, 8 April 2027 and Saturday, 10 April 2027."
+      if (window.min === "2027-04-08") {
+        return "Please choose a pickup date between Thursday, 8 April 2027 and Saturday, 10 April 2027."
+      }
+      return "Please choose a pickup date between Friday, 9 April 2027 and Saturday, 10 April 2027."
     }
     return "Please choose a drop-off date between Saturday, 10 April 2027 and Sunday, 11 April 2027."
   }
@@ -351,7 +363,7 @@ export const REGISTRATION_FIELDS = {
     "spouse_dietary_requirements", "souvenir_orders",
   ],
   accommodation: [
-    "accommodation_type", "pickup_melbourne_airport", "dropoff_melbourne_airport",
+    "accommodation_type", "transport_option", "pickup_melbourne_airport", "dropoff_melbourne_airport",
     "hotel_transport_required", "arrival_date", "arrival_airport", "arrival_flight_no",
     "departure_date", "departure_airport", "departure_flight_no",
     "hotel_name", "hotel_address", "accommodation_contact_name", "accommodation_contact_phone",

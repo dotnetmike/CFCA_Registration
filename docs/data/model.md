@@ -52,9 +52,13 @@ erDiagram
   runtime_registration_settings {
     bool id PK
     bool registration_open
+    date registration_start_date
+    date registration_end_date
     date early_bird_start
     date early_bird_end
     date early_bird_payment_due_date
+    int early_bird_interstate_limit
+    int early_bird_vic_limit
     jsonb payment_reminder_dates
     text notification_recipient_email
     numeric adult_early_bird

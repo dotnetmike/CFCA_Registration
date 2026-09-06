@@ -2,8 +2,8 @@
 id: features.registration
 title: Registration form
 status: active
-synced_commit: working-tree
-synced_at: 2026-08-24
+synced_commit: 8ee5938
+synced_at: 2026-09-06
 owners: [team]
 files:
   - src/app/page.tsx
@@ -70,16 +70,16 @@ Single continuous conference registration page. Guests complete without login; l
 - **Ministry** is selected before **Ministry Role**: CFCA, HOLD, SOLD, LIA, Family Ministry, or Non-member. Selecting Non-member locks Ministry Role to Non-member.
 - **CFCA Membership State** (required, DB column `state`) is shown on the same row as **Ministry Role** on medium+ screens; on small screens membership state stacks below ministry role.
 - When the user selects or changes **Address State** (including via address autocomplete), **CFCA Membership State** is set to the same value automatically.
-- Chapter Leader, Ministry Coordinator, Area Coordinator, Area Head, and National Council roles may record elder's assembly attendance on Thursday, 8 April 2027.
+- Chapter Leader, Ministry Coordinator, Area Coordinator, Area Head, and National Council roles may record elder's assembly attendance on Thursday, 8 April 2027 with the checkbox label "Attending the elder's assembly on Thursday, 8 April 2027".
 
 ### Airport transport
 
-- Pickup is available from Thursday, 8 April 2027 to Saturday, 10 April 2027, 5am–10pm for every ministry role.
-- Drop-off is available from Saturday, 10 April 2027 to Sunday, 11 April 2027, 5am–10pm.
+- Pickup is available from Thursday, 8 April 2027 to Saturday, 10 April 2027 (7am–10pm) ONLY for delegates attending the Elders Assembly. For delegates not attending Elders Assembly, pickup is available from Friday, 9 April 2027 to Saturday, 10 April 2027 (7am–10pm).
+- Drop-off is available from Saturday, 10 April 2027 to Sunday, 11 April 2027, 7am–10pm.
 - When **Pick-up and/or Drop-off** is selected, users can optionally provide their hotel/accommodation name and address to support transport planning.
-  - Pickup only: "Pick-up at Tullamarine is available from Thursday, 8 April 2027, 5am–10pm."
-  - Pickup + drop-off: "Pick-up and drop-off at Tullamarine: pick-up from Thursday, 8 April 2027, 5am–10pm and drop-off Sunday, 11 April 2027, 5am–10pm."
-  - Drop-off only (any position): "Drop-off at Tullamarine is available only on Sunday, 11 April 2027, 5am–10pm."
+  - Pickup only: "Pick-up at Tullamarine is available from [Thursday, 8 April 2027 / Friday, 9 April 2027], 7am–10pm."
+  - Pickup + drop-off: "Pick-up and drop-off at Tullamarine: pick-up from [Thursday, 8 April 2027 / Friday, 9 April 2027], 7am–10pm and drop-off Sunday, 11 April 2027, 7am–10pm."
+  - Drop-off only (any position): "Drop-off at Tullamarine is available only on Sunday, 11 April 2027, 7am–10pm."
   - All variants note transport from other airports (e.g. Avalon) may not be available.
 - Spouse records include an optional food allergy and dietary requirements field if attending.
 

@@ -2,8 +2,8 @@
 id: features.my-registration
 title: My Registration
 status: active
-synced_commit: 743bec3
-synced_at: 2026-08-20
+synced_commit: 8ee5938
+synced_at: 2026-09-06
 owners: [team]
 files:
   - src/app/my-registration/page.tsx

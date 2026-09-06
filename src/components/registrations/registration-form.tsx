@@ -280,8 +280,16 @@ const RegistrationForm = ({
   const transportOption = watchAll.transport_option as TransportOption | "" | undefined
   const { showArrival, showDeparture } = getTransportFlightSections(transportOption)
   const needsAirportTransport = showArrival || showDeparture
-  const pickupDateWindow = getAirportTransportDateWindow("pickup", watchAll.cfca_position)
-  const dropoffDateWindow = getAirportTransportDateWindow("dropoff", watchAll.cfca_position)
+  const pickupDateWindow = getAirportTransportDateWindow(
+    "pickup",
+    watchAll.cfca_position,
+    watchAll.elder_assembly_attending
+  )
+  const dropoffDateWindow = getAirportTransportDateWindow(
+    "dropoff",
+    watchAll.cfca_position,
+    watchAll.elder_assembly_attending
+  )
   const souvenirQty = souvenirTotalQuantity(watchAll.souvenir_orders)
   const souvenirAmount = souvenirTotalAmount(watchAll.souvenir_orders)
   const isNonMemberMinistry = watchAll.ministry === "non_member"
@@ -944,7 +952,7 @@ const RegistrationForm = ({
                     {...form.register("elder_assembly_attending")}
                     aria-label="Attending the elder's assembly"
                   />
-                  <span>Are you attending the elder&apos;s assembly on Thursday, 8 April 2027?</span>
+                  <span>Attending the elder&apos;s assembly on Thursday, 8 April 2027</span>
                 </label>
               )}
 
@@ -1311,6 +1319,7 @@ const RegistrationForm = ({
               {transportOption && transportOption !== "own" && (
                 <TransportScheduleAlert
                   transportOption={transportOption}
+                  elderAssemblyAttending={!!watchAll.elder_assembly_attending}
                 />
               )}
 
