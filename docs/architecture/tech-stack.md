@@ -9,7 +9,7 @@
 | UI | React + Tailwind v4 | CFCA brand blue theme (`globals.css` tokens); Cormorant + Source Sans 3; logos in `public/brand/` |
 | DB | Supabase Postgres | Migrations in `supabase/migrations/` |
 | Auth | Custom JWT | Cookies `cfca_access_token`, `cfca_refresh_token` |
-| Email | Resend | Optional locally if key missing |
+| Email | Resend (default) or Microsoft 365 Graph | Switch with `EMAIL_PROVIDER` — see [operations/email.md](../operations/email.md) |
 
 ## Environment
 
@@ -28,7 +28,9 @@ Typical keys per env:
 - Supabase URL + **service role** key (server only) for **that** project
 - `JWT_ACCESS_SECRET` / `JWT_REFRESH_SECRET` / access expiry (unique per env)
 - `NEXT_PUBLIC_BANK_*` for payment page
-- `RESEND_API_KEY`, `EMAIL_FROM`
+- `EMAIL_PROVIDER` (`resend` default, or `office365`)
+- Resend: `RESEND_API_KEY`, `EMAIL_FROM` (Resend From only)
+- Office 365 (Microsoft Graph): `OFFICE365_TENANT_ID`, `OFFICE365_CLIENT_ID`, `OFFICE365_CLIENT_SECRET`, `OFFICE365_USERNAME` (see [operations/email.md](../operations/email.md))
 - Absolute links in emails use the request Host / `X-Forwarded-*` headers (`getRequestSiteUrl`) — no site URL env var
 
 Never commit secrets. Never expose service role to the client. Never point DEV/UAT at the production Supabase project.

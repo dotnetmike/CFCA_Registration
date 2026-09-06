@@ -41,7 +41,7 @@ CFCA_Registration/
 | Detailed CSV export | `src/app/api/admin/reports/route.ts` | `features.dashboard` |
 | Admin detail | `src/app/dashboard/registrations/[id]/page.tsx` | `features.dashboard` |
 | Audit write / UI | `src/lib/audit/*`, `src/app/dashboard/audit` | `features.audit` |
-| Email content / HTML template | `src/lib/email/send.ts`, `password-reset.ts`, `template.ts` | `global.email` |
+| Email content / HTML template | `src/lib/email/send.ts`, `password-reset.ts`, `template.ts`, `provider.ts` | `global.email` |
 | Server DB client | `src/lib/supabase/admin.ts` (service role) | `global.database` / auth-security |
 
 ## API surface (App Router)
@@ -78,7 +78,7 @@ flowchart LR
 | `lib/pricing` | Conference fee calculation |
 | `lib/payments` | Bank PDF parse helpers |
 | `lib/audit` | Sanitize + write audit rows |
-| `lib/email` | Resend HTML + text templates (`template.ts`) |
+| `lib/email` | Providers (`provider.ts`: Resend / Microsoft Graph) + HTML templates (`template.ts`) |
 | `lib/dashboard` | Client list cache |
 | `lib/db` | Migration helpers |
 | `lib/supabase` | Admin client |

@@ -37,7 +37,7 @@ cp .env.uat.example .env.uat
 cp .env.production.example .env.production
 ```
 
-2. Fill each file with that environment’s Supabase URL/keys, JWT secrets, Resend, bank details, etc.
+2. Fill each file with that environment’s Supabase URL/keys, JWT secrets, email provider (`EMAIL_PROVIDER` + Resend or Office 365 credentials), bank details, etc.
 3. Check out a branch (`dev` / `uat` / `master`) and run `npm run dev` — `env:select` runs first and writes `.env.local`.
 
 | Script | Purpose |
@@ -73,5 +73,6 @@ Also recommended:
 ## Related
 
 - [Local development](./local-dev.md)
+- [Email providers](./email.md)
 - [Migrations](./migrations.md)
 - [Tech stack](../architecture/tech-stack.md)

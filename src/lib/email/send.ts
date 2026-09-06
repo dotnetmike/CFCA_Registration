@@ -1,4 +1,3 @@
-import { Resend } from "resend"
 import { createAdminClient } from "@/lib/supabase/admin"
 import { formatCurrency } from "@/lib/pricing/calculate"
 import { CFCA_POSITION_LABELS, MINISTRY_LABELS } from "@/lib/registrations/schema"
@@ -20,6 +19,7 @@ import {
   getEmailLogoAttachment,
   assertEmailIncludesLogo,
 } from "@/lib/email/template"
+import { sendTransactionalEmail } from "@/lib/email/provider"
 
 type EmailType =
   | "registration_submitted"
@@ -91,15 +91,6 @@ type EmailSection = {
   title: string
   rows: { label: string; value: string }[]
 }
-
-const getResend = () => {
-  const key = process.env.RESEND_API_KEY
-  if (!key) return null
-  return new Resend(key)
-}
-
-const getFrom = () =>
-  process.env.EMAIL_FROM ?? "CFCA Registration <onboarding@resend.dev>"
 
 const paymentRef = (reg: RegistrationEmailRecord) =>
   reg.participant_reference || reg.registration_no
@@ -608,7 +599,6 @@ export const sendRegistrationEmail = async (
     : undefined
   const portalUrl = `${siteUrl}/my-registration`
 
-  const resend = getResend()
   const subject = buildSubject(type, registration)
   const text = buildBody(type, registration, { viewUrl, portalUrl })
   const html = buildHtml(type, registration, { viewUrl, portalUrl, siteUrl })
@@ -619,19 +609,7 @@ export const sendRegistrationEmail = async (
     ? (await getRegistrationRuntimeSettings()).notificationRecipientEmail
     : ""
 
-  if (!resend) {
-    console.log(`[email] (dev) ${type} to ${registration.email}${notificationRecipient ? `; bcc ${notificationRecipient}` : ""}: ${subject}`)
-    console.log(`[email] (dev) logo attached as cid:${logoAttachment.inlineContentId}`)
-    if (viewUrl) console.log(`[email] (dev) view link: ${viewUrl}`)
-    if (type === "registration_updated" || type === "accommodation_updated") {
-      console.log(`[email] (dev) portal link: ${portalUrl}`)
-    }
-    await logEmail(registration, type, registration.email, subject, null)
-    return
-  }
-
-  const { data, error } = await resend.emails.send({
-    from: getFrom(),
+  const result = await sendTransactionalEmail({
     to: registration.email,
     ...(notificationRecipient ? { bcc: notificationRecipient } : {}),
     subject,
@@ -640,11 +618,16 @@ export const sendRegistrationEmail = async (
     attachments: [logoAttachment],
   })
 
-  if (error) {
-    console.error("[email] Send failed:", error)
+  if (result.skipped) {
+    console.log(`[email] (dev) ${type} to ${registration.email}${notificationRecipient ? `; bcc ${notificationRecipient}` : ""}: ${subject}`)
+    console.log(`[email] (dev) logo attached as cid:${logoAttachment.inlineContentId}`)
+    if (viewUrl) console.log(`[email] (dev) view link: ${viewUrl}`)
+    if (type === "registration_updated" || type === "accommodation_updated") {
+      console.log(`[email] (dev) portal link: ${portalUrl}`)
+    }
   }
 
-  await logEmail(registration, type, registration.email, subject, data?.id ?? null)
+  await logEmail(registration, type, registration.email, subject, result.id)
 }
 
 const logEmail = async (

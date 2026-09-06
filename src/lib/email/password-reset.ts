@@ -1,4 +1,3 @@
-import { Resend } from "resend"
 import { createAdminClient } from "@/lib/supabase/admin"
 import {
   assertEmailIncludesLogo,
@@ -6,15 +5,7 @@ import {
   paragraphHtml,
   renderEmail,
 } from "@/lib/email/template"
-
-const getResend = () => {
-  const key = process.env.RESEND_API_KEY
-  if (!key) return null
-  return new Resend(key)
-}
-
-const getFrom = () =>
-  process.env.EMAIL_FROM ?? "CFCA Registration <onboarding@resend.dev>"
+import { sendTransactionalEmail } from "@/lib/email/provider"
 
 export const sendPasswordResetEmail = async (
   userId: string,
@@ -52,17 +43,7 @@ If you did not request this, you can safely ignore this email. Your password wil
   assertEmailIncludesLogo(html)
   const logoAttachment = getEmailLogoAttachment()
 
-  const resend = getResend()
-
-  if (!resend) {
-    console.log(`[email] (dev) password_reset to ${email}: ${resetUrl}`)
-    console.log(`[email] (dev) logo attached as cid:${logoAttachment.inlineContentId}`)
-    await logPasswordResetEmail(userId, email, subject, null)
-    return
-  }
-
-  const { data, error } = await resend.emails.send({
-    from: getFrom(),
+  const result = await sendTransactionalEmail({
     to: email,
     subject,
     text,
@@ -70,11 +51,12 @@ If you did not request this, you can safely ignore this email. Your password wil
     attachments: [logoAttachment],
   })
 
-  if (error) {
-    console.error("[email] Password reset send failed:", error)
+  if (result.skipped) {
+    console.log(`[email] (dev) password_reset to ${email}: ${resetUrl}`)
+    console.log(`[email] (dev) logo attached as cid:${logoAttachment.inlineContentId}`)
   }
 
-  await logPasswordResetEmail(userId, email, subject, data?.id ?? null)
+  await logPasswordResetEmail(userId, email, subject, result.id)
 }
 
 const logPasswordResetEmail = async (

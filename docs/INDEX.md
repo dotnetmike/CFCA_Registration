@@ -40,6 +40,7 @@
 |-----|---------|
 | [operations/local-dev.md](./operations/local-dev.md) | Run, build, restart |
 | [operations/environments.md](./operations/environments.md) | DEV / UAT / Production branch → env |
+| [operations/email.md](./operations/email.md) | Resend / Microsoft 365 email providers |
 | [operations/debugging.md](./operations/debugging.md) | Diagnose issues |
 | [operations/migrations.md](./operations/migrations.md) | Schema changes |
 | [contributing/add-a-feature.md](./contributing/add-a-feature.md) | Spec → code → docs |

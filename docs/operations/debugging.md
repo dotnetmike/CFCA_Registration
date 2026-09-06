@@ -11,7 +11,7 @@ flowchart TB
   API[App Router API route]
   Lib[src/lib domain]
   DB[(Postgres)]
-  Ext[Resend / Storage]
+  Ext[Resend / Microsoft 365 / Storage]
   UI --> MW
   UI --> API
   API --> Lib
@@ -34,7 +34,7 @@ Ask: Is it **UI state**, **auth/proxy**, **API validation**, **DB data**, or **e
 | Payment not matched | Reconcile parse | Unique Code in PDF text; amount ≥ due; `bank_transactions` |
 | Dashboard empty / stale | Cache / permissions | Refresh button; group membership; GET `/api/registrations` status |
 | Edit saves but no audit | No-op guard | `compare.ts`; “No changes to save” |
-| Emails missing | Resend / env | `RESEND_API_KEY`, `EMAIL_FROM`; server logs |
+| Emails missing | Email provider / env | `EMAIL_PROVIDER`; Resend: `RESEND_API_KEY` + `EMAIL_FROM`; Office 365 Graph: `OFFICE365_TENANT_ID` + `OFFICE365_CLIENT_ID` + `OFFICE365_CLIENT_SECRET` + `OFFICE365_USERNAME`; server logs — see [email.md](./email.md) |
 | Schema error on insert | Migration drift | `npm run db:deploy`; missing column vs code |
 
 ## Auth debugging
