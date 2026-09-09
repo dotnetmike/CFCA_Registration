@@ -18,6 +18,26 @@ flowchart TB
 
 Filters (full dataset): payment, accommodation, transpo, state, souvenir pre-order, text search.
 
+## Reports overview
+
+```mermaid
+flowchart TB
+  Fetch[GET /api/admin/reports]
+  Cache[Client cache summary + totals]
+  KPIs[KPI cards]
+  Charts[Payment and state charts]
+  Table[Summary by state]
+  CSV[Fresh CSV export]
+  Fetch --> Cache
+  Cache --> KPIs
+  Cache --> Charts
+  Cache --> Table
+  Refresh[Refresh] -->|clear + refetch| Fetch
+  Export[Export CSV] --> CSV
+```
+
+Reports UI: welcome panel, payment donut, registrations-by-state bar chart, people composition, share progress table.
+
 ## Registration detail
 
 ```mermaid
@@ -77,9 +97,14 @@ Role editor: Users page → Edit roles → `PATCH /api/admin/users` → audit `u
 
 - `src/components/layout/dashboard-subnav.tsx`
 - `src/components/layout/site-header.tsx`
+- `src/components/dashboard/stat-card.tsx`
+- `src/components/dashboard/welcome-panel.tsx`
+- `src/components/dashboard/dashboard-panel.tsx`
 - `src/app/dashboard/page.tsx`
+- `src/app/dashboard/reports/page.tsx`
 - `src/app/dashboard/users/page.tsx`
 - `src/lib/auth/user-groups.ts`
 - `src/lib/dashboard/registrations-list-cache.ts`
+- `src/lib/dashboard/reports-cache.ts`
 - `src/app/dashboard/registrations/[id]/page.tsx`
 - `src/app/dashboard/audit/page.tsx`

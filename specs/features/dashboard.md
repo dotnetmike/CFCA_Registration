@@ -2,8 +2,8 @@
 id: features.dashboard
 title: Manager dashboard
 status: active
-synced_commit: 8ee5938
-synced_at: 2026-09-06
+synced_commit: working-tree
+synced_at: 2026-09-09
 owners: [team]
 files:
   - src/app/dashboard/page.tsx
@@ -30,6 +30,9 @@ files:
   - src/app/api/payments/reconcile/route.ts
   - src/app/api/registrations/[id]/payment/route.ts
   - src/app/api/registrations/[id]/notes/route.ts
+  - src/components/dashboard/stat-card.tsx
+  - src/components/dashboard/welcome-panel.tsx
+  - src/components/dashboard/dashboard-panel.tsx
   - src/lib/auth/user-groups.ts
   - src/lib/registration-settings.ts
 ---
@@ -84,12 +87,18 @@ Staff tools: list registrations, users, reports, payment reconcile.
 
 ### Reports (`/dashboard/reports`)
 
-- Summary-by-state view uses **client cache** + **Refresh**.
-- **Export Detailed CSV** always fetches a fresh full export from the API (not from the summary cache).
+- Summary view uses **client cache** + **Refresh**.
+- Layout includes:
+  - **KPI cards**: registrations, total people, amount collected, remaining balance
+  - **Welcome panel** with staff name + quick links
+  - **Charts**: payment-status distribution, registrations by state, people composition (primary / spouses / kids)
+  - **Summary-by-state table** with share progress bars
+  - **Export Detailed CSV** panel (always fetches a fresh full export from the API, not from the summary cache)
 - CSV includes **all registrant attributes** currently on the registration row (dynamic column union so newly added columns appear automatically), plus flattened spouse/attendee helpers as needed:
   - Excludes secrets/tokens (`view_token_hash`, `signup_token_hash`, related token timestamps).
   - Additional attendees exported as readable text, e.g. `John Smith (age 0) (kids supervision), Mary Smith (age 15)`.
   - Souvenir orders exported as readable text, e.g. `1 x Small (S), 1 x Large (L)`.
+- JSON reports payload also returns `totals` and `paymentStatusCounts` for the KPI/chart widgets.
 
 ### Registration detail (`/dashboard/registrations/[id]`)
 
@@ -126,8 +135,9 @@ Staff tools: list registrations, users, reports, payment reconcile.
 - [ ] Admin notes can be added and are audited
 - [ ] Unique Code label used for payment code
 - [ ] Registrations / Users / Audit pages at 100 per page; client cache with TTL/cap and Refresh
-- [ ] Reports summary uses client cache + Refresh
+- [ ] Reports summary uses client cache + Refresh, with KPI cards and charts (payment status, by state, composition)
 - [ ] Detailed CSV exports all non-secret registration attributes and attendees JSON; new columns included automatically
+- [ ] Registrations list shows KPI strip for the current filtered set
 - [ ] Filter for registrants who pre-ordered souvenirs
 - [ ] Admin can update user roles/groups from Users page
 - [ ] Role update is audited and revokes target user sessions

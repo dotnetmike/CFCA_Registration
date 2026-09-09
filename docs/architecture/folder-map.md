@@ -41,7 +41,7 @@ CFCA_Registration/
 | Detailed CSV export | `src/app/api/admin/reports/route.ts` | `features.dashboard` |
 | Admin detail | `src/app/dashboard/registrations/[id]/page.tsx` | `features.dashboard` |
 | Audit write / UI | `src/lib/audit/*`, `src/app/dashboard/audit` | `features.audit` |
-| Email content / HTML template | `src/lib/email/send.ts`, `password-reset.ts`, `template.ts`, `provider.ts` | `global.email` |
+| Dashboard KPI / welcome widgets | `src/components/dashboard/*` | `features.dashboard` |
 | Server DB client | `src/lib/supabase/admin.ts` (service role) | `global.database` / auth-security |
 
 ## API surface (App Router)

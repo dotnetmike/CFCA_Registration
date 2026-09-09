@@ -28,6 +28,7 @@ import {
 } from "@/lib/dashboard/registration-list-filters"
 import { buildDetailedRegistrationsCsv } from "@/lib/dashboard/reports-csv"
 import { downloadTextFile } from "@/lib/dashboard/download-csv"
+import { StatCard } from "@/components/dashboard/stat-card"
 
 const PAGE_SIZE = 100
 const PAYMENT_STATUSES = ["pending", "partial", "paid", "overpaid"] as const
@@ -223,6 +224,28 @@ const DashboardPage = () => {
     [registrations, listFilters]
   )
 
+  const listKpis = useMemo(() => {
+    let paid = 0
+    let pendingLike = 0
+    let amountDue = 0
+    let amountPaid = 0
+    for (const row of filtered) {
+      const status = String(row.payment_status ?? "")
+      if (status === "paid" || status === "overpaid") paid += 1
+      if (status === "pending" || status === "partial") pendingLike += 1
+      amountDue += Number(row.amount_due ?? 0)
+      amountPaid += Number(row.amount_paid ?? 0)
+    }
+    return {
+      matching: filtered.length,
+      paid,
+      pendingLike,
+      amountDue,
+      amountPaid,
+      remaining: Math.max(0, amountDue - amountPaid),
+    }
+  }, [filtered])
+
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
   const currentPage = Math.min(page, totalPages)
   const pageStart = (currentPage - 1) * PAGE_SIZE
@@ -306,6 +329,36 @@ const DashboardPage = () => {
       )}
       {loadError && <p className="text-sm text-red-600" role="alert">{loadError}</p>}
       {exportError && <p className="text-sm text-red-600" role="alert">{exportError}</p>}
+
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <StatCard
+          label="Matching"
+          value={String(listKpis.matching)}
+          hint={`of ${registrations.length} loaded`}
+          tone="brand"
+        />
+        <StatCard
+          label="Paid"
+          value={String(listKpis.paid)}
+          hint={`${listKpis.pendingLike} pending / partial`}
+          tone="success"
+          className="animate-rise-delay-1"
+        />
+        <StatCard
+          label="Collected"
+          value={formatCurrency(listKpis.amountPaid)}
+          hint={`of ${formatCurrency(listKpis.amountDue)} due`}
+          tone="info"
+          className="animate-rise-delay-2"
+        />
+        <StatCard
+          label="Remaining"
+          value={formatCurrency(listKpis.remaining)}
+          hint="Across current filters"
+          tone="warning"
+          className="animate-rise-delay-3"
+        />
+      </div>
 
       <Input
         placeholder="Search by name, email, registration no, state, contact..."

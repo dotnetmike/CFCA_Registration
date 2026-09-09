@@ -118,7 +118,7 @@ export const DashboardSubnav = () => {
       {indicator && (
         <span
           aria-hidden="true"
-          className="cfca-dashboard-subnav__indicator pointer-events-none absolute rounded-lg bg-ink shadow-sm"
+          className="cfca-dashboard-subnav__indicator pointer-events-none absolute rounded-lg bg-brand shadow-sm"
           style={{
             left: indicator.left,
             top: indicator.top,
