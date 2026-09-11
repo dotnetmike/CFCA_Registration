@@ -2,8 +2,8 @@
 id: features.registration
 title: Registration form
 status: active
-synced_commit: 8ee5938
-synced_at: 2026-09-06
+synced_commit: working-tree
+synced_at: 2026-09-11
 owners: [team]
 files:
   - src/app/page.tsx
@@ -35,6 +35,7 @@ files:
   - supabase/migrations/015_runtime_registration_settings.sql
   - supabase/migrations/014_registration_dietary_requirements.sql
   - supabase/migrations/016_registration_operations_settings.sql
+  - supabase/migrations/018_ministry_and_role_options.sql
 ---
 
 # Registration form
@@ -67,14 +68,15 @@ Single continuous conference registration page. Guests complete without login; l
 - Primary registrant and attendee fields include an optional food allergy and dietary requirements field.
 - Australian mobile numbers are validated to the local format (`04xx xxx xxx` or `+61...`).
 - Address fields use labels **Address Suburb**, **Address Postcode**, and **Address State** (optional).
-- **Ministry** is selected before **Ministry Role**: CFCA, HOLD, SOLD, LIA, Family Ministry, or Non-member. Selecting Non-member locks Ministry Role to Non-member.
+- **Ministry** is selected before **Ministry Role**: CFCA, Family Ministries, LIA, PCS, Communications, or Non-Member. Selecting Non-Member locks Ministry Role to Non-member.
+- **Ministry Role** options are Member, Household Leader, Unit Leader, HOLD, SOLD, Family Ministry Area Leader, Family Ministry Coordinator, Chapter Leader, Cluster Leader, Sector Leader National Coordinator, LIA Area Coordinator, PCS Area Coordinator, Comms Area Coordinator, National Director, and National Council Member.
 - **CFCA Membership State** (required, DB column `state`) is shown on the same row as **Ministry Role** on medium+ screens; on small screens membership state stacks below ministry role.
 - When the user selects or changes **Address State** (including via address autocomplete), **CFCA Membership State** is set to the same value automatically.
-- Chapter Leader, Ministry Coordinator, Area Coordinator, Area Head, and National Council roles may record elder's assembly attendance on Thursday, 8 April 2027 with the checkbox label "Attending the elder's assembly on Thursday, 8 April 2027".
+- Family Ministry Area Leader, Chapter Leader, Cluster Leader, Sector Leader National Coordinator, LIA Area Coordinator, PCS Area Coordinator, Comms Area Coordinator, National Director, and National Council Member roles may record elder's assembly attendance on Thursday, 8 April 2027 with the checkbox label "Attending the elder's assembly on Thursday, 8 April 2027".
 
 ### Airport transport
 
-- Pickup is available from Thursday, 8 April 2027 to Saturday, 10 April 2027 (7am–10pm) ONLY for delegates attending the Elders Assembly. For delegates not attending Elders Assembly, pickup is available from Friday, 9 April 2027 to Saturday, 10 April 2027 (7am–10pm).
+- Pickup is available from Thursday, 8 April 2027 to Saturday, 10 April 2027 (7am–10pm) for roles eligible to attend the Elders Assembly. For all other roles, pickup is available from Friday, 9 April 2027 to Saturday, 10 April 2027 (7am–10pm).
 - Drop-off is available from Saturday, 10 April 2027 to Sunday, 11 April 2027, 7am–10pm.
 - When **Pick-up and/or Drop-off** is selected, users can optionally provide their hotel/accommodation name and address to support transport planning.
   - Pickup only: "Pick-up at Tullamarine is available from [Thursday, 8 April 2027 / Friday, 9 April 2027], 7am–10pm."
