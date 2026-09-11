@@ -178,11 +178,19 @@ const collectValidationIssues = (
   return issues
 }
 
+const SOUVENIR_QTY_MAX = 50
+
 const parseWholeNumberQuantity = (raw: unknown) => {
   if (raw === "" || raw == null) return 0
   const n = typeof raw === "number" ? raw : Number(String(raw).trim())
   if (!Number.isFinite(n)) return 0
-  return Math.max(0, Math.min(50, Math.trunc(n)))
+  return Math.max(0, Math.min(SOUVENIR_QTY_MAX, Math.trunc(n)))
+}
+
+const exceedsSouvenirQuantityMax = (raw: unknown) => {
+  if (raw === "" || raw == null) return false
+  const n = typeof raw === "number" ? raw : Number(String(raw).trim())
+  return Number.isFinite(n) && Math.trunc(n) > SOUVENIR_QTY_MAX
 }
 
 const focusFirstInvalidField = () => {
@@ -259,6 +267,9 @@ const RegistrationForm = ({
   const [baselineSnapshot, setBaselineSnapshot] = useState<string | null>(null)
   const [info, setInfo] = useState("")
   const [validationIssues, setValidationIssues] = useState<ValidationIssue[]>([])
+  const [souvenirMaxNotices, setSouvenirMaxNotices] = useState<
+    Partial<Record<(typeof TSHIRT_SIZES)[number], boolean>>
+  >({})
 
   const form = useForm<RegistrationFormInput>({
     resolver: zodResolver(registrationSchema),
@@ -1517,7 +1528,15 @@ const RegistrationForm = ({
                               event.preventDefault()
                             }
                           },
+                          onChange: (event: React.ChangeEvent<HTMLInputElement>) => {
+                            // Clear stale notice while editing; only announce after blur caps the value
+                            setSouvenirMaxNotices((prev) =>
+                              prev[size] ? { ...prev, [size]: false } : prev
+                            )
+                            void registered.onChange(event)
+                          },
                           onBlur: (event: React.FocusEvent<HTMLInputElement>) => {
+                            const hitMax = exceedsSouvenirQuantityMax(event.target.value)
                             const next = parseWholeNumberQuantity(event.target.value)
                             event.target.value = String(next)
                             void registered.onBlur(event)
@@ -1525,15 +1544,33 @@ const RegistrationForm = ({
                               shouldValidate: true,
                               shouldDirty: true,
                             })
+                            setSouvenirMaxNotices((prev) => ({
+                              ...prev,
+                              [size]: hitMax,
+                            }))
                           },
                         }
                       })()}
                       aria-invalid={!!formErrors.souvenir_orders?.[index]?.quantity}
+                      aria-describedby={
+                        souvenirMaxNotices[size] ? `souvenir-${size}-max-note` : undefined
+                      }
                       aria-label={`Quantity for ${TSHIRT_SIZE_LABELS[size]} t-shirts`}
                     />
-                    <FieldError
-                      message={formErrors.souvenir_orders?.[index]?.quantity?.message}
-                    />
+                    {souvenirMaxNotices[size] ? (
+                      <p
+                        id={`souvenir-${size}-max-note`}
+                        className="text-sm font-medium leading-5 text-amber-800"
+                        role="status"
+                        aria-live="polite"
+                      >
+                        Max is 50 — we've set this to 50.
+                      </p>
+                    ) : (
+                      <FieldError
+                        message={formErrors.souvenir_orders?.[index]?.quantity?.message}
+                      />
+                    )}
                   </div>
                 ))}
               </div>
