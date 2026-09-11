@@ -89,7 +89,8 @@ Single continuous conference registration page. Guests complete without login; l
 
 - Managed by **Love In Action**; note that all proceeds support a fund for future projects sharing love and help to others.
 - Item: conference **t-shirt**, **$30** each.
-- Registrant may pre-order multiple lines by **size** and **quantity** (e.g. 1� Medium + 3� Large).
+- Registrant may pre-order multiple lines by **size** and **quantity** (e.g. 1× Medium + 3× Large).
+- Quantity is a **whole number** only (0–50), enforced in the input and validated with a size-specific message (e.g. “T-shirt quantity — Large (L)”).
 - Stored as `souvenir_orders` JSON on the registration; total added to `amount_due`.
 
 ### Accessibility

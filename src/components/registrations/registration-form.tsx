@@ -133,14 +133,22 @@ const collectValidationIssues = (
 
     if ("message" in value && typeof value.message === "string") {
       const inAttendees = path.includes("attendees")
+      const souvenirQtyMatch = path.match(/^souvenir_orders\.(\d+)\.quantity$/)
+      const souvenirSize =
+        souvenirQtyMatch != null
+          ? TSHIRT_SIZES[Number(souvenirQtyMatch[1])]
+          : undefined
+
       const label =
-        inAttendees && key === "surname"
-          ? "Attendee surname"
-          : inAttendees && key === "given_name"
-            ? "Attendee name"
-            : inAttendees && key === "age"
-              ? "Attendee age"
-              : FIELD_LABELS[key] ?? key.replace(/_/g, " ")
+        souvenirSize != null
+          ? `T-shirt quantity — ${TSHIRT_SIZE_LABELS[souvenirSize]}`
+          : inAttendees && key === "surname"
+            ? "Attendee surname"
+            : inAttendees && key === "given_name"
+              ? "Attendee name"
+              : inAttendees && key === "age"
+                ? "Attendee age"
+                : FIELD_LABELS[key] ?? key.replace(/_/g, " ")
 
       issues.push({ id: path, label, message: value.message })
       continue
@@ -168,6 +176,13 @@ const collectValidationIssues = (
   }
 
   return issues
+}
+
+const parseWholeNumberQuantity = (raw: unknown) => {
+  if (raw === "" || raw == null) return 0
+  const n = typeof raw === "number" ? raw : Number(String(raw).trim())
+  if (!Number.isFinite(n)) return 0
+  return Math.max(0, Math.min(50, Math.trunc(n)))
 }
 
 const focusFirstInvalidField = () => {
@@ -1483,13 +1498,41 @@ const RegistrationForm = ({
                     <Input
                       id={`souvenir-${size}`}
                       type="number"
+                      inputMode="numeric"
                       min={0}
                       max={50}
-                      className="h-12 text-base"
-                      {...form.register(`souvenir_orders.${index}.quantity`, {
-                        valueAsNumber: true,
-                      })}
+                      step={1}
+                      className={fieldControlClass(
+                        !!formErrors.souvenir_orders?.[index]?.quantity,
+                        "h-12 text-base"
+                      )}
+                      {...(() => {
+                        const registered = form.register(`souvenir_orders.${index}.quantity`, {
+                          setValueAs: parseWholeNumberQuantity,
+                        })
+                        return {
+                          ...registered,
+                          onKeyDown: (event: React.KeyboardEvent<HTMLInputElement>) => {
+                            if (["e", "E", "+", "-", ".", ","].includes(event.key)) {
+                              event.preventDefault()
+                            }
+                          },
+                          onBlur: (event: React.FocusEvent<HTMLInputElement>) => {
+                            const next = parseWholeNumberQuantity(event.target.value)
+                            event.target.value = String(next)
+                            void registered.onBlur(event)
+                            form.setValue(`souvenir_orders.${index}.quantity`, next, {
+                              shouldValidate: true,
+                              shouldDirty: true,
+                            })
+                          },
+                        }
+                      })()}
+                      aria-invalid={!!formErrors.souvenir_orders?.[index]?.quantity}
                       aria-label={`Quantity for ${TSHIRT_SIZE_LABELS[size]} t-shirts`}
+                    />
+                    <FieldError
+                      message={formErrors.souvenir_orders?.[index]?.quantity?.message}
                     />
                   </div>
                 ))}

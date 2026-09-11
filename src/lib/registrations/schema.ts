@@ -148,10 +148,19 @@ export const souvenirOrderLineSchema = z.object({
   quantity: z.preprocess(
     (value) => {
       if (value === "" || value == null) return 0
-      const n = Number(value)
-      return Number.isFinite(n) ? n : 0
+      const n = typeof value === "number" ? value : Number(String(value).trim())
+      if (!Number.isFinite(n)) return Number.NaN
+      // Whole numbers only — strip accidental decimals before int check
+      return Math.trunc(n)
     },
-    z.number().int().min(0).max(50)
+    z
+      .number({
+        invalid_type_error: "Enter a whole number (0 or more)",
+        required_error: "Enter a whole number (0 or more)",
+      })
+      .int("Enter a whole number (no decimals)")
+      .min(0, "Quantity cannot be negative")
+      .max(50, "Quantity cannot be more than 50")
   ),
 })
 
