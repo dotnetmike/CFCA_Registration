@@ -2,10 +2,45 @@ import assert from "node:assert/strict"
 import test from "node:test"
 
 import {
+  CFCA_POSITIONS,
+  ELDER_ASSEMBLY_POSITIONS,
+  MINISTRIES,
   getAirportTransportDateWindow,
   getAirportTransportValidationError,
   isAustralianMobileNumber,
 } from "./schema"
+
+test("exposes the current ministry and role options", () => {
+  assert.deepEqual(MINISTRIES, ["cfca", "family_ministries", "lia", "pcs", "communications", "non_member"])
+  assert.deepEqual(CFCA_POSITIONS, [
+    "member",
+    "household_leader",
+    "unit_leader",
+    "hold",
+    "sold",
+    "family_ministry_area_leader",
+    "family_ministry_coordinator",
+    "chapter_leader",
+    "cluster_leader",
+    "sector_leader_national_coordinator",
+    "lia_area_coordinator",
+    "pcs_area_coordinator",
+    "comms_area_coordinator",
+    "national_director",
+    "national_council_member",
+  ])
+  assert.deepEqual(ELDER_ASSEMBLY_POSITIONS, [
+    "family_ministry_area_leader",
+    "chapter_leader",
+    "cluster_leader",
+    "sector_leader_national_coordinator",
+    "lia_area_coordinator",
+    "pcs_area_coordinator",
+    "comms_area_coordinator",
+    "national_director",
+    "national_council_member",
+  ])
+})
 
 test("accepts valid Australian mobile numbers", () => {
   assert.equal(isAustralianMobileNumber("0400123456"), true)
@@ -26,15 +61,9 @@ test("allows airport pickup dates from Thursday only for Elders Assembly delegat
     max: "2027-04-10",
   })
 
-  // Chapter leader attending Elders Assembly
-  assert.deepEqual(getAirportTransportDateWindow("pickup", "chapter_leader", true), {
-    min: "2027-04-08",
-    max: "2027-04-10",
-  })
-
-  // Chapter leader NOT attending Elders Assembly
+  // Chapter leader eligible for Elders Assembly, regardless of attendance choice
   assert.deepEqual(getAirportTransportDateWindow("pickup", "chapter_leader", false), {
-    min: "2027-04-09",
+    min: "2027-04-08",
     max: "2027-04-10",
   })
 

@@ -2,54 +2,73 @@ import { z } from "zod"
 
 export const CFCA_POSITIONS = [
   "member",
-  "non_member",
-  "hh_leader",
+  "household_leader",
   "unit_leader",
+  "hold",
+  "sold",
+  "family_ministry_area_leader",
+  "family_ministry_coordinator",
   "chapter_leader",
-  "ministry_coordinator",
-  "area_coordinator",
-  "area_head",
-  "national_council",
+  "cluster_leader",
+  "sector_leader_national_coordinator",
+  "lia_area_coordinator",
+  "pcs_area_coordinator",
+  "comms_area_coordinator",
+  "national_director",
+  "national_council_member",
 ] as const
+
+const CFCA_POSITION_VALUES = [...CFCA_POSITIONS, "non_member"] as const
 
 export const MINISTRIES = [
   "cfca",
-  "hold",
-  "sold",
+  "family_ministries",
   "lia",
-  "family_ministry",
+  "pcs",
+  "communications",
   "non_member",
 ] as const
 
 export const AUSTRALIAN_STATES = ["NSW", "VIC", "QLD", "SA", "WA", "TAS", "NT", "ACT"] as const
 
-export const CFCA_POSITION_LABELS: Record<(typeof CFCA_POSITIONS)[number], string> = {
+export const CFCA_POSITION_LABELS: Record<(typeof CFCA_POSITION_VALUES)[number], string> = {
   member: "Member",
   non_member: "Non-member",
-  hh_leader: "HH Leader",
+  household_leader: "Household Leader",
   unit_leader: "Unit Leader",
+  hold: "HOLD",
+  sold: "SOLD",
+  family_ministry_area_leader: "Family Ministry Area Leader",
+  family_ministry_coordinator: "Family Ministry Coordinator",
   chapter_leader: "Chapter Leader",
-  ministry_coordinator: "Ministry Coordinator",
-  area_coordinator: "Area Coordinator",
-  area_head: "Area Head",
-  national_council: "National Council",
+  cluster_leader: "Cluster Leader",
+  sector_leader_national_coordinator: "Sector Leader National Coordinator",
+  lia_area_coordinator: "LIA Area Coordinator",
+  pcs_area_coordinator: "PCS Area Coordinator",
+  comms_area_coordinator: "Comms Area Coordinator",
+  national_director: "National Director",
+  national_council_member: "National Council Member",
 }
 
 export const MINISTRY_LABELS: Record<(typeof MINISTRIES)[number], string> = {
   cfca: "CFCA",
-  hold: "HOLD",
-  sold: "SOLD",
+  family_ministries: "Family Ministries",
   lia: "LIA",
-  family_ministry: "Family Ministry",
-  non_member: "Non-member",
+  pcs: "PCS",
+  communications: "Communications",
+  non_member: "Non-Member",
 }
 
 export const ELDER_ASSEMBLY_POSITIONS = [
+  "family_ministry_area_leader",
   "chapter_leader",
-  "ministry_coordinator",
-  "area_coordinator",
-  "area_head",
-  "national_council",
+  "cluster_leader",
+  "sector_leader_national_coordinator",
+  "lia_area_coordinator",
+  "pcs_area_coordinator",
+  "comms_area_coordinator",
+  "national_director",
+  "national_council_member",
 ] as const
 
 export const CONFERENCE_DATE_RANGE = {
@@ -73,8 +92,7 @@ export const getAirportTransportDateWindow = (
   if (transportType === "pickup") {
     const isEldersAssembly =
       !!position &&
-      (ELDER_ASSEMBLY_POSITIONS as readonly string[]).includes(position) &&
-      !!elderAssemblyAttending
+      (ELDER_ASSEMBLY_POSITIONS as readonly string[]).includes(position)
 
     return {
       min: isEldersAssembly ? "2027-04-08" : "2027-04-09",
@@ -154,7 +172,7 @@ export const registrationBaseSchema = z.object({
   address_state: emptyableState,
   postcode: optionalString,
   ministry: z.enum(MINISTRIES).default("cfca"),
-  cfca_position: z.enum(CFCA_POSITIONS).default("member"),
+  cfca_position: z.enum(CFCA_POSITION_VALUES).default("member"),
   elder_assembly_attending: z.boolean().default(false),
   state: emptyableState,
   spouse_surname: optionalString,
