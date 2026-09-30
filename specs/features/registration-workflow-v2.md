@@ -38,7 +38,7 @@ Run a pay-step registration flow (V2) side by side with classic bank-after-submi
 ## Behavior
 
 - **V1 (default):** form → Submit Registration → `/register/complete` → bank `/payment` later.
-- **V2:** form → Submit and Pay → `/register/pay` (Bank and/or Online) → `/register/complete`.
+- **V2:** form → Proceed to Payment → `/register/pay` (Bank and/or Online) → `/register/complete`.
 - Dashboard **Registration payment workflow** setting: `v1` | `v2` (default `v1`). Changing it writes audit `settings.registration_workflow_changed`.
 - Optional env `REGISTRATION_WORKFLOW` overrides DB for local emergency only.
 - Preview while V1 is primary: `/register?workflow=v2`.

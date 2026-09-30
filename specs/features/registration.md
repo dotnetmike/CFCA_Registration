@@ -109,7 +109,7 @@ Single continuous conference registration page. Guests complete without login; l
 - Accommodation and airport transport mandatory with no default.
 - Submit → public `POST /api/registrations`.
 - **Workflow V1 (default):** redirect `/register/complete`.
-- **Workflow V2** (Dashboard “Online payment capability”): CTA **Submit and Pay** → `/register/pay` then `/register/complete`. Preview: `/register?workflow=v2`. See `features.registration-workflow-v2`.
+- **Workflow V2** (Dashboard “Online payment capability”): CTA **Proceed to Payment** (loading: “Saving registration...”) → `/register/pay` then `/register/complete`. Preview: `/register?workflow=v2`. See `features.registration-workflow-v2`.
 - When registration is closed, public submit is blocked with a friendly message to contact Chapter Leaders.
 
 ### Logged in

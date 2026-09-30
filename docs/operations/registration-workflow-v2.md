@@ -17,7 +17,7 @@ Use this after Stripe is configured and V2 has been smoke-tested.
 1. Dashboard → Registration Settings.
 2. Set **Registration payment workflow** to **V2 — Online payment capability**.
 3. Save. Confirm audit action `settings.registration_workflow_changed`.
-4. Guest submit should show **Submit and Pay** and land on `/register/pay`.
+4. Guest submit should show **Proceed to Payment** and land on `/register/pay`.
 
 ## Rollback
 

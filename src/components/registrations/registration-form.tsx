@@ -275,11 +275,13 @@ const RegistrationForm = ({
   const submitLabel = submitted
     ? "Submit Changes"
     : isV2Flow
-      ? "Submit and Pay"
+      ? "Proceed to Payment"
       : "Submit Registration"
   const submitLoadingText = submitted
     ? "Submitting changes..."
-    : "Submitting..."
+    : isV2Flow
+      ? "Saving registration..."
+      : "Submitting..."
   const [baselineSnapshot, setBaselineSnapshot] = useState<string | null>(null)
   const [info, setInfo] = useState("")
   const [validationIssues, setValidationIssues] = useState<ValidationIssue[]>([])

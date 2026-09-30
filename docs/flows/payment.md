@@ -9,7 +9,7 @@ Dashboard → Registration Settings → **Registration payment workflow**:
 | Mode | Participant path |
 |------|------------------|
 | **V1 (default)** | Submit → complete → bank via `/payment` |
-| **V2** | Submit and Pay → `/register/pay` (Bank + Online if Stripe keys) → complete |
+| **V2** | Proceed to Payment → `/register/pay` (Bank + Online if Stripe keys) → complete |
 
 Resolution: env `REGISTRATION_WORKFLOW` (optional emergency override) → DB setting → `v1`.
 
