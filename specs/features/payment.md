@@ -21,16 +21,18 @@ files:
 
 ## Purpose
 
-Show bank details and how to pay using the **Unique Code**.
+Show how to pay remaining balance using the **Unique Code** (bank) and, when workflow V2 + Stripe are enabled, online card/wallets.
 
 ## Behavior
 
 - Protected. Requires participant reference (or non-DRAFT registration no).
-- Public UI labels use **Unique Code** (not ?Payment Reference?) for the code to put in Message and Ref.
+- Public UI labels use **Unique Code** for Message and Ref.
 - Show amount due, amount paid, and **Remaining balance** (`amount_due - amount_paid`).
-- Sections order: Your Registration ? Bank Transfer Details ? reminder ? **How to Pay** (mockup last).
-- Mockup uses unique code + outstanding/amount due.
-- Public env bank fields: `NEXT_PUBLIC_BANK_*`.
+- **Workflow V1:** Bank Transfer Details + How to Pay mockup (unchanged).
+- **Workflow V2:** radio choice of Online Payment (default, Stripe hosted Checkout when keys set) or Bank Payment, followed by the registration summary. Pay remaining balance only.
+- Guest V2 first-time pay also uses `/register/pay` (see `features.registration-workflow-v2`).
+- Public env bank fields: `NEXT_PUBLIC_BANK_*`. Stripe: `STRIPE_SECRET_KEY` only, plus a Dashboard webhook URL to `/api/payments/stripe/webhook`.
+- Online Payment redirects to Stripe Checkout; webhook + optional `session_id` status recovery mark the registration paid.
 - Administrators configure payment reminder dates in Registration Settings. The authorized daily cron sends reminders only to submitted registrations with `pending` or `partial` payment status.
 - After the configurable early-bird payment due date, that cron updates pending/partial early-bird registrations to regular pricing and clears their early-bird status. Fully paid registrations retain their original price.
 

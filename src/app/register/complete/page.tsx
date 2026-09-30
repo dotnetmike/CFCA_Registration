@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert } from "@/components/ui/alert"
+import { StripeCheckoutReturn } from "@/components/payments/stripe-checkout-return"
 
 const firstNameFrom = (fullName: string) => {
   const part = fullName.trim().split(/\s+/)[0]
@@ -18,9 +19,15 @@ const firstNameFrom = (fullName: string) => {
 const CongratulationsHero = ({
   displayName,
   viewToken,
+  paymentOutcome,
+  checkoutSessionId,
+  payRetryHref,
 }: {
   displayName: string
   viewToken: string
+  paymentOutcome: string | null
+  checkoutSessionId: string | null
+  payRetryHref: string
 }) => (
   <section className="space-y-4 text-center" aria-labelledby="congrats-heading">
     <p className="text-sm font-semibold uppercase tracking-wide text-blue-700">
@@ -32,6 +39,20 @@ const CongratulationsHero = ({
     <p className="mx-auto max-w-xl text-lg text-gray-700 md:text-xl">
       Welcome to the CFCA Conference. We are looking forward to seeing you there.
     </p>
+    {paymentOutcome === "success" && checkoutSessionId ? (
+      <StripeCheckoutReturn sessionId={checkoutSessionId} retryHref={payRetryHref} />
+    ) : null}
+    {paymentOutcome === "success" && !checkoutSessionId ? (
+      <Alert variant="success">
+        Online payment received. Thank you — your registration payment is up to date.
+      </Alert>
+    ) : null}
+    {paymentOutcome === "bank" ? (
+      <Alert variant="info">
+        Registration saved. Complete your bank transfer using your Unique Code. You can review
+        payment details anytime from your registration email link or account.
+      </Alert>
+    ) : null}
     <p className="mx-auto max-w-lg text-sm text-gray-600">
       A confirmation email with your registration details
       {viewToken ? (
@@ -56,6 +77,12 @@ const CompleteForm = () => {
   const searchParams = useSearchParams()
   const signupToken = searchParams.get("token") ?? ""
   const viewToken = searchParams.get("view") ?? ""
+  const paymentOutcome = searchParams.get("payment")
+  const checkoutSessionId = searchParams.get("session_id")
+  const payRetryParams = new URLSearchParams()
+  if (signupToken) payRetryParams.set("token", signupToken)
+  if (viewToken) payRetryParams.set("view", viewToken)
+  const payRetryHref = `/register/pay?${payRetryParams.toString()}`
 
   const [email, setEmail] = useState("")
   const [name, setName] = useState("")
@@ -139,7 +166,13 @@ const CompleteForm = () => {
   if (skipped) {
     return (
       <div className="mx-auto max-w-2xl space-y-8">
-        <CongratulationsHero displayName={displayName} viewToken={viewToken} />
+        <CongratulationsHero
+          displayName={displayName}
+          viewToken={viewToken}
+          paymentOutcome={paymentOutcome}
+          checkoutSessionId={checkoutSessionId}
+          payRetryHref={payRetryHref}
+        />
         <div className="space-y-4 text-center">
           <p className="text-sm text-gray-600">
             To edit your registration later,{" "}
@@ -169,7 +202,13 @@ const CompleteForm = () => {
 
   return (
     <div className="mx-auto max-w-2xl space-y-10">
-      <CongratulationsHero displayName={displayName} viewToken={viewToken} />
+      <CongratulationsHero
+        displayName={displayName}
+        viewToken={viewToken}
+        paymentOutcome={paymentOutcome}
+        checkoutSessionId={checkoutSessionId}
+        payRetryHref={payRetryHref}
+      />
 
       <Card className="border-gray-200 shadow-sm">
         <CardHeader className="space-y-1">

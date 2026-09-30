@@ -27,6 +27,7 @@ type Settings = {
   }
   paymentReminderDates: string[]
   notificationRecipientEmail: string
+  registrationWorkflow: "v1" | "v2"
 }
 
 const emptySettings: Settings = {
@@ -46,6 +47,7 @@ const emptySettings: Settings = {
   },
   paymentReminderDates: [],
   notificationRecipientEmail: "",
+  registrationWorkflow: "v1",
 }
 
 const RegistrationSettingsPage = () => {
@@ -69,7 +71,12 @@ const RegistrationSettingsPage = () => {
     }
 
     const data = await res.json()
-    setSettings(data.settings as Settings)
+    setSettings({
+      ...emptySettings,
+      ...(data.settings as Settings),
+      registrationWorkflow:
+        (data.settings as Settings)?.registrationWorkflow === "v2" ? "v2" : "v1",
+    })
     setIsLoading(false)
   }, [authFetch])
 
@@ -115,7 +122,12 @@ const RegistrationSettingsPage = () => {
     }
 
     const data = await res.json()
-    setSettings(data.settings as Settings)
+    setSettings({
+      ...emptySettings,
+      ...(data.settings as Settings),
+      registrationWorkflow:
+        (data.settings as Settings)?.registrationWorkflow === "v2" ? "v2" : "v1",
+    })
     setSuccess("Registration settings updated")
     setIsSaving(false)
   }
@@ -136,6 +148,60 @@ const RegistrationSettingsPage = () => {
 
       <form onSubmit={handleSave} className="space-y-6">
         <fieldset disabled={isSaving} className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Registration payment workflow</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <fieldset className="space-y-3">
+                <legend className="sr-only">Registration payment workflow</legend>
+                <label className="flex items-start gap-3 text-sm text-ink">
+                  <input
+                    type="radio"
+                    name="registrationWorkflow"
+                    value="v1"
+                    checked={settings.registrationWorkflow === "v1"}
+                    onChange={() =>
+                      setSettings((current) => ({
+                        ...current,
+                        registrationWorkflow: "v1",
+                      }))
+                    }
+                    aria-label="V1 Classic registration workflow"
+                  />
+                  <span>
+                    <strong>V1 — Classic</strong> (default): Submit registration, then pay by
+                    bank transfer on the payment page.
+                  </span>
+                </label>
+                <label className="flex items-start gap-3 text-sm text-ink">
+                  <input
+                    type="radio"
+                    name="registrationWorkflow"
+                    value="v2"
+                    checked={settings.registrationWorkflow === "v2"}
+                    onChange={() =>
+                      setSettings((current) => ({
+                        ...current,
+                        registrationWorkflow: "v2",
+                      }))
+                    }
+                    aria-label="V2 Online payment capability workflow"
+                  />
+                  <span>
+                    <strong>V2 — Online payment capability</strong>: After submit, show a
+                    payment step (bank transfer and online card/wallets via Stripe when
+                    configured).
+                  </span>
+                </label>
+              </fieldset>
+              <p className="text-xs text-ink-soft">
+                Leave V1 until online payment is signed off. Flip to V2 here when ready;
+                switch back to V1 anytime to roll back the public flow.
+              </p>
+            </CardContent>
+          </Card>
+
           <Card>
             <CardHeader>
               <CardTitle>Registration Availability</CardTitle>

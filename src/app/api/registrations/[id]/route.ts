@@ -81,14 +81,31 @@ export const GET = async (request: NextRequest, { params }: RouteParams) => {
   }
 
   let paymentLastUpdatedByName: string | null = null
-  if (canReadAll && registration.payment_last_updated_by) {
+  let paymentRows: Array<{
+    id: string
+    amount: number
+    source: string
+    reference_text: string | null
+    stripe_payment_intent_id: string | null
+    created_at: string
+  }> = []
+
+  if (canReadAll) {
     const admin = createAdminClient()
-    const { data: updater } = await admin
-      .from("users")
-      .select("name")
-      .eq("id", registration.payment_last_updated_by)
-      .maybeSingle()
-    paymentLastUpdatedByName = updater?.name ?? null
+    if (registration.payment_last_updated_by) {
+      const { data: updater } = await admin
+        .from("users")
+        .select("name")
+        .eq("id", registration.payment_last_updated_by)
+        .maybeSingle()
+      paymentLastUpdatedByName = updater?.name ?? null
+    }
+    const { data: payments } = await admin
+      .from("payments")
+      .select("id, amount, source, reference_text, stripe_payment_intent_id, created_at")
+      .eq("registration_id", id)
+      .order("created_at", { ascending: false })
+    paymentRows = payments ?? []
   }
 
   return NextResponse.json({
@@ -96,6 +113,7 @@ export const GET = async (request: NextRequest, { params }: RouteParams) => {
       ...registration,
       payment_last_updated_by_name: paymentLastUpdatedByName,
     },
+    payments: paymentRows,
   })
 }
 

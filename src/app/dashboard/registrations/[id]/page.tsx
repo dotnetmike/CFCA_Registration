@@ -100,6 +100,16 @@ const RegistrationDetailPage = () => {
   const [isResendingEmail, setIsResendingEmail] = useState(false)
   const [paymentAmountPaid, setPaymentAmountPaid] = useState("")
   const [paymentStatus, setPaymentStatus] = useState("pending")
+  const [paymentRows, setPaymentRows] = useState<
+    {
+      id: string
+      amount: number
+      source: string
+      reference_text: string | null
+      stripe_payment_intent_id: string | null
+      created_at: string
+    }[]
+  >([])
   useBusyCursor(isSaving || isSavingPayment || isSavingNote || isResendingEmail)
 
   const canEditRegistration = !!user?.permissions.includes("registrations:write_all")
@@ -132,6 +142,7 @@ const RegistrationDetailPage = () => {
         setRegistration(data.registration)
         setPaymentAmountPaid(String(data.registration?.amount_paid ?? 0))
         setPaymentStatus(String(data.registration?.payment_status ?? "pending"))
+        setPaymentRows(Array.isArray(data.payments) ? data.payments : [])
       }
       if (notesRes.ok) {
         const data = await notesRes.json()
@@ -624,7 +635,9 @@ const RegistrationDetailPage = () => {
                       ? "Manually by admin"
                       : String(reg.payment_last_updated_source) === "bank_reconcile"
                         ? "By bank reconciliation"
-                        : "Updated"}
+                        : String(reg.payment_last_updated_source) === "stripe"
+                          ? "By Stripe online payment"
+                          : "Updated"}
                     {" — "}
                     {str("payment_last_updated_by_name") || "Unknown"}
                     {" on "}
@@ -689,6 +702,40 @@ const RegistrationDetailPage = () => {
                   </div>
                 </>
               )}
+
+              {paymentRows.length > 0 ? (
+                <div className="md:col-span-2 space-y-2">
+                  <strong>Payment ledger</strong>
+                  <ul className="space-y-2 text-sm">
+                    {paymentRows.map((row) => (
+                      <li
+                        key={row.id}
+                        className="rounded-md border border-gray-200 bg-gray-50 px-3 py-2"
+                      >
+                        <span className="font-medium">{formatCurrency(Number(row.amount))}</span>
+                        {" · "}
+                        {row.source === "stripe"
+                          ? "Stripe"
+                          : row.source === "bank_reconcile"
+                            ? "Bank reconcile"
+                            : "Manual"}
+                        {" · "}
+                        {new Date(row.created_at).toLocaleString()}
+                        {row.stripe_payment_intent_id ? (
+                          <span className="mt-1 block text-xs text-gray-600">
+                            PI: {row.stripe_payment_intent_id}
+                          </span>
+                        ) : null}
+                        {row.reference_text ? (
+                          <span className="mt-1 block text-xs text-gray-600">
+                            {row.reference_text}
+                          </span>
+                        ) : null}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
             </CardContent>
           </Card>
 

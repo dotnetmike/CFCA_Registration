@@ -34,6 +34,7 @@ Full index: **[INDEX.md](./INDEX.md)**
 - [Auth sequence](./flows/auth.md)
 - [Registration sequence](./flows/registration.md)
 - [Payment & reconcile](./flows/payment.md)
+- [Flip to V2 online payment](./operations/registration-workflow-v2.md)
 - [Admin dashboard](./flows/admin-dashboard.md)
 - [Data model (ER)](./data/model.md)
 - [Data flow](./data/data-flow.md)

@@ -4,6 +4,12 @@ import {
   type PricingConfig,
 } from "@/lib/pricing/calculate"
 import type { AccessTokenPayload } from "@/lib/auth/jwt"
+import {
+  DEFAULT_REGISTRATION_WORKFLOW,
+  parseRegistrationWorkflow,
+  resolveRegistrationWorkflow,
+  type RegistrationWorkflow,
+} from "@/lib/registration-workflow"
 
 type RuntimeSettingsRow = {
   registration_open: boolean
@@ -20,6 +26,7 @@ type RuntimeSettingsRow = {
   adult_regular: number
   age_12_plus: number
   age_2_to_12: number
+  registration_workflow?: string | null
 }
 
 export type RegistrationRuntimeSettings = {
@@ -29,6 +36,7 @@ export type RegistrationRuntimeSettings = {
   pricing: PricingConfig
   paymentReminderDates: string[]
   notificationRecipientEmail: string
+  registrationWorkflow: RegistrationWorkflow
 }
 
 export type RegistrationRuntimeSettingsInput = {
@@ -38,6 +46,7 @@ export type RegistrationRuntimeSettingsInput = {
   pricing: Omit<PricingConfig, "ageFree"> & { ageFree?: number }
   paymentReminderDates: string[]
   notificationRecipientEmail: string
+  registrationWorkflow?: RegistrationWorkflow
 }
 
 const normalizeSettings = (
@@ -54,6 +63,9 @@ const normalizeSettings = (
   },
   paymentReminderDates: toDateStrings(values.paymentReminderDates),
   notificationRecipientEmail: values.notificationRecipientEmail.trim(),
+  registrationWorkflow: parseRegistrationWorkflow(
+    values.registrationWorkflow ?? DEFAULT_REGISTRATION_WORKFLOW
+  ),
 })
 
 export const DEFAULT_REGISTRATION_RUNTIME_SETTINGS: RegistrationRuntimeSettings = {
@@ -63,11 +75,12 @@ export const DEFAULT_REGISTRATION_RUNTIME_SETTINGS: RegistrationRuntimeSettings 
   pricing: DEFAULT_PRICING_CONFIG,
   paymentReminderDates: [],
   notificationRecipientEmail: "",
+  registrationWorkflow: DEFAULT_REGISTRATION_WORKFLOW,
 }
 
 const SETTINGS_TABLE = "runtime_registration_settings"
 const SETTINGS_SELECT =
-  "registration_open, registration_start_date, registration_end_date, early_bird_start, early_bird_end, early_bird_payment_due_date, early_bird_interstate_limit, early_bird_vic_limit, payment_reminder_dates, notification_recipient_email, adult_early_bird, adult_regular, age_12_plus, age_2_to_12"
+  "registration_open, registration_start_date, registration_end_date, early_bird_start, early_bird_end, early_bird_payment_due_date, early_bird_interstate_limit, early_bird_vic_limit, payment_reminder_dates, notification_recipient_email, adult_early_bird, adult_regular, age_12_plus, age_2_to_12, registration_workflow"
 
 const toNumber = (value: unknown, fallback: number) => {
   const n = Number(value)
@@ -137,7 +150,14 @@ const mapRow = (row: RuntimeSettingsRow | null | undefined): RegistrationRuntime
     },
     paymentReminderDates: toDateStrings(row.payment_reminder_dates),
     notificationRecipientEmail: String(row.notification_recipient_email ?? "").trim(),
+    registrationWorkflow: parseRegistrationWorkflow(row.registration_workflow),
   }
+}
+
+/** Effective workflow for participant UX (env override → DB → v1). */
+export const getActiveRegistrationWorkflow = async (): Promise<RegistrationWorkflow> => {
+  const settings = await getRegistrationRuntimeSettings()
+  return resolveRegistrationWorkflow(settings.registrationWorkflow)
 }
 
 export const getRegistrationRuntimeSettings = async (): Promise<RegistrationRuntimeSettings> => {
@@ -196,6 +216,7 @@ export const updateRegistrationRuntimeSettings = async (
         adult_regular: normalized.pricing.adultRegular,
         age_12_plus: normalized.pricing.age12Plus,
         age_2_to_12: normalized.pricing.age2To12,
+        registration_workflow: parseRegistrationWorkflow(normalized.registrationWorkflow),
         updated_by: updatedBy ?? null,
         updated_at: new Date().toISOString(),
       },

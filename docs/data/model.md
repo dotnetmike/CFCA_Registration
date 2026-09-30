@@ -48,6 +48,7 @@ erDiagram
     uuid registration_id FK
     numeric amount
     payment_source source
+    text stripe_payment_intent_id
   }
   runtime_registration_settings {
     bool id PK
@@ -61,6 +62,7 @@ erDiagram
     int early_bird_vic_limit
     jsonb payment_reminder_dates
     text notification_recipient_email
+    text registration_workflow
     numeric adult_early_bird
     numeric adult_regular
     numeric age_12_plus

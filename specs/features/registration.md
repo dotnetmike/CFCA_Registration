@@ -107,7 +107,9 @@ Single continuous conference registration page. Guests complete without login; l
   - `reason: "account"` — an account already exists for that email → show **Login here** (`/login?redirect=/my-registration`).
   - `reason: "unlinked_registration"` — a submitted registration exists but no account has been created for it yet → show **Create your account here** (`/signup?email=<email>&redirect=/my-registration`), never a login link (there is nothing to log into).
 - Accommodation and airport transport mandatory with no default.
-- Submit → public `POST /api/registrations` → `/register/complete`.
+- Submit → public `POST /api/registrations`.
+- **Workflow V1 (default):** redirect `/register/complete`.
+- **Workflow V2** (Dashboard “Online payment capability”): CTA **Submit and Pay** → `/register/pay` then `/register/complete`. Preview: `/register?workflow=v2`. See `features.registration-workflow-v2`.
 - When registration is closed, public submit is blocked with a friendly message to contact Chapter Leaders.
 
 ### Logged in

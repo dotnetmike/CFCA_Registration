@@ -19,10 +19,11 @@ After guest submit: celebrate registration, then optionally create an account.
 
 ## Behavior
 
-- **Primary focus**: congratulations hero �?“Registration confirmed�? “Congratulations, {firstName}!�? welcome / looking forward to seeing them at the conference, confirmation email note (+ view link if `view` query present).
+- **Primary focus**: congratulations hero — “Registration confirmed”, “Congratulations, {firstName}!”, welcome note, confirmation email (+ view link if `view` query present).
+- **V2 payment context** (`payment` query): note bank-pending vs online paid when arriving from the pay step.
 - **Secondary**: optional Create your account card (name, email read-only, password, confirm).
-- Create account �?`POST /api/auth/register-signup` with `signupToken` �?session �?`/my-registration`.
-- Skip for now �?keep congrats; remind they can signup later with same email.
+- Create account → `POST /api/auth/register-signup` with `signupToken` → session → `/my-registration`.
+- Skip for now → keep congrats; remind they can signup later with same email.
 
 ## Acceptance criteria
 

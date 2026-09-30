@@ -1,33 +1,52 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { Suspense, useEffect, useState } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
 import { useAuth } from "@/lib/auth/context"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert } from "@/components/ui/alert"
 import { PaymentReferenceMockup } from "@/components/registrations/payment-reference-mockup"
+import { PaymentStep } from "@/components/payments/payment-step"
 import { formatCurrency } from "@/lib/pricing/calculate"
 
-const PaymentPage = () => {
+const PaymentPageContent = () => {
   const { authFetch } = useAuth()
+  const router = useRouter()
+  const searchParams = useSearchParams()
   const [registration, setRegistration] = useState<{
+    id: string
     registration_no: string
     participant_reference: string | null
     amount_due: number
     amount_paid: number
     payment_status: string
+    given_name?: string
+    surname?: string
   } | null>(null)
+  const [useV2PayStep, setUseV2PayStep] = useState(false)
+  const [showOnline, setShowOnline] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
     const load = async () => {
-      const res = await authFetch("/api/registrations?mine=true")
-      if (res.ok) {
-        const data = await res.json()
+      const [regRes, settingsRes] = await Promise.all([
+        authFetch("/api/registrations?mine=true"),
+        fetch("/api/registration-settings"),
+      ])
+      if (regRes.ok) {
+        const data = await regRes.json()
         setRegistration(data.registration)
+      }
+      if (settingsRes.ok) {
+        const settingsData = await settingsRes.json()
+        const workflow = settingsData.settings?.registrationWorkflow ?? "v1"
+        const stripeOn = settingsData.stripePaymentsEnabled === true
+        setUseV2PayStep(workflow === "v2")
+        setShowOnline(workflow === "v2" && stripeOn)
       }
       setIsLoading(false)
     }
-    load()
+    void load()
   }, [authFetch])
 
   if (isLoading) {
@@ -51,8 +70,31 @@ const PaymentPage = () => {
   const outstanding = Number(registration.amount_due) - Number(registration.amount_paid)
   const paymentAmount = outstanding > 0 ? outstanding : Number(registration.amount_due)
 
+  if (useV2PayStep) {
+    return (
+      <div className="cfca-page mx-auto max-w-2xl space-y-6">
+        <div className="space-y-3">
+          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-accent-ink">
+            Remaining balance
+          </p>
+          <h1 className="font-display text-4xl font-semibold text-ink">Payment</h1>
+          <div className="accent-rule" aria-hidden />
+        </div>
+        <PaymentStep
+          registration={registration}
+          uniqueCode={paymentReference}
+          showOnline={showOnline}
+          registrationId={registration.id}
+          authFetch={authFetch}
+          onBankContinue={() => router.push("/my-registration")}
+          checkoutCancelled={searchParams.get("payment") === "cancelled"}
+        />
+      </div>
+    )
+  }
+
   return (
-    <div className="cfca-page mx-auto max-w-2xl">
+    <div className="cfca-page mx-auto max-w-2xl space-y-6">
       <div className="space-y-3">
         <p className="text-xs font-semibold uppercase tracking-[0.22em] text-accent-ink">
           Bank transfer
@@ -66,20 +108,30 @@ const PaymentPage = () => {
           <CardTitle>Your Registration</CardTitle>
         </CardHeader>
         <CardContent className="space-y-2 text-sm">
-          <p><strong>Unique Code:</strong>{" "}
+          <p>
+            <strong>Unique Code:</strong>{" "}
             <span className="font-bold text-[color:var(--danger)]">{paymentReference}</span>
           </p>
           {registration.registration_no && !registration.registration_no.startsWith("DRAFT") && (
-            <p><strong>Registration No:</strong> {registration.registration_no}</p>
+            <p>
+              <strong>Registration No:</strong> {registration.registration_no}
+            </p>
           )}
-          <p><strong>Amount Due:</strong> {formatCurrency(Number(registration.amount_due))}</p>
-          <p><strong>Amount Paid:</strong> {formatCurrency(Number(registration.amount_paid))}</p>
-          <p><strong>Remaining balance:</strong>{" "}
+          <p>
+            <strong>Amount Due:</strong> {formatCurrency(Number(registration.amount_due))}
+          </p>
+          <p>
+            <strong>Amount Paid:</strong> {formatCurrency(Number(registration.amount_paid))}
+          </p>
+          <p>
+            <strong>Remaining balance:</strong>{" "}
             <span className={outstanding > 0 ? "font-semibold text-accent-ink" : ""}>
               {formatCurrency(Math.max(0, outstanding))}
             </span>
           </p>
-          <p><strong>Status:</strong> {registration.payment_status}</p>
+          <p>
+            <strong>Status:</strong> {registration.payment_status}
+          </p>
         </CardContent>
       </Card>
 
@@ -88,14 +140,23 @@ const PaymentPage = () => {
           <CardTitle>Bank Transfer Details</CardTitle>
         </CardHeader>
         <CardContent className="space-y-2 text-sm">
-          <p><strong>Account Name:</strong> {process.env.NEXT_PUBLIC_BANK_ACCOUNT_NAME ?? "CFCA Conference"}</p>
-          <p><strong>BSB:</strong> {process.env.NEXT_PUBLIC_BANK_BSB ?? "000-000"}</p>
-          <p><strong>Account Number:</strong> {process.env.NEXT_PUBLIC_BANK_ACCOUNT_NUMBER ?? "00000000"}</p>
+          <p>
+            <strong>Account Name:</strong>{" "}
+            {process.env.NEXT_PUBLIC_BANK_ACCOUNT_NAME ?? "CFCA Conference"}
+          </p>
+          <p>
+            <strong>BSB:</strong> {process.env.NEXT_PUBLIC_BANK_BSB ?? "000-000"}
+          </p>
+          <p>
+            <strong>Account Number:</strong>{" "}
+            {process.env.NEXT_PUBLIC_BANK_ACCOUNT_NUMBER ?? "00000000"}
+          </p>
         </CardContent>
       </Card>
 
       <Alert variant="info">
-        If you have paid and still receive payment reminder emails, please contact the registration team.
+        If you have paid and still receive payment reminder emails, please contact the
+        registration team.
       </Alert>
 
       <Card>
@@ -113,5 +174,11 @@ const PaymentPage = () => {
     </div>
   )
 }
+
+const PaymentPage = () => (
+  <Suspense fallback={<p className="text-center text-ink-soft">Loading...</p>}>
+    <PaymentPageContent />
+  </Suspense>
+)
 
 export default PaymentPage

@@ -247,12 +247,20 @@ const SectionHeading = ({
 
 const RegistrationForm = ({
   pricingConfig = DEFAULT_PRICING_CONFIG,
+  registrationWorkflow = "v1",
 }: {
   pricingConfig?: PricingConfig
+  registrationWorkflow?: "v1" | "v2"
 }) => {
   const { authFetch, user, getAuthHeaders, isLoading: authLoading } = useAuth()
   const router = useRouter()
   const searchParams = useSearchParams()
+  const previewWorkflow = searchParams.get("workflow")?.toLowerCase()
+  const activeWorkflow: "v1" | "v2" =
+    previewWorkflow === "v2" || previewWorkflow === "v1"
+      ? previewWorkflow
+      : registrationWorkflow
+  const isV2Flow = activeWorkflow === "v2"
   const errorBannerRef = useRef<HTMLDivElement>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [saveAction, setSaveAction] = useState<"submit" | "email-check" | null>(null)
@@ -264,6 +272,14 @@ const RegistrationForm = ({
   const [registrationId, setRegistrationId] = useState<string | null>(null)
   const [participantReference, setParticipantReference] = useState<string | null>(null)
   const [submitted, setSubmitted] = useState(false)
+  const submitLabel = submitted
+    ? "Submit Changes"
+    : isV2Flow
+      ? "Submit and Pay"
+      : "Submit Registration"
+  const submitLoadingText = submitted
+    ? "Submitting changes..."
+    : "Submitting..."
   const [baselineSnapshot, setBaselineSnapshot] = useState<string | null>(null)
   const [info, setInfo] = useState("")
   const [validationIssues, setValidationIssues] = useState<ValidationIssue[]>([])
@@ -529,8 +545,13 @@ const RegistrationForm = ({
       return true
     }
     if (submit) {
+      const wasAlreadySubmitted = submitted
       setSubmitted(true)
-      router.push("/my-registration")
+      if (isV2Flow) {
+        router.push(wasAlreadySubmitted ? "/payment" : "/register/pay")
+      } else {
+        router.push("/my-registration")
+      }
     }
     setSaveAction(null)
     return true
@@ -554,6 +575,7 @@ const RegistrationForm = ({
     }
     setEmailInUse(false)
     setEmailInUseReason(null)
+    setError("")
     return true
   }
 
@@ -603,7 +625,11 @@ const RegistrationForm = ({
     const params = new URLSearchParams()
     if (data.signupToken) params.set("token", data.signupToken)
     if (data.viewToken) params.set("view", data.viewToken)
-    router.push(`/register/complete?${params.toString()}`)
+    if (isV2Flow) {
+      router.push(`/register/pay?${params.toString()}`)
+    } else {
+      router.push(`/register/complete?${params.toString()}`)
+    }
     return true
   }
 
@@ -677,9 +703,7 @@ const RegistrationForm = ({
         </div>
         <p className="max-w-2xl text-base leading-relaxed text-ink-soft md:text-lg">
           Fill in each section below. When you are finished, press{" "}
-          <strong className="font-semibold text-ink">
-            {submitted ? "Submit Changes" : "Submit Registration"}
-          </strong>{" "}
+          <strong className="font-semibold text-ink">{submitLabel}</strong>{" "}
           at the bottom of the page. Required fields are marked with a{" "}
           <strong className="font-semibold text-[color:var(--danger)]">red asterisk (*)</strong>.
           If anything is missing, we will show every issue at once so you can fix them in one go.
@@ -802,6 +826,14 @@ const RegistrationForm = ({
                     const emailField = form.register("email")
                     return {
                       ...emailField,
+                      onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
+                        emailField.onChange(e)
+                        if (emailInUse || error.includes("already registered")) {
+                          setEmailInUse(false)
+                          setEmailInUseReason(null)
+                          setError("")
+                        }
+                      },
                       onBlur: (e: React.FocusEvent<HTMLInputElement>) => {
                         void handleEmailFieldBlur(e, emailField)
                       },
@@ -1604,11 +1636,11 @@ const RegistrationForm = ({
                 type="submit"
                 className="h-14 w-full text-lg"
                 isLoading={saveAction === "submit"}
-                loadingText={submitted ? "Submitting changes..." : "Submitting..."}
+                loadingText={submitLoadingText}
                 disabled={isBusy}
-                aria-label={submitted ? "Submit changes" : "Submit registration"}
+                aria-label={submitLabel}
               >
-                {submitted ? "Submit Changes" : "Submit Registration"}
+                {submitLabel}
               </Button>
             </CardContent>
           </Card>

@@ -1,7 +1,9 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { Suspense, useCallback, useEffect, useState } from "react"
 import Link from "next/link"
+import { useSearchParams } from "next/navigation"
+import { StripeCheckoutReturn } from "@/components/payments/stripe-checkout-return"
 import { useAuth } from "@/lib/auth/context"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert } from "@/components/ui/alert"
@@ -65,10 +67,14 @@ type Registration = {
 
 const hasText = (value?: string | null) => Boolean(value && value.trim())
 
-const MyRegistrationPage = () => {
+const MyRegistrationContent = () => {
   const { authFetch } = useAuth()
+  const searchParams = useSearchParams()
+  const checkoutSessionId =
+    searchParams.get("payment") === "success" ? searchParams.get("session_id") : null
   const [registration, setRegistration] = useState<Registration | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [reloadKey, setReloadKey] = useState(0)
 
   useEffect(() => {
     const load = async () => {
@@ -80,7 +86,11 @@ const MyRegistrationPage = () => {
       setIsLoading(false)
     }
     load()
-  }, [authFetch])
+  }, [authFetch, reloadKey])
+
+  const handlePaymentConfirmed = useCallback(() => {
+    setReloadKey((key) => key + 1)
+  }, [])
 
   if (isLoading) return <p className="text-center text-gray-500">Loading...</p>
 
@@ -128,6 +138,12 @@ const MyRegistrationPage = () => {
           </Button>
         </Link>
       </div>
+
+      <StripeCheckoutReturn
+        sessionId={checkoutSessionId}
+        retryHref="/payment"
+        onConfirmed={handlePaymentConfirmed}
+      />
 
       <Card>
         <CardHeader>
@@ -324,5 +340,11 @@ const MyRegistrationPage = () => {
     </div>
   )
 }
+
+const MyRegistrationPage = () => (
+  <Suspense fallback={<p className="text-center text-gray-500">Loading...</p>}>
+    <MyRegistrationContent />
+  </Suspense>
+)
 
 export default MyRegistrationPage

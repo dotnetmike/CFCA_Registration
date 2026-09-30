@@ -6,6 +6,8 @@ import {
   updateRegistrationRuntimeSettings,
 } from "@/lib/registration-settings"
 import { DEFAULT_PRICING_CONFIG } from "@/lib/pricing/calculate"
+import { writeAuditLog } from "@/lib/audit/log"
+import { parseRegistrationWorkflow } from "@/lib/registration-workflow"
 
 const optionalDateSchema = z.union([
   z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
@@ -30,6 +32,7 @@ const settingsSchema = z
     }),
     paymentReminderDates: z.array(z.string().regex(/^\d{4}-\d{2}-\d{2}$/)).max(12),
     notificationRecipientEmail: z.union([z.string().email(), z.literal("")]),
+    registrationWorkflow: z.enum(["v1", "v2"]).default("v1"),
   })
   .superRefine((data, ctx) => {
     if (
@@ -92,13 +95,28 @@ export const PATCH = async (request: NextRequest) => {
   }
 
   try {
+    const { settings: previous } = await getRawRegistrationRuntimeSettings()
+    const nextWorkflow = parseRegistrationWorkflow(parsed.data.registrationWorkflow)
+
     const settings = await updateRegistrationRuntimeSettings(
       {
         ...parsed.data,
+        registrationWorkflow: nextWorkflow,
         pricing: { ...parsed.data.pricing, ageFree: DEFAULT_PRICING_CONFIG.ageFree },
       },
       auth.sub
     )
+
+    if (previous.registrationWorkflow !== settings.registrationWorkflow) {
+      await writeAuditLog({
+        userId: auth.sub,
+        action: "settings.registration_workflow_changed",
+        previousValue: { registrationWorkflow: previous.registrationWorkflow },
+        updatedValue: { registrationWorkflow: settings.registrationWorkflow },
+        request,
+      })
+    }
+
     return NextResponse.json({ settings })
   } catch (error) {
     return jsonError(

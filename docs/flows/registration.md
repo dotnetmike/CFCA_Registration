@@ -1,8 +1,10 @@
 # Registration flows
 
-Specs: `features.registration`, `features.registration-complete`, `features.magic-link-view`, `features.home`.
+Specs: `features.registration`, `features.registration-complete`, `features.registration-workflow-v2`, `features.magic-link-view`, `features.home`.
 
 ## Continuous form (guest)
+
+Workflow comes from Dashboard Settings (`registration_workflow`, default **v1**). Preview V2 without flipping Settings: `/?workflow=v2`.
 
 ```mermaid
 sequenceDiagram
@@ -19,7 +21,11 @@ sequenceDiagram
   API->>DB: tokens, Unique Code, amount_due
   API->>Mail: confirmation + magic link
   API-->>Form: signupToken, viewToken
-  Form->>G: /register/complete?...
+  alt V1 classic
+    Form->>G: /register/complete
+  else V2 online capability
+    Form->>G: /register/pay then complete
+  end
 ```
 
 ## Logged-in update
@@ -43,7 +49,7 @@ sequenceDiagram
       API->>DB: update + attendees
       API->>DB: audit registration.update
       API-->>Form: registration
-      Form->>P: /my-registration
+      Form->>P: /my-registration or /payment when V2 remaining balance
     end
   end
 ```

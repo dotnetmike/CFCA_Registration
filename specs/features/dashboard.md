@@ -82,8 +82,9 @@ Staff tools: list registrations, users, reports, payment reconcile.
   - Opening date (`registration_start_date`) and closing date (`registration_end_date`) to automatically manage registration availability
   - Early bird start/end dates and configurable delegate capacity caps (default: 200 interstate, 250 Victoria)
   - Attendee pricing (adult early bird, adult regular, child 12+, child 2–12)
+  - **Registration payment workflow** `registration_workflow`: `v1` (classic, default) or `v2` (online payment capability). Change is audited.
 - Changes save via `PATCH /api/admin/registration-settings` and apply without redeploy.
-- Public read model exposed by `GET /api/registration-settings` for form pricing display.
+- Public read model exposed by `GET /api/registration-settings` for form pricing display and active workflow.
 
 ### Reports (`/dashboard/reports`)
 

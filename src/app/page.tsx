@@ -1,5 +1,9 @@
+import { Suspense } from "react"
 import RegistrationForm from "@/components/registrations/registration-form"
-import { getRegistrationRuntimeSettings } from "@/lib/registration-settings"
+import {
+  getRegistrationRuntimeSettings,
+  getActiveRegistrationWorkflow,
+} from "@/lib/registration-settings"
 
 export const dynamic = "force-dynamic"
 
@@ -24,12 +28,20 @@ const ClosedRegistrationPage = () => (
 
 const HomePage = async () => {
 	const settings = await getRegistrationRuntimeSettings()
+	const registrationWorkflow = await getActiveRegistrationWorkflow()
 
 	if (!settings.registrationOpen) {
 		return <ClosedRegistrationPage />
 	}
 
-	return <RegistrationForm pricingConfig={settings.pricing} />
+	return (
+		<Suspense fallback={<p className="text-center text-ink-soft">Loading registration...</p>}>
+			<RegistrationForm
+				pricingConfig={settings.pricing}
+				registrationWorkflow={registrationWorkflow}
+			/>
+		</Suspense>
+	)
 }
 
 export default HomePage

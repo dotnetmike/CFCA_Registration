@@ -26,6 +26,7 @@ Use this index to find the right document. Specs are the source of truth; keep `
 | `features.account` | [account.md](./features/account.md) | Change password |
 | `features.my-registration` | [my-registration.md](./features/my-registration.md) | Logged-in registration summary |
 | `features.payment` | [payment.md](./features/payment.md) | Payment info + mockup |
+| `features.registration-workflow-v2` | [registration-workflow-v2.md](./features/registration-workflow-v2.md) | V1/V2 workflow + Stripe online pay |
 | `features.dashboard` | [dashboard.md](./features/dashboard.md) | Manager dashboard |
 | `features.audit` | [audit.md](./features/audit.md) | Audit log |
 

@@ -24,7 +24,7 @@
 |-----|-------|
 | [flows/auth.md](./flows/auth.md) | `global.auth-security`, `features.login`, `features.signup`, `features.password-reset` |
 | [flows/registration.md](./flows/registration.md) | `features.registration`, `features.registration-complete`, `features.magic-link-view` |
-| [flows/payment.md](./flows/payment.md) | `features.payment`, payments reconcile in `features.dashboard` |
+| [flows/payment.md](./flows/payment.md) | `features.payment`, `features.registration-workflow-v2`, payments reconcile in `features.dashboard` |
 | [flows/admin-dashboard.md](./flows/admin-dashboard.md) | `features.dashboard`, `features.audit` |
 
 ## Data
@@ -41,6 +41,7 @@
 | [operations/local-dev.md](./operations/local-dev.md) | Run, build, restart |
 | [operations/environments.md](./operations/environments.md) | DEV / UAT / Production branch → env |
 | [operations/email.md](./operations/email.md) | Resend / Microsoft 365 email providers |
+| [operations/registration-workflow-v2.md](./operations/registration-workflow-v2.md) | Flip V1 ↔ V2 online payment in Settings |
 | [operations/debugging.md](./operations/debugging.md) | Diagnose issues |
 | [operations/migrations.md](./operations/migrations.md) | Schema changes |
 | [contributing/add-a-feature.md](./contributing/add-a-feature.md) | Spec → code → docs |
