@@ -3,7 +3,7 @@ id: features.registration
 title: Registration form
 status: active
 synced_commit: working-tree
-synced_at: 2026-09-11
+synced_at: 2026-10-08
 owners: [team]
 files:
   - src/app/page.tsx
@@ -36,6 +36,7 @@ files:
   - supabase/migrations/014_registration_dietary_requirements.sql
   - supabase/migrations/016_registration_operations_settings.sql
   - supabase/migrations/018_ministry_and_role_options.sql
+  - supabase/migrations/020_souvenir_preorder_toggle.sql
 ---
 
 # Registration form
@@ -53,8 +54,8 @@ Single continuous conference registration page. Guests complete without login; l
   1. Your details
   2. Other people attending (optional)
   3. Accommodation & transport
-  4. Souvenir pre-order (optional)
-  5. Review & submit
+  4. Souvenir pre-order (optional) — **only when enabled** in Dashboard Settings (default off)
+  5. Review & submit (numbered **4** when the souvenir section is hidden)
 - Short intro: fill in the form, then press Submit once at the bottom.
 - National Conference reminder shown on the page: **National Conference 2027**.
 - Required fields marked with a prominent **red asterisk**; invalid fields show a red border on submit.
@@ -87,6 +88,10 @@ Single continuous conference registration page. Guests complete without login; l
 
 ### Souvenir pre-order (optional)
 
+- Controlled by runtime setting `souvenir_preorder_enabled` (Dashboard → Registration Settings → **Enable souvenir pre-order**). **Default: disabled.**
+- When disabled:
+  - The section is not rendered and the review summary omits the “Souvenir t-shirts” row (unless the registration already has orders).
+  - `POST /api/registrations` stores `souvenir_orders = []`; `PUT /api/registrations/[id]` ignores incoming `souvenir_orders` and keeps existing values (so existing orders and `amount_due` are not changed).
 - Managed by **Love In Action**; note that all proceeds support a fund for future projects sharing love and help to others.
 - Item: conference **t-shirt**, **$30** each.
 - Registrant may pre-order multiple lines by **size** and **quantity** (e.g. 1× Medium + 3× Large).
@@ -140,6 +145,8 @@ Single continuous conference registration page. Guests complete without login; l
 
 - [ ] On submit, all validation errors are shown together in a summary list
 - [ ] Required fields use a prominent red asterisk and red border when invalid
+- [ ] Souvenir pre-order section hidden by default; shown only when enabled in Dashboard Settings
+- [ ] When disabled, APIs do not accept new souvenir orders and keep existing ones
 - [ ] Optional t-shirt pre-order with size/qty at $30 each
 - [ ] Love In Action proceeds note shown
 - [ ] Souvenir total included in amount due

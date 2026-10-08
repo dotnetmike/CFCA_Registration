@@ -39,6 +39,7 @@ const HomePage = async () => {
 			<RegistrationForm
 				pricingConfig={settings.pricing}
 				registrationWorkflow={registrationWorkflow}
+				souvenirPreorderEnabled={settings.souvenirPreorderEnabled}
 			/>
 		</Suspense>
 	)

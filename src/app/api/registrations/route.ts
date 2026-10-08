@@ -131,6 +131,7 @@ const handlePublicSubmit = async (request: NextRequest, body: unknown) => {
 
   const parsed = registrationSchema.safeParse(body)
   if (!parsed.success) return jsonError(formatRegistrationSchemaError(parsed.error))
+  if (!runtime.souvenirPreorderEnabled) parsed.data.souvenir_orders = []
   if (!parsed.data.submit) {
     return jsonError("Guest registrations must be submitted in full. Please complete all steps and submit.")
   }
@@ -240,6 +241,7 @@ const handleAuthenticatedPost = async (request: NextRequest, body: unknown) => {
   const assignParticipantReference = getAssignParticipantReference(body)
   const parsed = registrationSchema.safeParse(body)
   if (!parsed.success) return jsonError(formatRegistrationSchemaError(parsed.error))
+  if (!runtime.souvenirPreorderEnabled) parsed.data.souvenir_orders = []
 
   const admin = createAdminClient()
 

@@ -28,6 +28,7 @@ type Settings = {
   paymentReminderDates: string[]
   notificationRecipientEmail: string
   registrationWorkflow: "v1" | "v2"
+  souvenirPreorderEnabled: boolean
 }
 
 const emptySettings: Settings = {
@@ -48,6 +49,7 @@ const emptySettings: Settings = {
   paymentReminderDates: [],
   notificationRecipientEmail: "",
   registrationWorkflow: "v1",
+  souvenirPreorderEnabled: false,
 }
 
 const RegistrationSettingsPage = () => {
@@ -221,6 +223,25 @@ const RegistrationSettingsPage = () => {
                 />
                 <span>
                   <strong>Enable registration (force override)</strong>. Uncheck to force registration closed immediately regardless of set dates.
+                </span>
+              </label>
+
+              <label className="flex items-start gap-3 text-sm text-ink">
+                <input
+                  type="checkbox"
+                  checked={settings.souvenirPreorderEnabled}
+                  onChange={(e) =>
+                    setSettings((current) => ({
+                      ...current,
+                      souvenirPreorderEnabled: e.target.checked,
+                    }))
+                  }
+                  aria-label="Enable souvenir pre-order"
+                />
+                <span>
+                  <strong>Enable souvenir pre-order</strong> (off by default). When unchecked, the
+                  &ldquo;Souvenir pre-order (optional)&rdquo; section is hidden from the registration
+                  form and new t-shirt orders are not accepted. Existing orders are kept.
                 </span>
               </label>
 

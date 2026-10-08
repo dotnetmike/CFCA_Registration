@@ -33,6 +33,7 @@ const settingsSchema = z
     paymentReminderDates: z.array(z.string().regex(/^\d{4}-\d{2}-\d{2}$/)).max(12),
     notificationRecipientEmail: z.union([z.string().email(), z.literal("")]),
     registrationWorkflow: z.enum(["v1", "v2"]).default("v1"),
+    souvenirPreorderEnabled: z.boolean().default(false),
   })
   .superRefine((data, ctx) => {
     if (
@@ -113,6 +114,16 @@ export const PATCH = async (request: NextRequest) => {
         action: "settings.registration_workflow_changed",
         previousValue: { registrationWorkflow: previous.registrationWorkflow },
         updatedValue: { registrationWorkflow: settings.registrationWorkflow },
+        request,
+      })
+    }
+
+    if (previous.souvenirPreorderEnabled !== settings.souvenirPreorderEnabled) {
+      await writeAuditLog({
+        userId: auth.sub,
+        action: "settings.souvenir_preorder_changed",
+        previousValue: { souvenirPreorderEnabled: previous.souvenirPreorderEnabled },
+        updatedValue: { souvenirPreorderEnabled: settings.souvenirPreorderEnabled },
         request,
       })
     }

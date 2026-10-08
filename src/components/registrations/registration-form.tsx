@@ -248,9 +248,11 @@ const SectionHeading = ({
 const RegistrationForm = ({
   pricingConfig = DEFAULT_PRICING_CONFIG,
   registrationWorkflow = "v1",
+  souvenirPreorderEnabled = false,
 }: {
   pricingConfig?: PricingConfig
   registrationWorkflow?: "v1" | "v2"
+  souvenirPreorderEnabled?: boolean
 }) => {
   const { authFetch, user, getAuthHeaders, isLoading: authLoading } = useAuth()
   const router = useRouter()
@@ -1507,6 +1509,7 @@ const RegistrationForm = ({
             </CardContent>
           </Card>
 
+          {souvenirPreorderEnabled && (
           <Card className="animate-rise-delay-3">
             <CardHeader>
               <SectionHeading
@@ -1616,11 +1619,12 @@ const RegistrationForm = ({
               )}
             </CardContent>
           </Card>
+          )}
 
           <Card className="animate-rise-delay-3">
             <CardHeader>
               <SectionHeading
-                number={5}
+                number={souvenirPreorderEnabled ? 5 : 4}
                 title="Review & submit"
                 description="Check your answers, then submit. You can scroll up to change anything."
               />
@@ -1630,6 +1634,7 @@ const RegistrationForm = ({
                 formData={watchAll as RegistrationFormData}
                 participantReference={participantReference}
                 pricingConfig={pricingConfig}
+                souvenirPreorderEnabled={souvenirPreorderEnabled}
               />
               <div className="rounded-md border border-[color:rgba(166,135,78,0.35)] bg-[rgba(166,135,78,0.1)] p-4 text-base text-accent-ink">
                 When you are ready, press the button below. You only need to do this once.

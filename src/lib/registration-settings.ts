@@ -27,6 +27,7 @@ type RuntimeSettingsRow = {
   age_12_plus: number
   age_2_to_12: number
   registration_workflow?: string | null
+  souvenir_preorder_enabled?: boolean | null
 }
 
 export type RegistrationRuntimeSettings = {
@@ -37,6 +38,7 @@ export type RegistrationRuntimeSettings = {
   paymentReminderDates: string[]
   notificationRecipientEmail: string
   registrationWorkflow: RegistrationWorkflow
+  souvenirPreorderEnabled: boolean
 }
 
 export type RegistrationRuntimeSettingsInput = {
@@ -47,6 +49,7 @@ export type RegistrationRuntimeSettingsInput = {
   paymentReminderDates: string[]
   notificationRecipientEmail: string
   registrationWorkflow?: RegistrationWorkflow
+  souvenirPreorderEnabled?: boolean
 }
 
 const normalizeSettings = (
@@ -66,6 +69,7 @@ const normalizeSettings = (
   registrationWorkflow: parseRegistrationWorkflow(
     values.registrationWorkflow ?? DEFAULT_REGISTRATION_WORKFLOW
   ),
+  souvenirPreorderEnabled: values.souvenirPreorderEnabled ?? false,
 })
 
 export const DEFAULT_REGISTRATION_RUNTIME_SETTINGS: RegistrationRuntimeSettings = {
@@ -76,11 +80,12 @@ export const DEFAULT_REGISTRATION_RUNTIME_SETTINGS: RegistrationRuntimeSettings 
   paymentReminderDates: [],
   notificationRecipientEmail: "",
   registrationWorkflow: DEFAULT_REGISTRATION_WORKFLOW,
+  souvenirPreorderEnabled: false,
 }
 
 const SETTINGS_TABLE = "runtime_registration_settings"
 const SETTINGS_SELECT =
-  "registration_open, registration_start_date, registration_end_date, early_bird_start, early_bird_end, early_bird_payment_due_date, early_bird_interstate_limit, early_bird_vic_limit, payment_reminder_dates, notification_recipient_email, adult_early_bird, adult_regular, age_12_plus, age_2_to_12, registration_workflow"
+  "registration_open, registration_start_date, registration_end_date, early_bird_start, early_bird_end, early_bird_payment_due_date, early_bird_interstate_limit, early_bird_vic_limit, payment_reminder_dates, notification_recipient_email, adult_early_bird, adult_regular, age_12_plus, age_2_to_12, registration_workflow, souvenir_preorder_enabled"
 
 const toNumber = (value: unknown, fallback: number) => {
   const n = Number(value)
@@ -151,6 +156,7 @@ const mapRow = (row: RuntimeSettingsRow | null | undefined): RegistrationRuntime
     paymentReminderDates: toDateStrings(row.payment_reminder_dates),
     notificationRecipientEmail: String(row.notification_recipient_email ?? "").trim(),
     registrationWorkflow: parseRegistrationWorkflow(row.registration_workflow),
+    souvenirPreorderEnabled: !!row.souvenir_preorder_enabled,
   }
 }
 
@@ -217,6 +223,7 @@ export const updateRegistrationRuntimeSettings = async (
         age_12_plus: normalized.pricing.age12Plus,
         age_2_to_12: normalized.pricing.age2To12,
         registration_workflow: parseRegistrationWorkflow(normalized.registrationWorkflow),
+        souvenir_preorder_enabled: normalized.souvenirPreorderEnabled,
         updated_by: updatedBy ?? null,
         updated_at: new Date().toISOString(),
       },

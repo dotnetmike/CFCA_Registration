@@ -153,6 +153,7 @@ export const PUT = async (request: NextRequest, { params }: RouteParams) => {
   const assignParticipantReference = getAssignParticipantReference(body)
   const parsed = registrationBaseSchema.partial().safeParse(body)
   if (!parsed.success) return jsonError(formatRegistrationSchemaError(parsed.error))
+  if (!runtime.souvenirPreorderEnabled) delete parsed.data.souvenir_orders
 
   if (parsed.data.submit) {
     const incomingAccommodation = parsed.data.accommodation_type as string | null | undefined

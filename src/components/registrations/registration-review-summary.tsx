@@ -22,6 +22,7 @@ type RegistrationReviewSummaryProps = {
   formData: RegistrationFormData
   participantReference: string | null
   pricingConfig?: PricingConfig
+  souvenirPreorderEnabled?: boolean
 }
 
 const buildAttendeeDescriptions = (data: RegistrationFormData) => {
@@ -101,6 +102,7 @@ export const RegistrationReviewSummary = ({
   formData,
   participantReference,
   pricingConfig = DEFAULT_PRICING_CONFIG,
+  souvenirPreorderEnabled = true,
 }: RegistrationReviewSummaryProps) => {
   const attendees = buildAttendeesForPricing(formData)
   const earlyBirdSlot = resolveEarlyBirdSlot(
@@ -151,14 +153,16 @@ export const RegistrationReviewSummary = ({
           <dt className="font-medium">Attendees</dt>
           <dd>{attendeeCount}</dd>
         </div>
-        <div className="md:col-span-2">
-          <dt className="font-medium">Souvenir t-shirts</dt>
-          <dd>
-            {souvenirQty > 0
-              ? `${formatSouvenirOrdersSummary(formData.souvenir_orders)} (${formatCurrency(souvenirAmount)})`
-              : "None"}
-          </dd>
-        </div>
+        {(souvenirPreorderEnabled || souvenirQty > 0) && (
+          <div className="md:col-span-2">
+            <dt className="font-medium">Souvenir t-shirts</dt>
+            <dd>
+              {souvenirQty > 0
+                ? `${formatSouvenirOrdersSummary(formData.souvenir_orders)} (${formatCurrency(souvenirAmount)})`
+                : "None"}
+            </dd>
+          </div>
+        )}
         {formData.transport_option && formData.transport_option !== "own" && (
           <>
             <div>

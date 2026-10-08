@@ -45,6 +45,8 @@ sequenceDiagram
 | `011_payment_attribution_and_notes.sql` | Attribution + admin notes |
 | `012_souvenir_orders.sql` | `souvenir_orders` JSONB |
 | `013_enable_rls_revoke_anon.sql` | Enable RLS; revoke anon/authenticated Data API grants |
+| `019_registration_workflow_v2_stripe.sql` | Workflow V1/V2 setting + Stripe ledger columns |
+| `020_souvenir_preorder_toggle.sql` | `souvenir_preorder_enabled` setting (default off) |
 
 Re-check the folder when onboarding — this table can lag; **filesystem is authoritative**.
 
