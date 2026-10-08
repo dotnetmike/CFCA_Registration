@@ -35,6 +35,7 @@ type PaymentStepProps = {
   authFetch?: (input: string, init?: RequestInit) => Promise<Response>
   onBankContinue: () => void
   checkoutCancelled?: boolean
+  successPath?: string
 }
 
 const CHECKOUT_START_TIMEOUT_MS = 20_000
@@ -50,6 +51,7 @@ export const PaymentStep = ({
   authFetch,
   onBankContinue,
   checkoutCancelled = false,
+  successPath,
 }: PaymentStepProps) => {
   const [selectedMethod, setSelectedMethod] = useState<PaymentMethod>(
     showOnline ? "online" : "bank"
@@ -84,7 +86,7 @@ export const PaymentStep = ({
           signupToken: signupToken || undefined,
           viewToken: viewToken || undefined,
           registrationId: registrationId || undefined,
-          successPath: isGuest ? "/register/complete" : "/my-registration",
+          successPath: successPath ?? (isGuest ? "/register/complete" : "/my-registration"),
           cancelPath: isGuest ? "/register/pay" : "/payment",
         }),
       })

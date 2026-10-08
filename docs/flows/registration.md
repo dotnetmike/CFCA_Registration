@@ -62,6 +62,8 @@ flowchart LR
   View -->|Edit| LoginOrSignup{Has account?}
   LoginOrSignup -->|yes| Login[/login]
   LoginOrSignup -->|no| Signup[/signup?email=]
+  View -->|Remaining balance > 0| Pay[/register/pay?view=token]
+  Pay -->|Stripe success / bank continue| View
 ```
 
 ## Update notification email

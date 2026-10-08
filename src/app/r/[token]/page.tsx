@@ -1,11 +1,12 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { Suspense, useCallback, useEffect, useState } from "react"
 import Link from "next/link"
-import { useParams } from "next/navigation"
+import { useParams, useSearchParams } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
+import { StripeCheckoutReturn } from "@/components/payments/stripe-checkout-return"
 import { formatCurrency } from "@/lib/pricing/calculate"
 import { CFCA_POSITION_LABELS } from "@/lib/registrations/schema"
 import {
@@ -58,13 +59,21 @@ type RegistrationView = {
   user_id?: string | null
 }
 
-const MagicRegistrationPage = () => {
+const MagicRegistrationContent = () => {
   const params = useParams<{ token: string }>()
+  const searchParams = useSearchParams()
   const token = params.token
+  const checkoutSessionId =
+    searchParams.get("payment") === "success" ? searchParams.get("session_id") : null
   const [registration, setRegistration] = useState<RegistrationView | null>(null)
   const [hasAccount, setHasAccount] = useState(false)
   const [error, setError] = useState("")
   const [isLoading, setIsLoading] = useState(true)
+  const [reloadCount, setReloadCount] = useState(0)
+
+  const handlePaymentConfirmed = useCallback(() => {
+    setReloadCount((count) => count + 1)
+  }, [])
 
   useEffect(() => {
     if (!token) return
@@ -85,7 +94,7 @@ const MagicRegistrationPage = () => {
     }
 
     load()
-  }, [token])
+  }, [token, reloadCount])
 
   if (isLoading) return <p className="text-center text-gray-500">Loading registration...</p>
 
@@ -106,6 +115,12 @@ const MagicRegistrationPage = () => {
     registration.dropoff_melbourne_airport
   )
   const paymentRef = registration.participant_reference || registration.registration_no
+  const remainingBalance = Math.max(
+    0,
+    Number(registration.amount_due) - Number(registration.amount_paid)
+  )
+  const canPay = !!registration.submitted_at && remainingBalance > 0
+  const payHref = `/register/pay?view=${encodeURIComponent(token)}`
   const editHref = hasAccount
     ? `/login?redirect=${encodeURIComponent("/")}`
     : `/signup?email=${encodeURIComponent(registration.email)}&redirect=${encodeURIComponent("/")}`
@@ -120,6 +135,14 @@ const MagicRegistrationPage = () => {
           </Button>
         </Link>
       </div>
+
+      {checkoutSessionId && (
+        <StripeCheckoutReturn
+          sessionId={checkoutSessionId}
+          retryHref={payHref}
+          onConfirmed={handlePaymentConfirmed}
+        />
+      )}
 
       <Alert variant="info">
         You are viewing this registration via a secure email link. To make changes,{" "}
@@ -253,16 +276,37 @@ const MagicRegistrationPage = () => {
         <CardHeader>
           <CardTitle>Payment</CardTitle>
         </CardHeader>
-        <CardContent className="grid gap-2 text-sm md:grid-cols-2">
-          <div>
-            <strong>Amount Due:</strong> {formatCurrency(Number(registration.amount_due))}
+        <CardContent className="space-y-4 text-sm">
+          <div className="grid gap-2 md:grid-cols-2">
+            <div>
+              <strong>Amount Due:</strong> {formatCurrency(Number(registration.amount_due))}
+            </div>
+            <div>
+              <strong>Amount Paid:</strong> {formatCurrency(Number(registration.amount_paid))}
+            </div>
+            <div>
+              <strong>Remaining balance:</strong>{" "}
+              <span className={canPay ? "font-semibold text-accent-ink" : ""}>
+                {formatCurrency(remainingBalance)}
+              </span>
+            </div>
+            <div>
+              <strong>Status:</strong> {registration.payment_status}
+            </div>
           </div>
-          <div>
-            <strong>Amount Paid:</strong> {formatCurrency(Number(registration.amount_paid))}
-          </div>
-          <div>
-            <strong>Status:</strong> {registration.payment_status}
-          </div>
+          {canPay && (
+            <div className="flex flex-col gap-3 rounded-md border border-[color:var(--line-strong)] bg-surface-muted p-4 sm:flex-row sm:items-center sm:justify-between">
+              <p className="text-ink-soft">
+                You have <strong className="text-ink">{formatCurrency(remainingBalance)}</strong>{" "}
+                left to pay. Pay online or view bank transfer details.
+              </p>
+              <Link href={payHref} className="shrink-0">
+                <Button aria-label={`Pay remaining balance of ${formatCurrency(remainingBalance)}`}>
+                  Pay {formatCurrency(remainingBalance)}
+                </Button>
+              </Link>
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -279,5 +323,11 @@ const MagicRegistrationPage = () => {
     </div>
   )
 }
+
+const MagicRegistrationPage = () => (
+  <Suspense fallback={<p className="text-center text-gray-500">Loading registration...</p>}>
+    <MagicRegistrationContent />
+  </Suspense>
+)
 
 export default MagicRegistrationPage

@@ -1,6 +1,7 @@
 "use client"
 
 import { Suspense, useEffect, useState } from "react"
+import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Alert } from "@/components/ui/alert"
 import { PaymentStep } from "@/components/payments/payment-step"
@@ -28,6 +29,8 @@ const PayPageInner = () => {
   const { authFetch, user, isLoading: authLoading } = useAuth()
   const signupToken = searchParams.get("token") ?? ""
   const viewToken = searchParams.get("view") ?? ""
+  const isViewLinkPayment = !signupToken && !!viewToken
+  const viewPagePath = `/r/${encodeURIComponent(viewToken)}`
 
   const [registration, setRegistration] = useState<PayRegistration | null>(null)
   const [showOnline, setShowOnline] = useState(false)
@@ -104,6 +107,10 @@ const PayPageInner = () => {
   }, [authFetch, authLoading, signupToken, user, viewToken])
 
   const goComplete = (payment: "bank") => {
+    if (isViewLinkPayment) {
+      router.push(viewPagePath)
+      return
+    }
     if (signupToken || viewToken) {
       const params = new URLSearchParams()
       if (signupToken) params.set("token", signupToken)
@@ -141,11 +148,13 @@ const PayPageInner = () => {
     <div className="cfca-page mx-auto max-w-2xl space-y-6">
       <div className="space-y-3">
         <p className="text-xs font-semibold uppercase tracking-[0.22em] text-accent-ink">
-          Step 2 of 3
+          {isViewLinkPayment ? "Registration payment" : "Step 2 of 3"}
         </p>
         <h1 className="font-display text-4xl font-semibold text-ink">Payment</h1>
         <p className="text-ink-soft">
-          Your registration is saved. Pay online now, or choose bank transfer.
+          {isViewLinkPayment
+            ? "Pay your remaining balance online, or choose bank transfer."
+            : "Your registration is saved. Pay online now, or choose bank transfer."}
         </p>
         <div className="accent-rule" aria-hidden />
       </div>
@@ -161,7 +170,16 @@ const PayPageInner = () => {
         registrationId={registration.id}
         authFetch={user ? authFetch : undefined}
         onBankContinue={() => goComplete("bank")}
+        successPath={isViewLinkPayment ? viewPagePath : undefined}
       />
+      {isViewLinkPayment && (
+        <Link
+          href={viewPagePath}
+          className="inline-block text-sm font-medium text-accent-ink underline-offset-2 hover:underline"
+        >
+          ← Back to registration details
+        </Link>
+      )}
     </div>
   )
 }
