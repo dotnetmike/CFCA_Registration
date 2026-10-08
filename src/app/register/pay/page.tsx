@@ -5,6 +5,11 @@ import { useRouter, useSearchParams } from "next/navigation"
 import { Alert } from "@/components/ui/alert"
 import { PaymentStep } from "@/components/payments/payment-step"
 import { useAuth } from "@/lib/auth/context"
+import {
+  EMPTY_BANK_DETAILS,
+  normalizeBankDetails,
+  type BankDetails,
+} from "@/lib/payments/bank-details"
 
 type PayRegistration = {
   id: string
@@ -26,6 +31,7 @@ const PayPageInner = () => {
 
   const [registration, setRegistration] = useState<PayRegistration | null>(null)
   const [showOnline, setShowOnline] = useState(false)
+  const [bankDetails, setBankDetails] = useState<BankDetails>(EMPTY_BANK_DETAILS)
   const [error, setError] = useState("")
   const [isLoading, setIsLoading] = useState(true)
 
@@ -55,6 +61,7 @@ const PayPageInner = () => {
           (payData.registrationWorkflow ?? "v1") === "v2" &&
             payData.stripePaymentsEnabled === true
         )
+        setBankDetails(normalizeBankDetails(payData.bankDetails))
         setIsLoading(false)
         return
       }
@@ -74,6 +81,7 @@ const PayPageInner = () => {
         const settingsData = await settingsRes.json()
         const workflow = settingsData.settings?.registrationWorkflow ?? "v1"
         setShowOnline(workflow === "v2" && settingsData.stripePaymentsEnabled === true)
+        setBankDetails(normalizeBankDetails(settingsData.settings?.bankDetails))
       }
 
       if (!regRes.ok) {
@@ -146,6 +154,7 @@ const PayPageInner = () => {
         registration={registration}
         uniqueCode={uniqueCode}
         showOnline={showOnline}
+        bankDetails={bankDetails}
         checkoutCancelled={searchParams.get("payment") === "cancelled"}
         signupToken={signupToken || undefined}
         viewToken={viewToken || undefined}

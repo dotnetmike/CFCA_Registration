@@ -7,7 +7,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert } from "@/components/ui/alert"
 import { PaymentReferenceMockup } from "@/components/registrations/payment-reference-mockup"
 import { PaymentStep } from "@/components/payments/payment-step"
+import { BankTransferDetails } from "@/components/payments/bank-transfer-details"
 import { formatCurrency } from "@/lib/pricing/calculate"
+import {
+  EMPTY_BANK_DETAILS,
+  normalizeBankDetails,
+  type BankDetails,
+} from "@/lib/payments/bank-details"
 
 const PaymentPageContent = () => {
   const { authFetch } = useAuth()
@@ -25,6 +31,7 @@ const PaymentPageContent = () => {
   } | null>(null)
   const [useV2PayStep, setUseV2PayStep] = useState(false)
   const [showOnline, setShowOnline] = useState(false)
+  const [bankDetails, setBankDetails] = useState<BankDetails>(EMPTY_BANK_DETAILS)
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
@@ -43,6 +50,7 @@ const PaymentPageContent = () => {
         const stripeOn = settingsData.stripePaymentsEnabled === true
         setUseV2PayStep(workflow === "v2")
         setShowOnline(workflow === "v2" && stripeOn)
+        setBankDetails(normalizeBankDetails(settingsData.settings?.bankDetails))
       }
       setIsLoading(false)
     }
@@ -84,6 +92,7 @@ const PaymentPageContent = () => {
           registration={registration}
           uniqueCode={paymentReference}
           showOnline={showOnline}
+          bankDetails={bankDetails}
           registrationId={registration.id}
           authFetch={authFetch}
           onBankContinue={() => router.push("/my-registration")}
@@ -139,18 +148,8 @@ const PaymentPageContent = () => {
         <CardHeader>
           <CardTitle>Bank Transfer Details</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-2 text-sm">
-          <p>
-            <strong>Account Name:</strong>{" "}
-            {process.env.NEXT_PUBLIC_BANK_ACCOUNT_NAME ?? "CFCA Conference"}
-          </p>
-          <p>
-            <strong>BSB:</strong> {process.env.NEXT_PUBLIC_BANK_BSB ?? "000-000"}
-          </p>
-          <p>
-            <strong>Account Number:</strong>{" "}
-            {process.env.NEXT_PUBLIC_BANK_ACCOUNT_NUMBER ?? "00000000"}
-          </p>
+        <CardContent>
+          <BankTransferDetails bankDetails={bankDetails} />
         </CardContent>
       </Card>
 

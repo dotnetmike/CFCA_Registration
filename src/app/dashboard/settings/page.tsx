@@ -9,6 +9,11 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Alert } from "@/components/ui/alert"
 import { useBusyCursor } from "@/hooks/use-busy-cursor"
+import {
+  EMPTY_BANK_DETAILS,
+  isBankDetailsComplete,
+  type BankDetails,
+} from "@/lib/payments/bank-details"
 
 type Settings = {
   registrationOpen: boolean
@@ -29,6 +34,7 @@ type Settings = {
   notificationRecipientEmail: string
   registrationWorkflow: "v1" | "v2"
   souvenirPreorderEnabled: boolean
+  bankDetails: BankDetails
 }
 
 const emptySettings: Settings = {
@@ -50,6 +56,7 @@ const emptySettings: Settings = {
   notificationRecipientEmail: "",
   registrationWorkflow: "v1",
   souvenirPreorderEnabled: false,
+  bankDetails: EMPTY_BANK_DETAILS,
 }
 
 const RegistrationSettingsPage = () => {
@@ -101,6 +108,13 @@ const RegistrationSettingsPage = () => {
             ? value
             : Number(value),
       },
+    }))
+  }
+
+  const updateBankDetails = (key: keyof BankDetails, value: string) => {
+    setSettings((current) => ({
+      ...current,
+      bankDetails: { ...current.bankDetails, [key]: value },
     }))
   }
 
@@ -201,6 +215,66 @@ const RegistrationSettingsPage = () => {
                 Leave V1 until online payment is signed off. Flip to V2 here when ready;
                 switch back to V1 anytime to roll back the public flow.
               </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Bank Transfer Details</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-sm text-ink-soft">
+                CFCA bank account shown to registrants on the payment pages. Registrants include
+                their Unique Code as the payment reference.
+              </p>
+              {!isBankDetailsComplete(settings.bankDetails) && (
+                <Alert variant="warning">
+                  Bank details are incomplete. Registrants will be asked to contact the
+                  registration team instead of seeing bank transfer details.
+                </Alert>
+              )}
+              <div className="grid gap-4 md:grid-cols-3">
+                <div className="space-y-2">
+                  <Label htmlFor="bankAccountName">Account name</Label>
+                  <Input
+                    id="bankAccountName"
+                    value={settings.bankDetails.accountName}
+                    maxLength={100}
+                    autoComplete="off"
+                    onChange={(e) => updateBankDetails("accountName", e.target.value)}
+                    aria-label="Bank account name"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="bankBsb">BSB</Label>
+                  <Input
+                    id="bankBsb"
+                    value={settings.bankDetails.bsb}
+                    inputMode="numeric"
+                    placeholder="123-456"
+                    maxLength={7}
+                    pattern="\d{3}-?\d{3}"
+                    title="6 digits, e.g. 123-456"
+                    autoComplete="off"
+                    onChange={(e) => updateBankDetails("bsb", e.target.value)}
+                    aria-label="Bank BSB"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="bankAccountNumber">Account number</Label>
+                  <Input
+                    id="bankAccountNumber"
+                    value={settings.bankDetails.accountNumber}
+                    inputMode="numeric"
+                    maxLength={12}
+                    pattern="[\d\s]{4,12}"
+                    title="4–10 digits"
+                    autoComplete="off"
+                    onChange={(e) => updateBankDetails("accountNumber", e.target.value)}
+                    aria-label="Bank account number"
+                  />
+                </div>
+              </div>
             </CardContent>
           </Card>
 

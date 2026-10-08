@@ -64,6 +64,9 @@ erDiagram
     text notification_recipient_email
     text registration_workflow
     bool souvenir_preorder_enabled
+    text bank_account_name
+    text bank_bsb
+    text bank_account_number
     numeric adult_early_bird
     numeric adult_regular
     numeric age_12_plus

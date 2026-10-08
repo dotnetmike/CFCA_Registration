@@ -27,7 +27,7 @@ Typical keys per env:
 
 - Supabase URL + **service role** key (server only) for **that** project
 - `JWT_ACCESS_SECRET` / `JWT_REFRESH_SECRET` / access expiry (unique per env)
-- `NEXT_PUBLIC_BANK_*` for payment page
+- `STRIPE_SECRET_KEY` (optional, V2 online payment). Bank transfer details are **not** env — they live in Dashboard → Registration Settings.
 - `EMAIL_PROVIDER` (`resend` default, or `office365`)
 - Resend: `RESEND_API_KEY`, `EMAIL_FROM` (Resend From only)
 - Office 365 (Microsoft Graph): `OFFICE365_TENANT_ID`, `OFFICE365_CLIENT_ID`, `OFFICE365_CLIENT_SECRET`, `OFFICE365_USERNAME` (see [operations/email.md](../operations/email.md))

@@ -8,6 +8,7 @@ import {
 import { DEFAULT_PRICING_CONFIG } from "@/lib/pricing/calculate"
 import { writeAuditLog } from "@/lib/audit/log"
 import { parseRegistrationWorkflow } from "@/lib/registration-workflow"
+import { ACCOUNT_NUMBER_PATTERN, BSB_PATTERN } from "@/lib/payments/bank-details"
 
 const optionalDateSchema = z.union([
   z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
@@ -34,6 +35,22 @@ const settingsSchema = z
     notificationRecipientEmail: z.union([z.string().email(), z.literal("")]),
     registrationWorkflow: z.enum(["v1", "v2"]).default("v1"),
     souvenirPreorderEnabled: z.boolean().default(false),
+    bankDetails: z
+      .object({
+        accountName: z.string().trim().max(100, "Bank account name is too long"),
+        bsb: z
+          .string()
+          .trim()
+          .refine((value) => value === "" || BSB_PATTERN.test(value), "BSB must be 6 digits (e.g. 123-456)"),
+        accountNumber: z
+          .string()
+          .transform((value) => value.replace(/\s/g, ""))
+          .refine(
+            (value) => value === "" || ACCOUNT_NUMBER_PATTERN.test(value),
+            "Bank account number must be 4–10 digits"
+          ),
+      })
+      .default({ accountName: "", bsb: "", accountNumber: "" }),
   })
   .superRefine((data, ctx) => {
     if (
@@ -124,6 +141,16 @@ export const PATCH = async (request: NextRequest) => {
         action: "settings.souvenir_preorder_changed",
         previousValue: { souvenirPreorderEnabled: previous.souvenirPreorderEnabled },
         updatedValue: { souvenirPreorderEnabled: settings.souvenirPreorderEnabled },
+        request,
+      })
+    }
+
+    if (JSON.stringify(previous.bankDetails) !== JSON.stringify(settings.bankDetails)) {
+      await writeAuditLog({
+        userId: auth.sub,
+        action: "settings.bank_details_changed",
+        previousValue: { bankDetails: previous.bankDetails },
+        updatedValue: { bankDetails: settings.bankDetails },
         request,
       })
     }

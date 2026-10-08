@@ -10,6 +10,7 @@ import {
   resolveRegistrationWorkflow,
   type RegistrationWorkflow,
 } from "@/lib/registration-workflow"
+import { normalizeBankDetails, type BankDetails } from "@/lib/payments/bank-details"
 
 type RuntimeSettingsRow = {
   registration_open: boolean
@@ -28,6 +29,9 @@ type RuntimeSettingsRow = {
   age_2_to_12: number
   registration_workflow?: string | null
   souvenir_preorder_enabled?: boolean | null
+  bank_account_name?: string | null
+  bank_bsb?: string | null
+  bank_account_number?: string | null
 }
 
 export type RegistrationRuntimeSettings = {
@@ -39,6 +43,7 @@ export type RegistrationRuntimeSettings = {
   notificationRecipientEmail: string
   registrationWorkflow: RegistrationWorkflow
   souvenirPreorderEnabled: boolean
+  bankDetails: BankDetails
 }
 
 export type RegistrationRuntimeSettingsInput = {
@@ -50,6 +55,7 @@ export type RegistrationRuntimeSettingsInput = {
   notificationRecipientEmail: string
   registrationWorkflow?: RegistrationWorkflow
   souvenirPreorderEnabled?: boolean
+  bankDetails?: Partial<BankDetails>
 }
 
 const normalizeSettings = (
@@ -70,6 +76,7 @@ const normalizeSettings = (
     values.registrationWorkflow ?? DEFAULT_REGISTRATION_WORKFLOW
   ),
   souvenirPreorderEnabled: values.souvenirPreorderEnabled ?? false,
+  bankDetails: normalizeBankDetails(values.bankDetails),
 })
 
 export const DEFAULT_REGISTRATION_RUNTIME_SETTINGS: RegistrationRuntimeSettings = {
@@ -81,11 +88,12 @@ export const DEFAULT_REGISTRATION_RUNTIME_SETTINGS: RegistrationRuntimeSettings 
   notificationRecipientEmail: "",
   registrationWorkflow: DEFAULT_REGISTRATION_WORKFLOW,
   souvenirPreorderEnabled: false,
+  bankDetails: normalizeBankDetails(null),
 }
 
 const SETTINGS_TABLE = "runtime_registration_settings"
 const SETTINGS_SELECT =
-  "registration_open, registration_start_date, registration_end_date, early_bird_start, early_bird_end, early_bird_payment_due_date, early_bird_interstate_limit, early_bird_vic_limit, payment_reminder_dates, notification_recipient_email, adult_early_bird, adult_regular, age_12_plus, age_2_to_12, registration_workflow, souvenir_preorder_enabled"
+  "registration_open, registration_start_date, registration_end_date, early_bird_start, early_bird_end, early_bird_payment_due_date, early_bird_interstate_limit, early_bird_vic_limit, payment_reminder_dates, notification_recipient_email, adult_early_bird, adult_regular, age_12_plus, age_2_to_12, registration_workflow, souvenir_preorder_enabled, bank_account_name, bank_bsb, bank_account_number"
 
 const toNumber = (value: unknown, fallback: number) => {
   const n = Number(value)
@@ -157,6 +165,11 @@ const mapRow = (row: RuntimeSettingsRow | null | undefined): RegistrationRuntime
     notificationRecipientEmail: String(row.notification_recipient_email ?? "").trim(),
     registrationWorkflow: parseRegistrationWorkflow(row.registration_workflow),
     souvenirPreorderEnabled: !!row.souvenir_preorder_enabled,
+    bankDetails: normalizeBankDetails({
+      accountName: row.bank_account_name ?? "",
+      bsb: row.bank_bsb ?? "",
+      accountNumber: row.bank_account_number ?? "",
+    }),
   }
 }
 
@@ -224,6 +237,9 @@ export const updateRegistrationRuntimeSettings = async (
         age_2_to_12: normalized.pricing.age2To12,
         registration_workflow: parseRegistrationWorkflow(normalized.registrationWorkflow),
         souvenir_preorder_enabled: normalized.souvenirPreorderEnabled,
+        bank_account_name: normalized.bankDetails.accountName,
+        bank_bsb: normalized.bankDetails.bsb,
+        bank_account_number: normalized.bankDetails.accountNumber,
         updated_by: updatedBy ?? null,
         updated_at: new Date().toISOString(),
       },

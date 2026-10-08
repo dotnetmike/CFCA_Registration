@@ -23,6 +23,16 @@ Use this after Stripe is configured and V2 has been smoke-tested.
 
 Set workflow back to **V1 — Classic** in the same Settings page. No migration undo required. Existing Stripe payment rows remain on the registration.
 
+## Troubleshooting: "Online payment is unavailable right now (…)"
+
+Stripe rejected the Checkout Session. The code in brackets is Stripe's error code. Full detail: server log line `[stripe] checkout.sessions.create failed`, audit `payment.stripe_checkout_start_failed`, and Stripe Dashboard → Workbench → **Logs** (same Test/Live mode as the key) → filter status 4xx on `POST /v1/checkout/sessions`.
+
+Common live-mode causes:
+
+- Account not activated for live charges (finish Stripe account activation / business details / bank account).
+- Wrong or restricted key (`rk_live_…` without *Checkout Sessions: Write*), or a key from a different Stripe account.
+- Hosting env var changed but app not redeployed/restarted.
+
 ## Emergency override
 
 `REGISTRATION_WORKFLOW=v1|v2` in env overrides the Dashboard setting (local/emergency only). Prefer Dashboard for production control.

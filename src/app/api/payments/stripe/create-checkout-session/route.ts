@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
+import Stripe from "stripe"
 import { z } from "zod"
 import { requireAuth, jsonError } from "@/lib/auth/api"
 import { createAdminClient } from "@/lib/supabase/admin"
@@ -139,36 +140,65 @@ export const POST = async (request: NextRequest) => {
     participant_reference: registration.participant_reference ?? "",
   }
 
-  const session = await stripe.checkout.sessions.create(
-    {
-      mode: "payment",
-      customer_email: registration.email || undefined,
-      line_items: [
-        {
-          quantity: 1,
-          price_data: {
-            currency: "aud",
-            unit_amount: amountCents,
-            product_data: {
-              name: "CFCA Conference registration",
-              description: `Unique Code ${uniqueCode}`,
+  let session: Stripe.Checkout.Session
+  try {
+    session = await stripe.checkout.sessions.create(
+      {
+        mode: "payment",
+        customer_email: registration.email || undefined,
+        line_items: [
+          {
+            quantity: 1,
+            price_data: {
+              currency: "aud",
+              unit_amount: amountCents,
+              product_data: {
+                name: "CFCA Conference registration",
+                description: `Unique Code ${uniqueCode}`,
+              },
             },
           },
-        },
-      ],
-      success_url: successUrlString,
-      cancel_url: cancelUrl.toString(),
-      expires_at: Math.floor(Date.now() / 1000) + CHECKOUT_SESSION_TTL_SECONDS,
-      metadata,
-      payment_intent_data: {
+        ],
+        success_url: successUrlString,
+        cancel_url: cancelUrl.toString(),
+        expires_at: Math.floor(Date.now() / 1000) + CHECKOUT_SESSION_TTL_SECONDS,
         metadata,
-        description: `CFCA Conference ${uniqueCode}`,
+        payment_intent_data: {
+          metadata,
+          description: `CFCA Conference ${uniqueCode}`,
+        },
       },
-    },
-    {
-      idempotencyKey: `checkout-reg-${registration.id}-${parsed.data.attemptId}`,
-    }
-  )
+      {
+        idempotencyKey: `checkout-reg-${registration.id}-${parsed.data.attemptId}`,
+      }
+    )
+  } catch (err) {
+    const stripeError = err instanceof Stripe.errors.StripeError ? err : null
+    console.error("[stripe] checkout.sessions.create failed", {
+      registrationId: registration.id,
+      type: stripeError?.type,
+      code: stripeError?.code,
+      statusCode: stripeError?.statusCode,
+      requestId: stripeError?.requestId,
+      message: err instanceof Error ? err.message : String(err),
+    })
+    await writeAuditLog({
+      action: "payment.stripe_checkout_start_failed",
+      metadata: {
+        registration_id: registration.id,
+        stripe_error_type: stripeError?.type ?? null,
+        stripe_error_code: stripeError?.code ?? null,
+        stripe_request_id: stripeError?.requestId ?? null,
+        message: err instanceof Error ? err.message : String(err),
+      },
+      request,
+    })
+    const reference = stripeError?.code ?? stripeError?.type
+    return jsonError(
+      `Online payment is unavailable right now${reference ? ` (${reference})` : ""}. Please try again later or choose Bank Payment.`,
+      502
+    )
+  }
 
   if (!session.url) {
     return jsonError("Could not start Stripe Checkout", 500)

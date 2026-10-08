@@ -68,6 +68,7 @@ Run a pay-step registration flow (V2) side by side with classic bank-after-submi
 | Expired | Session unused for 30 minutes (`expires_at`) → `checkout.session.expired` | Error alert with retry link (new session each attempt) |
 | Timeout | Status still unknown after 45s of polling | Warning: do not pay again; payment will appear and a receipt will be emailed |
 | Start timeout | Creating a session takes over 20s | Error on pay step suggesting retry or bank transfer |
+| Start failed | Stripe rejects session creation (bad key, account not activated, etc.) | HTTP 502 with Stripe error code in the message, suggesting Bank Payment; server log + audit `payment.stripe_checkout_start_failed` (type, code, request id) |
 
 All outcomes are written to `audit_log` (`payment.stripe_checkout_*`, `payment.stripe_failed`).
 

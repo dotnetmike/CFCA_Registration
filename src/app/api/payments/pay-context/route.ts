@@ -3,7 +3,8 @@ import {
   getRegistrationBySignupToken,
   getRegistrationByViewToken,
 } from "@/lib/registrations/view-token"
-import { getActiveRegistrationWorkflow } from "@/lib/registration-settings"
+import { getRegistrationRuntimeSettings } from "@/lib/registration-settings"
+import { resolveRegistrationWorkflow } from "@/lib/registration-workflow"
 import { isStripePaymentsEnabled } from "@/lib/stripe/config"
 import { jsonError } from "@/lib/auth/api"
 
@@ -17,7 +18,8 @@ export const GET = async (request: NextRequest) => {
 
   if (!registration) return jsonError("Not found", 404)
 
-  const workflow = await getActiveRegistrationWorkflow()
+  const settings = await getRegistrationRuntimeSettings()
+  const workflow = resolveRegistrationWorkflow(settings.registrationWorkflow)
 
   return NextResponse.json({
     registration: {
@@ -32,5 +34,6 @@ export const GET = async (request: NextRequest) => {
     },
     registrationWorkflow: workflow,
     stripePaymentsEnabled: isStripePaymentsEnabled(),
+    bankDetails: settings.bankDetails,
   })
 }

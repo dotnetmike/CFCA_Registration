@@ -6,6 +6,8 @@ import { Alert } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { PaymentReferenceMockup } from "@/components/registrations/payment-reference-mockup"
 import { PaymentMethodBadges } from "@/components/payments/payment-method-badges"
+import { BankTransferDetails } from "@/components/payments/bank-transfer-details"
+import type { BankDetails } from "@/lib/payments/bank-details"
 import { formatCurrency } from "@/lib/pricing/calculate"
 import { cn } from "@/lib/utils"
 import { useBusyCursor } from "@/hooks/use-busy-cursor"
@@ -26,6 +28,7 @@ type PaymentStepProps = {
   registration: PaymentStepRegistration
   uniqueCode: string
   showOnline: boolean
+  bankDetails: BankDetails
   signupToken?: string
   viewToken?: string
   registrationId?: string
@@ -40,6 +43,7 @@ export const PaymentStep = ({
   registration,
   uniqueCode,
   showOnline,
+  bankDetails,
   signupToken,
   viewToken,
   registrationId,
@@ -182,19 +186,7 @@ export const PaymentStep = ({
             onSelect={setSelectedMethod}
           >
             <div className="space-y-4">
-              <div className="space-y-2 text-sm">
-                <p>
-                  <strong>Account Name:</strong>{" "}
-                  {process.env.NEXT_PUBLIC_BANK_ACCOUNT_NAME ?? "CFCA Conference"}
-                </p>
-                <p>
-                  <strong>BSB:</strong> {process.env.NEXT_PUBLIC_BANK_BSB ?? "000-000"}
-                </p>
-                <p>
-                  <strong>Account Number:</strong>{" "}
-                  {process.env.NEXT_PUBLIC_BANK_ACCOUNT_NUMBER ?? "00000000"}
-                </p>
-              </div>
+              <BankTransferDetails bankDetails={bankDetails} />
               <Alert variant="info">
                 <strong>IMPORTANT:</strong> Include your <strong>Unique Code</strong> in both
                 Message and Ref. when paying via your bank app.

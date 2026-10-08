@@ -40,6 +40,7 @@ Postgres via Supabase; schema changes only through numbered SQL migrations.
   - `016_registration_operations_settings.sql` — ministry/elder assembly fields plus payment deadline, reminder dates, and registration update recipient
   - `017_registration_open_dates_and_early_bird_limits.sql` — registration opening/closing dates and configurable early bird capacity limits
   - `020_souvenir_preorder_toggle.sql` — `souvenir_preorder_enabled` runtime setting (default `false`)
+  - `021_bank_transfer_settings.sql` — `bank_account_name`, `bank_bsb`, `bank_account_number` runtime settings (replace `NEXT_PUBLIC_BANK_*` env)
 
 ## Acceptance criteria
 
