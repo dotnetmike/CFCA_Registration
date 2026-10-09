@@ -8,7 +8,7 @@ Use this after [01-welcome.md](./01-welcome.md).
 - [ ] `npm run dev` — confirm migrations apply
 - [ ] Guest registration end-to-end (including optional souvenir)
 - [ ] Create account from complete page / magic-link flow
-- [ ] Pay screen shows Unique Code + remaining balance
+- [ ] Pay screen shows Unique Code + Paid / Balance due wording
 - [ ] Manager: dashboard filters, detail edit warning/confirm, admin notes, audit log
 
 ## Day 3 — Specs & docs discipline

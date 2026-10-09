@@ -22,6 +22,7 @@ import { StatCard } from "@/components/dashboard/stat-card"
 import { WelcomePanel } from "@/components/dashboard/welcome-panel"
 import { DashboardPanel } from "@/components/dashboard/dashboard-panel"
 import { formatCurrency } from "@/lib/pricing/calculate"
+import { PAYMENT_LABELS, PAYMENT_STATUS_LABELS } from "@/lib/payments/labels"
 import { formatCacheAge } from "@/lib/dashboard/list-cache"
 import {
   emptyPaymentStatusCounts,
@@ -205,7 +206,7 @@ const ReportsPage = () => {
     () =>
       (Object.keys(paymentStatusCounts) as (keyof ReportsPaymentStatusCounts)[]).map(
         (status) => ({
-          name: status,
+          name: PAYMENT_STATUS_LABELS[status],
           value: paymentStatusCounts[status],
           fill: PAYMENT_COLORS[status],
         })
@@ -291,15 +292,15 @@ const ReportsPage = () => {
         <StatCard
           label="Collected"
           value={formatCurrency(totals.amount_paid)}
-          hint={`of ${formatCurrency(totals.amount_due)} due`}
+          hint={`of ${formatCurrency(totals.amount_due)} in registration fees`}
           tone="success"
           icon={<IconPaid />}
           className="animate-rise-delay-2"
         />
         <StatCard
-          label="Remaining"
+          label={PAYMENT_LABELS.balanceDue}
           value={formatCurrency(totals.amount_remaining)}
-          hint={`${paymentStatusCounts.pending + paymentStatusCounts.partial} unpaid / partial`}
+          hint={`${paymentStatusCounts.pending + paymentStatusCounts.partial} unpaid / part paid`}
           tone="warning"
           icon={<IconBalance />}
           className="animate-rise-delay-3"
@@ -357,7 +358,7 @@ const ReportsPage = () => {
           </div>
           <ul className="mt-2 grid grid-cols-2 gap-2 text-xs">
             {paymentChartData.map((entry) => (
-              <li key={entry.name} className="flex items-center gap-2 capitalize text-ink-soft">
+              <li key={entry.name} className="flex items-center gap-2 text-ink-soft">
                 <span
                   className="h-2.5 w-2.5 rounded-full"
                   style={{ backgroundColor: entry.fill }}

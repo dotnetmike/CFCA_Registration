@@ -1,3 +1,5 @@
+import { balanceDue } from "@/lib/payments/labels"
+
 /** Never export token / secret columns even if present on the row. */
 const CSV_EXCLUDED_KEYS = new Set([
   "view_token_hash",
@@ -107,7 +109,13 @@ export const buildDetailedRegistrationsCsv = (
     ...REGISTRATION_FORM_COLUMN_ORDER.filter((column) => columnSet.delete(column)),
     ...[...columnSet].sort((a, b) => a.localeCompare(b)),
   ]
-  const headers = [...baseColumns, "additional_attendees", "kids_count", "attendees_count"]
+  const headers = [
+    ...baseColumns,
+    "balance_due",
+    "additional_attendees",
+    "kids_count",
+    "attendees_count",
+  ]
 
   const rows = registrations.map((reg) => {
     const attendees = (reg[NESTED_RELATION_KEY] as unknown[] | null) ?? []
@@ -122,6 +130,7 @@ export const buildDetailedRegistrationsCsv = (
         }
         return serializeCsvCell(reg[col])
       }),
+      serializeCsvCell(balanceDue(reg.amount_due, reg.amount_paid).toFixed(2)),
       serializeCsvCell(formatAdditionalAttendees(attendees)),
       String(kidsCount),
       String(attendees.length),

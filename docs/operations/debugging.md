@@ -61,7 +61,7 @@ Sequence reference: [flows/registration.md](../flows/registration.md).
 1. Confirm Unique Code on registration (`participant_reference`).
 2. Open reconcile result: matched vs unmatched transactions.
 3. Check `payments.source` (`manual` vs `bank_reconcile`) and attribution columns.
-4. Remaining balance UI: `max(0, amount_due - amount_paid)`.
+4. Balance due UI: `max(0, amount_due - amount_paid)` via `balanceDue()` in `src/lib/payments/labels.ts`.
 
 Sequence reference: [flows/payment.md](../flows/payment.md).
 

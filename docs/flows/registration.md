@@ -49,7 +49,7 @@ sequenceDiagram
       API->>DB: update + attendees
       API->>DB: audit registration.update
       API-->>Form: registration
-      Form->>P: /my-registration or /payment when V2 remaining balance
+      Form->>P: /my-registration or /payment when V2 balance due
     end
   end
 ```
@@ -62,7 +62,7 @@ flowchart LR
   View -->|Edit| LoginOrSignup{Has account?}
   LoginOrSignup -->|yes| Login[/login]
   LoginOrSignup -->|no| Signup[/signup?email=]
-  View -->|Remaining balance > 0| Pay[/register/pay?view=token]
+  View -->|Balance due > 0| Pay[/register/pay?view=token]
   Pay -->|Stripe success / bank continue| View
 ```
 

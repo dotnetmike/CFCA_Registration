@@ -153,7 +153,7 @@ const PayPageInner = () => {
         <h1 className="font-display text-4xl font-semibold text-ink">Payment</h1>
         <p className="text-ink-soft">
           {isViewLinkPayment
-            ? "Pay your remaining balance online, or choose bank transfer."
+            ? "Pay your balance due online, or choose bank transfer."
             : "Your registration is saved. Pay online now, or choose bank transfer."}
         </p>
         <div className="accent-rule" aria-hidden />

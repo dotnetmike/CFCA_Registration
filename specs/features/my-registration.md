@@ -24,7 +24,7 @@ Logged-in summary of the user�s registration. Primary destination for update-n
 - Loads own registration via `GET /api/registrations`.
 - If no registration is linked to the account, `GET /api/registrations` self-heals by looking for a submitted, unlinked registration with a matching email and auto-linking it to the logged-in account before returning it (handles guest submissions made with the same email prior to login/signup).
 - Empty ? prompt to start `/` (registration form).
-- Shows: Unique Code, amounts (due / paid / remaining), personal summary, primary registrant dietary requirements, spouse details (name, email, mobile, dietary requirements) when attending, attendees.
+- Shows: Unique Code, payment summary (Payment status badge, Registration fee, Amount paid, Balance due when > $0 with a **Pay $X** link to `/payment`; wording per `features.payment`), personal summary, primary registrant dietary requirements, spouse details (name, email, mobile, dietary requirements) when attending, attendees.
 - **Additional attendees**: name, age, kids supervision required (when set), and dietary requirements (when set) per attendee.
 - **Souvenirs**: pre-ordered t-shirt sizes/quantities shown when any souvenir order line has a quantity greater than zero.
 - **Accommodation & transport** (when applicable):

@@ -8,7 +8,8 @@ import { Alert } from "@/components/ui/alert"
 import { PaymentReferenceMockup } from "@/components/registrations/payment-reference-mockup"
 import { PaymentStep } from "@/components/payments/payment-step"
 import { BankTransferDetails } from "@/components/payments/bank-transfer-details"
-import { formatCurrency } from "@/lib/pricing/calculate"
+import { PaymentSummary } from "@/components/payments/payment-summary"
+import { PAYMENT_LABELS } from "@/lib/payments/labels"
 import {
   EMPTY_BANK_DETAILS,
   normalizeBankDetails,
@@ -83,7 +84,7 @@ const PaymentPageContent = () => {
       <div className="cfca-page mx-auto max-w-2xl space-y-6">
         <div className="space-y-3">
           <p className="text-xs font-semibold uppercase tracking-[0.22em] text-accent-ink">
-            Remaining balance
+            {PAYMENT_LABELS.balanceDue}
           </p>
           <h1 className="font-display text-4xl font-semibold text-ink">Payment</h1>
           <div className="accent-rule" aria-hidden />
@@ -126,21 +127,11 @@ const PaymentPageContent = () => {
               <strong>Registration No:</strong> {registration.registration_no}
             </p>
           )}
-          <p>
-            <strong>Amount Due:</strong> {formatCurrency(Number(registration.amount_due))}
-          </p>
-          <p>
-            <strong>Amount Paid:</strong> {formatCurrency(Number(registration.amount_paid))}
-          </p>
-          <p>
-            <strong>Remaining balance:</strong>{" "}
-            <span className={outstanding > 0 ? "font-semibold text-accent-ink" : ""}>
-              {formatCurrency(Math.max(0, outstanding))}
-            </span>
-          </p>
-          <p>
-            <strong>Status:</strong> {registration.payment_status}
-          </p>
+          <PaymentSummary
+            amountDue={registration.amount_due}
+            amountPaid={registration.amount_paid}
+            status={registration.payment_status}
+          />
         </CardContent>
       </Card>
 

@@ -20,6 +20,7 @@ import {
   assertEmailIncludesLogo,
 } from "@/lib/email/template"
 import { sendTransactionalEmail } from "@/lib/email/provider"
+import { PAYMENT_LABELS, balanceDue, formatPaymentStatus } from "@/lib/payments/labels"
 
 type EmailType =
   | "registration_submitted"
@@ -94,6 +95,20 @@ type EmailSection = {
 
 const paymentRef = (reg: RegistrationEmailRecord) =>
   reg.participant_reference || reg.registration_no
+
+/** Status first; Balance due only when money is still owed. */
+const buildPaymentRows = (reg: RegistrationEmailRecord): EmailSection["rows"] => {
+  const balance = balanceDue(reg.amount_due, reg.amount_paid)
+  return [
+    { label: PAYMENT_LABELS.status, value: formatPaymentStatus(reg.payment_status) },
+    { label: PAYMENT_LABELS.fee, value: formatCurrency(Number(reg.amount_due)) },
+    { label: PAYMENT_LABELS.paid, value: formatCurrency(Number(reg.amount_paid)) },
+    ...(balance > 0 ? [{ label: PAYMENT_LABELS.balanceDue, value: formatCurrency(balance) }] : []),
+  ]
+}
+
+const paymentRowsToText = (rows: EmailSection["rows"]) =>
+  rows.map((row) => `${row.label}: ${row.value}`)
 
 const buildSubject = (type: EmailType, reg: RegistrationEmailRecord) => {
   const ref = paymentRef(reg)
@@ -262,13 +277,15 @@ const buildRegistrationSections = (reg: RegistrationEmailRecord): EmailSection[]
   sections.push({
     title: "Payment",
     rows: [
-      { label: "Amount Due", value: formatCurrency(Number(reg.amount_due)) },
-      { label: "Amount Paid", value: formatCurrency(Number(reg.amount_paid)) },
-      { label: "Status", value: reg.payment_status },
-      {
-        label: "Bank reference",
-        value: `Include Unique Code (${ref}) in Message and Ref.`,
-      },
+      ...buildPaymentRows(reg),
+      ...(balanceDue(reg.amount_due, reg.amount_paid) > 0
+        ? [
+            {
+              label: "Bank reference",
+              value: `Include Unique Code (${ref}) in Message and Ref.`,
+            },
+          ]
+        : []),
     ],
   })
 
@@ -393,16 +410,13 @@ const buildFullRegistrationDetails = (
     )
   }
 
-  lines.push(
-    "",
-    "=== Payment ===",
-    `Amount Due: ${formatCurrency(Number(reg.amount_due))}`,
-    `Amount Paid: ${formatCurrency(Number(reg.amount_paid))}`,
-    `Status: ${reg.payment_status}`,
-    "",
-    `IMPORTANT: Include your Unique Code (${ref}) in both Message and Ref. when paying via your bank app.`,
-    ""
-  )
+  lines.push("", "=== Payment ===", ...paymentRowsToText(buildPaymentRows(reg)), "")
+  if (balanceDue(reg.amount_due, reg.amount_paid) > 0) {
+    lines.push(
+      `IMPORTANT: Include your Unique Code (${ref}) in both Message and Ref. when paying via your bank app.`,
+      ""
+    )
+  }
 
   if (options.viewUrl) {
     lines.push(
@@ -471,12 +485,11 @@ const buildBody = (
     case "payment_received":
       return `${base}We have received your payment for registration ${ref}.
 
-Amount Paid: ${formatCurrency(Number(reg.amount_paid))}
-Status: ${reg.payment_status}`
+${paymentRowsToText(buildPaymentRows(reg)).join("\n")}`
     case "payment_reminder":
-      return `${base}This is a reminder that payment is outstanding for registration ${ref}.
+      return `${base}This is a reminder that registration ${ref} has a balance due.
 
-Amount Due: ${formatCurrency(Number(reg.amount_due))}
+${PAYMENT_LABELS.balanceDue}: ${formatCurrency(balanceDue(reg.amount_due, reg.amount_paid))}
 
 Please include ${ref} in your payment reference.`
   }
@@ -546,14 +559,7 @@ const buildHtml = (
         sections: [
           {
             title: "Payment",
-            rows: [
-              {
-                label: "Amount Paid",
-                value: formatCurrency(Number(reg.amount_paid)),
-              },
-              { label: "Status", value: reg.payment_status },
-              { label: "Unique Code", value: ref },
-            ],
+            rows: [...buildPaymentRows(reg), { label: "Unique Code", value: ref }],
           },
         ],
         siteUrl: links.siteUrl,
@@ -564,15 +570,15 @@ const buildHtml = (
         introHtml:
           greeting +
           paragraphHtml(
-            `This is a reminder that payment is outstanding for registration ${ref}.`
+            `This is a reminder that registration ${ref} has a balance due.`
           ),
         sections: [
           {
             title: "Payment",
             rows: [
               {
-                label: "Amount Due",
-                value: formatCurrency(Number(reg.amount_due)),
+                label: PAYMENT_LABELS.balanceDue,
+                value: formatCurrency(balanceDue(reg.amount_due, reg.amount_paid)),
               },
               {
                 label: "Bank reference",

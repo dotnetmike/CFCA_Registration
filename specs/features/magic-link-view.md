@@ -31,7 +31,7 @@ Permanent read-only view of a registration from the confirmation email, without 
 - Accommodation/transport summary includes hotel/accommodation name and address when provided.
 - Edit CTA: if `hasAccount` �?login redirect to `/register`; else signup with email + redirect `/register`.
 - Editing always requires an account; magic link never allows registration edits.
-- **Pay remaining balance:** payment summary shows Amount Due, Amount Paid, **Remaining balance** (`amount_due - amount_paid`, min 0) and Status. When the registration is submitted and remaining balance > 0, show a **Pay $X** button → `/register/pay?view=<token>`.
+- **Pay balance due:** payment summary uses the canonical wording in `features.payment` (Payment status badge, Registration fee, Amount paid, Balance due only when > $0). When the registration is submitted and balance due > 0, show a “**Balance due: $X**” callout with a **Pay $X** button → `/register/pay?view=<token>`.
   - Pay page in this mode (view token only, no signup token) is labelled “Registration payment” (not “Step 2 of 3”), offers the same Online (V2 + Stripe) / Bank options, and links back to the registration details.
   - Stripe Checkout success returns to `/r/<token>?payment=success&session_id=…`, which shows the checkout outcome (`StripeCheckoutReturn`, retry → pay page) and reloads the registration once confirmed. Bank “continue” returns to `/r/<token>`. Cancel returns to the pay page.
   - Fully paid registrations show no pay button.
@@ -41,7 +41,7 @@ Permanent read-only view of a registration from the confirmation email, without 
 - [ ] Invalid token shows error
 - [ ] Page is read-only
 - [ ] Edit path requires auth
-- [ ] Remaining balance shown; Pay button appears only when a submitted registration has a remaining balance
+- [ ] Balance due shown with a Pay button only when a submitted registration has a balance due
 - [ ] Paying from the view link returns to the view page with the payment outcome
 
 ## Related specs

@@ -11,6 +11,12 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
 import { formatCurrency } from "@/lib/pricing/calculate"
+import { PaymentStatusBadge } from "@/components/payments/payment-status-badge"
+import {
+  PAYMENT_LABELS,
+  PAYMENT_STATUSES,
+  PAYMENT_STATUS_LABELS,
+} from "@/lib/payments/labels"
 import { AUSTRALIAN_STATES } from "@/lib/registrations/schema"
 import {
   booleansToTransportOption,
@@ -31,8 +37,6 @@ import { downloadTextFile } from "@/lib/dashboard/download-csv"
 import { StatCard } from "@/components/dashboard/stat-card"
 
 const PAGE_SIZE = 100
-const PAYMENT_STATUSES = ["pending", "partial", "paid", "overpaid"] as const
-
 const formatContact = (name?: string | null, phone?: string | null) => {
   const parts = [name?.trim(), phone?.trim()].filter(Boolean)
   return parts.length > 0 ? parts.join(" · ") : "—"
@@ -89,13 +93,6 @@ const formatSubmittedDate = (value: string | null | undefined) => {
     month: "short",
     year: "numeric",
   })
-}
-
-const paymentStatusClass = (status: string) => {
-  if (status === "paid") return "bg-emerald-100 text-emerald-800"
-  if (status === "partial") return "bg-sky-100 text-sky-800"
-  if (status === "overpaid") return "bg-violet-100 text-violet-800"
-  return "bg-amber-100 text-amber-900"
 }
 
 const CellText = ({
@@ -340,19 +337,19 @@ const DashboardPage = () => {
         <StatCard
           label="Paid"
           value={String(listKpis.paid)}
-          hint={`${listKpis.pendingLike} pending / partial`}
+          hint={`${listKpis.pendingLike} unpaid / part paid`}
           tone="success"
           className="animate-rise-delay-1"
         />
         <StatCard
           label="Collected"
           value={formatCurrency(listKpis.amountPaid)}
-          hint={`of ${formatCurrency(listKpis.amountDue)} due`}
+          hint={`of ${formatCurrency(listKpis.amountDue)} in registration fees`}
           tone="info"
           className="animate-rise-delay-2"
         />
         <StatCard
-          label="Remaining"
+          label={PAYMENT_LABELS.balanceDue}
           value={formatCurrency(listKpis.remaining)}
           hint="Across current filters"
           tone="warning"
@@ -369,7 +366,7 @@ const DashboardPage = () => {
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
         <div className="space-y-1">
-          <Label htmlFor="filter-payment">Payment status</Label>
+          <Label htmlFor="filter-payment">{PAYMENT_LABELS.status}</Label>
           <select
             id="filter-payment"
             value={paymentFilter}
@@ -379,7 +376,7 @@ const DashboardPage = () => {
           >
             <option value="">All</option>
             {PAYMENT_STATUSES.map((s) => (
-              <option key={s} value={s}>{s}</option>
+              <option key={s} value={s}>{PAYMENT_STATUS_LABELS[s]}</option>
             ))}
           </select>
         </div>
@@ -501,7 +498,7 @@ const DashboardPage = () => {
                     Payment
                   </th>
                   <th className="w-24 whitespace-nowrap text-right" scope="col">
-                    Amount
+                    Fee
                   </th>
                   <th className="w-28 whitespace-nowrap" scope="col">
                     Submitted
@@ -573,11 +570,7 @@ const DashboardPage = () => {
                           <CellText value={souvenirLabel} />
                         </td>
                         <td className="whitespace-nowrap">
-                          <span
-                            className={`inline-flex rounded-full px-2 py-0.5 text-xs font-semibold capitalize ${paymentStatusClass(r.payment_status)}`}
-                          >
-                            {r.payment_status}
-                          </span>
+                          <PaymentStatusBadge status={r.payment_status} />
                         </td>
                         <td className="whitespace-nowrap text-right font-medium tabular-nums">
                           {formatCurrency(Number(r.amount_due))}

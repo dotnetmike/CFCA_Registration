@@ -45,7 +45,7 @@ Run a pay-step registration flow (V2) side by side with classic bank-after-submi
 - V2 Online uses **Stripe Checkout** (hosted prebuilt page) when `STRIPE_SECRET_KEY` is set; otherwise Bank-only on the pay step.
 - Stripe configuration is **secret key only** plus a Dashboard webhook URL (`/api/payments/stripe/webhook`). No publishable key or webhook signing secret. The webhook re-fetches each event from Stripe by id before acting.
 - Online Payment creates a Checkout Session and redirects the participant to Stripe; card data never touches our servers.
-- Remaining balance after edits uses the active workflow (V2 Online when enabled + keys).
+- Balance due after edits uses the active workflow (V2 Online when enabled + keys).
 - Webhook `checkout.session.completed` is source of truth for online success; success page may call status recovery with `session_id` if the webhook lagged.
 - Amounts always from server `amount_due - amount_paid`. Ledger remains idempotent by PaymentIntent id.
 
@@ -55,7 +55,7 @@ Run a pay-step registration flow (V2) side by side with classic bank-after-submi
    - **Online Payment** (selected by default when Stripe is enabled). Explains that the participant is redirected to Stripe's secure checkout to finish paying, returns here afterwards, and that card details are never stored by CFCA. Shows supported method badges: Visa, Mastercard, American Express, Apple Pay, Link, Klarna, Zip. CTA: **Pay $X online**.
    - **Bank Payment**: BSB/account details, Unique Code instructions, How to Pay mockup, and **I've noted the bank details — continue**.
    - When Stripe is not enabled, only Bank Payment is shown (selected).
-2. **Your Registration** summary (name, Unique Code, registration no, amounts, remaining balance, status) at the bottom.
+2. **Your Registration** summary (name, Unique Code, registration no, then `PaymentSummary`: Payment status badge, Registration fee, Amount paid, Balance due when > $0) at the bottom. No banner when fully paid.
 
 ### Payment outcomes
 

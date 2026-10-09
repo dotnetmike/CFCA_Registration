@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { PaymentReferenceMockup } from "@/components/registrations/payment-reference-mockup"
 import { PaymentMethodBadges } from "@/components/payments/payment-method-badges"
 import { BankTransferDetails } from "@/components/payments/bank-transfer-details"
+import { PaymentSummary } from "@/components/payments/payment-summary"
 import type { BankDetails } from "@/lib/payments/bank-details"
 import { formatCurrency } from "@/lib/pricing/calculate"
 import { cn } from "@/lib/utils"
@@ -129,9 +130,7 @@ export const PaymentStep = ({
 
   return (
     <div className="space-y-6">
-      {outstanding <= 0 ? (
-        <Alert variant="success">This registration has no remaining balance.</Alert>
-      ) : (
+      {outstanding > 0 && (
         <fieldset className="space-y-3" disabled={isLoadingCheckout}>
           <legend className="mb-3 text-base font-semibold text-ink">
             Choose how you would like to pay
@@ -226,21 +225,11 @@ export const PaymentStep = ({
                 <strong>Registration No:</strong> {registration.registration_no}
               </p>
             )}
-          <p>
-            <strong>Amount Due:</strong> {formatCurrency(Number(registration.amount_due))}
-          </p>
-          <p>
-            <strong>Amount Paid:</strong> {formatCurrency(Number(registration.amount_paid))}
-          </p>
-          <p>
-            <strong>Remaining balance:</strong>{" "}
-            <span className={cn(outstanding > 0 && "font-semibold text-accent-ink")}>
-              {formatCurrency(outstanding)}
-            </span>
-          </p>
-          <p>
-            <strong>Status:</strong> {registration.payment_status}
-          </p>
+          <PaymentSummary
+            amountDue={registration.amount_due}
+            amountPaid={registration.amount_paid}
+            status={registration.payment_status}
+          />
         </CardContent>
       </Card>
     </div>

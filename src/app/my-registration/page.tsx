@@ -4,6 +4,8 @@ import { Suspense, useCallback, useEffect, useState } from "react"
 import Link from "next/link"
 import { useSearchParams } from "next/navigation"
 import { StripeCheckoutReturn } from "@/components/payments/stripe-checkout-return"
+import { PaymentSummary } from "@/components/payments/payment-summary"
+import { PAYMENT_LABELS, balanceDue } from "@/lib/payments/labels"
 import { useAuth } from "@/lib/auth/context"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert } from "@/components/ui/alert"
@@ -109,10 +111,7 @@ const MyRegistrationContent = () => {
     registration.pickup_melbourne_airport,
     registration.dropoff_melbourne_airport
   )
-  const remaining = Math.max(
-    0,
-    Number(registration.amount_due) - Number(registration.amount_paid)
-  )
+  const remaining = balanceDue(registration.amount_due, registration.amount_paid)
   const showAccommodationDetails =
     hasText(registration.hotel_name) ||
     hasText(registration.hotel_address) ||
@@ -206,17 +205,29 @@ const MyRegistrationContent = () => {
             <strong>Dietary requirements:</strong>{" "}
             {registration.dietary_requirements?.trim() || "None specified"}
           </div>
-          <div>
-            <strong>Payment Status:</strong> {registration.payment_status}
-          </div>
-          <div>
-            <strong>Amount Due:</strong> {formatCurrency(Number(registration.amount_due))}
-          </div>
-          <div>
-            <strong>Amount Paid:</strong> {formatCurrency(Number(registration.amount_paid))}
-          </div>
-          <div>
-            <strong>Remaining balance:</strong> {formatCurrency(remaining)}
+          <div className="space-y-4 md:col-span-2">
+            <PaymentSummary
+              amountDue={registration.amount_due}
+              amountPaid={registration.amount_paid}
+              status={registration.payment_status}
+            />
+            {remaining > 0 && (
+              <div className="flex flex-col gap-3 rounded-md border border-[color:var(--line-strong)] bg-surface-muted p-4 sm:flex-row sm:items-center sm:justify-between">
+                <p className="text-ink">
+                  <strong>
+                    {PAYMENT_LABELS.balanceDue}: {formatCurrency(remaining)}
+                  </strong>
+                  <span className="block text-ink-soft">
+                    Pay online or view bank transfer details.
+                  </span>
+                </p>
+                <Link href="/payment" className="shrink-0">
+                  <Button aria-label={`Pay balance due of ${formatCurrency(remaining)}`}>
+                    Pay {formatCurrency(remaining)}
+                  </Button>
+                </Link>
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>

@@ -18,6 +18,8 @@ import {
 import { Alert } from "@/components/ui/alert"
 import { PaymentReferenceMockup } from "@/components/registrations/payment-reference-mockup"
 
+import { PAYMENT_LABELS } from "@/lib/payments/labels"
+
 type RegistrationReviewSummaryProps = {
   formData: RegistrationFormData
   participantReference: string | null
@@ -40,10 +42,11 @@ const buildAttendeeDescriptions = (data: RegistrationFormData) => {
   return descriptions
 }
 
-const PricingTable = ({ lineItems, total, totalEarlyBirdSaving }: {
+const PricingTable = ({ lineItems, total, totalEarlyBirdSaving, totalLabel }: {
   lineItems: PricingLineItem[]
   total: number
   totalEarlyBirdSaving: number
+  totalLabel: string
 }) => (
   <div className="overflow-x-auto rounded-md border">
     <table className="w-full text-left text-sm">
@@ -89,7 +92,7 @@ const PricingTable = ({ lineItems, total, totalEarlyBirdSaving }: {
         )}
         <tr className="border-t bg-gray-50">
           <td colSpan={3} className="p-3 text-right text-base font-bold">
-            Total due
+            {totalLabel}
           </td>
           <td className="p-3 text-right text-base font-bold">{formatCurrency(total)}</td>
         </tr>
@@ -196,6 +199,7 @@ export const RegistrationReviewSummary = ({
           lineItems={lineItems}
           total={total}
           totalEarlyBirdSaving={totalEarlyBirdSaving}
+          totalLabel={souvenirQty > 0 ? "Attendee fees" : PAYMENT_LABELS.fee}
         />
         {souvenirQty > 0 && (
           <div className="rounded-md border p-3 text-sm">
@@ -206,7 +210,7 @@ export const RegistrationReviewSummary = ({
               <span className="font-medium">{formatCurrency(souvenirAmount)}</span>
             </div>
             <div className="mt-2 flex justify-between gap-4 border-t pt-2 text-base font-bold">
-              <span>Grand total due</span>
+              <span>{PAYMENT_LABELS.fee}</span>
               <span>{formatCurrency(grandTotal)}</span>
             </div>
           </div>

@@ -25,7 +25,7 @@ sequenceDiagram
   P->>Pay: open
   Pay->>API: authFetch
   API-->>Pay: registration
-  Note over Pay: Unique Code, due, paid, remaining balance
+  Note over Pay: Unique Code, status badge, registration fee, amount paid, balance due
   Pay->>P: Bank details + How to Pay mockup
 ```
 
@@ -46,7 +46,7 @@ sequenceDiagram
     Pay->>API: bank-acknowledged audit
     Pay-->>U: continue / complete
   else Online
-    Pay->>API: create Checkout Session (remaining AUD)
+    Pay->>API: create Checkout Session (balance due, AUD)
     API-->>Pay: session.url
     Pay->>Stripe: redirect to hosted checkout
     U->>Stripe: pay (card / wallets)
@@ -127,7 +127,7 @@ sequenceDiagram
 ## Debug tips
 
 - Payment not matched → Unique Code vs registration_no in statement text; amount threshold
-- Remaining balance = `max(0, amount_due - amount_paid)`
+- Balance due = `max(0, amount_due - amount_paid)` (`balanceDue` in `src/lib/payments/labels.ts`). UI/email wording: Registration fee / Amount paid / Balance due / Payment status badge — see `features.payment`.
 - Stripe Online missing → check `STRIPE_SECRET_KEY` and workflow = V2
 - Paid on Stripe but not marked paid → check webhook endpoint URL + `checkout.session.completed` delivery in Stripe Dashboard
 - Permission: `payments:reconcile` for reconcile + typically `registrations:write_all` for manual updates

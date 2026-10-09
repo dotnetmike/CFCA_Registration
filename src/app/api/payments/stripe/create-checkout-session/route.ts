@@ -108,7 +108,7 @@ export const POST = async (request: NextRequest) => {
     Number(registration.amount_paid)
   )
   if (remaining <= 0) {
-    return jsonError("No remaining balance to pay", 400)
+    return jsonError("No balance due — this registration is already paid", 400)
   }
 
   const amountCents = Math.round(remaining * 100)

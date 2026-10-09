@@ -12,6 +12,13 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert } from "@/components/ui/alert"
 import { formatCurrency } from "@/lib/pricing/calculate"
+import { PaymentStatusBadge } from "@/components/payments/payment-status-badge"
+import {
+  PAYMENT_LABELS,
+  PAYMENT_STATUSES,
+  PAYMENT_STATUS_LABELS,
+  balanceDue,
+} from "@/lib/payments/labels"
 import {
   AUSTRALIAN_STATES,
   CFCA_POSITIONS,
@@ -614,14 +621,20 @@ const RegistrationDetailPage = () => {
               <div>
                 <strong>Registration No:</strong> {str("registration_no")}
               </div>
-              <div>
-                <strong>Amount Due:</strong> {formatCurrency(Number(reg.amount_due ?? 0))}
+              <div className="flex items-center gap-2">
+                <strong>{PAYMENT_LABELS.status}:</strong>
+                <PaymentStatusBadge status={str("payment_status")} />
               </div>
               <div>
-                <strong>Remaining balance:</strong>{" "}
-                {formatCurrency(
-                  Math.max(0, Number(reg.amount_due ?? 0) - Number(reg.amount_paid ?? 0))
-                )}
+                <strong>{PAYMENT_LABELS.fee}:</strong> {formatCurrency(Number(reg.amount_due ?? 0))}
+              </div>
+              <div>
+                <strong>{PAYMENT_LABELS.paid}:</strong>{" "}
+                {formatCurrency(Number(reg.amount_paid ?? 0))}
+              </div>
+              <div>
+                <strong>{PAYMENT_LABELS.balanceDue}:</strong>{" "}
+                {formatCurrency(balanceDue(reg.amount_due, reg.amount_paid))}
               </div>
               <div>
                 <strong>Submitted:</strong>{" "}
@@ -651,7 +664,7 @@ const RegistrationDetailPage = () => {
               {canManagePayment ? (
                 <>
                   <div className="space-y-2">
-                    <Label htmlFor="admin_amount_paid">Amount paid</Label>
+                    <Label htmlFor="admin_amount_paid">{PAYMENT_LABELS.paid}</Label>
                     <Input
                       id="admin_amount_paid"
                       type="number"
@@ -664,7 +677,7 @@ const RegistrationDetailPage = () => {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="admin_payment_status">Payment status</Label>
+                    <Label htmlFor="admin_payment_status">{PAYMENT_LABELS.status}</Label>
                     <select
                       id="admin_payment_status"
                       value={paymentStatus}
@@ -673,10 +686,11 @@ const RegistrationDetailPage = () => {
                       className="flex h-10 w-full rounded-md border border-gray-300 px-3 text-sm"
                       aria-label="Payment status"
                     >
-                      <option value="pending">pending</option>
-                      <option value="partial">partial</option>
-                      <option value="paid">paid</option>
-                      <option value="overpaid">overpaid</option>
+                      {PAYMENT_STATUSES.map((status) => (
+                        <option key={status} value={status}>
+                          {PAYMENT_STATUS_LABELS[status]}
+                        </option>
+                      ))}
                     </select>
                   </div>
                   <div className="md:col-span-2">
@@ -692,16 +706,7 @@ const RegistrationDetailPage = () => {
                     </Button>
                   </div>
                 </>
-              ) : (
-                <>
-                  <div>
-                    <strong>Status:</strong> {str("payment_status")}
-                  </div>
-                  <div>
-                    <strong>Amount Paid:</strong> {formatCurrency(Number(reg.amount_paid ?? 0))}
-                  </div>
-                </>
-              )}
+              ) : null}
 
               {paymentRows.length > 0 ? (
                 <div className="md:col-span-2 space-y-2">

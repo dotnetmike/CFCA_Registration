@@ -92,7 +92,7 @@ Staff tools: list registrations, users, reports, payment reconcile.
 
 - Summary view uses **client cache** + **Refresh**.
 - Layout includes:
-  - **KPI cards**: registrations, total people, amount collected, remaining balance
+  - **KPI cards**: registrations, total people, collected (of total registration fees), balance due
   - **Welcome panel** with staff name + quick links
   - **Charts**: payment-status distribution, registrations by state, people composition (primary / spouses / kids)
   - **Summary-by-state table** with share progress bars
@@ -115,7 +115,7 @@ Staff tools: list registrations, users, reports, payment reconcile.
 
 ### Payment (admin)
 
-- Show amount due, amount paid, **Remaining balance** (`amount_due − amount_paid`).
+- Show Payment status badge, Registration fee, Amount paid, Balance due (canonical wording in `features.payment`). Status filter, list badges, admin status selector, and reports chart use the friendly status labels (Unpaid / Part paid / Paid / Overpaid); stored values are unchanged.
 - Admins with `payments:reconcile` or `registrations:write_all` can update **payment status** and **amount paid**.
 - Manual updates set `payment_last_updated_source = manual`, `payment_last_updated_at`, `payment_last_updated_by`; show admin name + date/time.
 - Bank reconcile sets source `bank_reconcile` the same way.
@@ -134,7 +134,7 @@ Staff tools: list registrations, users, reports, payment reconcile.
 
 - [ ] Dashboard filters by payment status, accommodation, transpo, state
 - [ ] Admin can update payment status/amount with source attribution + audit
-- [ ] Remaining balance displayed
+- [ ] Balance due displayed using the canonical payment wording
 - [ ] Admin notes can be added and are audited
 - [ ] Unique Code label used for payment code
 - [ ] Registrations / Users / Audit pages at 100 per page; client cache with TTL/cap and Refresh
