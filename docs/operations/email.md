@@ -29,7 +29,7 @@ Works with **Security Defaults enabled**. Does **not** use SMTP username/passwor
 | `OFFICE365_CLIENT_ID` | Yes | App registration Application (client) ID |
 | `OFFICE365_CLIENT_SECRET` | Yes | App client secret value |
 | `OFFICE365_USERNAME` | Yes | Mailbox UPN to send **as** (also the From address). Alias: `OFFICE365_EMAIL` |
-| `OFFICE365_FROM_NAME` | Recommended | Friendly From display name (e.g. `CFCA National Conference 2026`). If unset, tries Entra `displayName`, then `CFCA Registration` |
+| `OFFICE365_FROM_NAME` | Recommended | Friendly From display name (e.g. `CFCA National Conference 2027`). If unset, tries Entra `displayName`, then `CFCA Registration` |
 
 Aliases also accepted: `AZURE_TENANT_ID`, `AZURE_CLIENT_ID`, `AZURE_CLIENT_SECRET`.
 
@@ -60,7 +60,7 @@ OFFICE365_TENANT_ID=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
 OFFICE365_CLIENT_ID=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
 OFFICE365_CLIENT_SECRET=your-client-secret
 OFFICE365_USERNAME=admin@cfcanatcon.com
-OFFICE365_FROM_NAME=CFCA National Conference 2026
+OFFICE365_FROM_NAME=CFCA National Conference 2027
 # EMAIL_FROM is ignored for Office 365
 ```
 

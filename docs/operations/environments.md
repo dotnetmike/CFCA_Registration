@@ -67,7 +67,7 @@ Also recommended:
 
 - Separate Supabase projects for `dev`, `uat`, and `production`.
 - Unique `JWT_ACCESS_SECRET` / `JWT_REFRESH_SECRET` / `CRON_SECRET` per env.
-- Distinct `REGISTRATION_CODE_PREFIX` on non-prod (e.g. `CFCA26-DEV`) so codes are obvious in testing.
+- Distinct `REGISTRATION_CODE_PREFIX` on non-prod (e.g. `CFCA27-DEV`) so codes are obvious in testing.
 - After filling a new `.env.*`, run `npm run env:select` (or restart `npm run dev`) so `.env.local` refreshes.
 
 ## Related

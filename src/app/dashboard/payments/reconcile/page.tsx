@@ -63,7 +63,7 @@ const ReconcilePage = () => {
         </CardHeader>
         <CardContent className="space-y-4">
           <p className="text-sm text-gray-600">
-            Upload a bank statement PDF. The system will scan for registration numbers (e.g. CFCA26-000001) and auto-match payments.
+            Upload a bank statement PDF. The system will scan for registration numbers (e.g. CFCA27-000001) and auto-match payments.
           </p>
           <input
             type="file"

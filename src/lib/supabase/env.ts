@@ -36,4 +36,4 @@ export const getJwtRefreshSecret = () => {
 }
 
 export const getRegistrationCodePrefix = () =>
-  process.env.REGISTRATION_CODE_PREFIX ?? "CFCA26"
+  process.env.REGISTRATION_CODE_PREFIX ?? "CFCA27"

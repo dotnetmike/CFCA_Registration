@@ -11,7 +11,7 @@ Primary entry for guests: **`/`** (registration form). Staff: **`/dashboard`**.
 | Term | Meaning |
 |------|---------|
 | **Unique Code** | `participant_reference` — put in bank Message + Ref |
-| **Registration No** | Human-facing `registration_no` (e.g. `CFCA26-000004`) |
+| **Registration No** | Human-facing `registration_no` (e.g. `CFCA27-000004`) |
 | **Manager** | User in `admin`, `registration_manager`, or `accommodation_manager` |
 | **Spec** | Product behavior doc under `specs/` |
 | **Handbook** | This engineering docs set under `docs/` |
