@@ -18,6 +18,7 @@ import {
   renderEmail,
   getEmailLogoAttachment,
   assertEmailIncludesLogo,
+  type EmailRow,
 } from "@/lib/email/template"
 import { sendTransactionalEmail } from "@/lib/email/provider"
 import { PAYMENT_LABELS, balanceDue, formatPaymentStatus } from "@/lib/payments/labels"
@@ -90,8 +91,14 @@ type DetailEmailOptions = {
 
 type EmailSection = {
   title: string
-  rows: { label: string; value: string }[]
+  rows: EmailRow[]
 }
+
+const uniqueCodeRow = (ref: string): EmailRow => ({
+  label: "Unique Code",
+  value: ref,
+  emphasis: "code",
+})
 
 const paymentRef = (reg: RegistrationEmailRecord) =>
   reg.participant_reference || reg.registration_no
@@ -159,7 +166,7 @@ const buildRegistrationSections = (reg: RegistrationEmailRecord): EmailSection[]
       title: "Registration",
       rows: [
         { label: "Registration No", value: reg.registration_no },
-        { label: "Unique Code", value: ref },
+        uniqueCodeRow(ref),
         { label: "Name", value: name },
         { label: "Email", value: reg.email },
         { label: "Mobile", value: reg.mobile ?? "—" },
@@ -559,7 +566,7 @@ const buildHtml = (
         sections: [
           {
             title: "Payment",
-            rows: [...buildPaymentRows(reg), { label: "Unique Code", value: ref }],
+            rows: [...buildPaymentRows(reg), uniqueCodeRow(ref)],
           },
         ],
         siteUrl: links.siteUrl,
@@ -580,9 +587,10 @@ const buildHtml = (
                 label: PAYMENT_LABELS.balanceDue,
                 value: formatCurrency(balanceDue(reg.amount_due, reg.amount_paid)),
               },
+              uniqueCodeRow(ref),
               {
                 label: "Bank reference",
-                value: `Please include ${ref} in your payment reference.`,
+                value: "Include your Unique Code in both Message and Ref.",
               },
             ],
           },

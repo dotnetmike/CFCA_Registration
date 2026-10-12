@@ -9,9 +9,16 @@ export const escapeHtml = (value: string) =>
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#39;")
 
+export type EmailRow = {
+  label: string
+  value: string
+  /** "code" renders the value as a large highlighted chip (e.g. Unique Code payment reference). */
+  emphasis?: "code"
+}
+
 type EmailSection = {
   title: string
-  rows: { label: string; value: string }[]
+  rows: EmailRow[]
 }
 
 type RenderEmailOptions = {
@@ -34,7 +41,16 @@ const brand = {
   grey: "#757575",
   line: "#D6E4F5",
   white: "#FFFFFF",
+  codeText: "#DC2626",
+  codeBg: "#FEF2F2",
+  codeBorder: "#FECACA",
 }
+
+export const uniqueCodeHtml = (code: string) =>
+  `<span style="display:inline-block;padding:4px 12px;font-family:'Courier New',Courier,monospace;font-size:22px;line-height:1.3;font-weight:700;letter-spacing:0.04em;color:${brand.codeText};background:${brand.codeBg};border:2px solid ${brand.codeBorder};border-radius:6px;word-break:break-all;">${escapeHtml(code)}</span>`
+
+const rowValueHtml = (row: EmailRow) =>
+  row.emphasis === "code" ? uniqueCodeHtml(row.value) : escapeHtml(row.value)
 
 /** Inline CID used by Resend attachments so the logo renders without a public URL. */
 export const EMAIL_LOGO_CID = "cfca-logo"
@@ -69,8 +85,8 @@ export const renderEmail = ({
         .map(
           (row) => `
             <tr>
-              <td style="padding:6px 0;width:38%;vertical-align:top;font-size:13px;color:${brand.grey};">${escapeHtml(row.label)}</td>
-              <td style="padding:6px 0;vertical-align:top;font-size:14px;color:${brand.ink};font-weight:600;">${escapeHtml(row.value)}</td>
+              <td style="padding:6px 0;width:38%;vertical-align:${row.emphasis === "code" ? "middle" : "top"};font-size:13px;color:${brand.grey};">${escapeHtml(row.label)}</td>
+              <td style="padding:6px 0;vertical-align:top;font-size:14px;color:${brand.ink};font-weight:600;">${rowValueHtml(row)}</td>
             </tr>`
         )
         .join("")
