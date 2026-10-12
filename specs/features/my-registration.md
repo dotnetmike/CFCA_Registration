@@ -2,11 +2,12 @@
 id: features.my-registration
 title: My Registration
 status: active
-synced_commit: 8ee5938
-synced_at: 2026-09-06
+synced_commit: working-tree
+synced_at: 2026-10-12
 owners: [team]
 files:
   - src/app/my-registration/page.tsx
+  - src/components/registrations/registration-details-view.tsx
   - src/app/api/registrations/route.ts
   - src/lib/registrations/view-token.ts
   - src/lib/email/send.ts
@@ -24,7 +25,8 @@ Logged-in summary of the user�s registration. Primary destination for update-n
 - Loads own registration via `GET /api/registrations`.
 - If no registration is linked to the account, `GET /api/registrations` self-heals by looking for a submitted, unlinked registration with a matching email and auto-linking it to the logged-in account before returning it (handles guest submissions made with the same email prior to login/signup).
 - Empty ? prompt to start `/` (registration form).
-- Shows: Unique Code, payment summary (Payment status badge, Registration fee, Amount paid, Balance due when > $0 with a **Pay $X** link to `/payment`; wording per `features.payment`), personal summary, primary registrant dietary requirements, spouse details (name, email, mobile, dietary requirements) when attending, attendees.
+- **Same layout as the secure-link view** (`features.magic-link-view`): both pages render the shared `RegistrationDetailsView` (`src/components/registrations/registration-details-view.tsx`), not a separate page design. Main card with **Registration details** header + status badge (`pending` → **Payment pending**), **Registration information** rows, **Unique Code** badge with copy, and the **Payment summary** card; then **Other people attending**, **Accommodation & transport**, and **Souvenirs** (when present). On this page the pay button (**Pay $X securely** when V2 + Stripe, otherwise **View bank transfer details**) links to `/payment`, there is no secure-link notice, and the actions are **Edit registration** (`/`) and **View payment details** (`/payment`, when submitted).
+- Shows: Unique Code, payment summary (Registration fee, Amount paid, Balance due when > $0; wording per `features.payment`), personal summary, primary registrant dietary requirements, spouse details (name, email, mobile, dietary requirements) when attending, attendees.
 - **Additional attendees**: name, age, kids supervision required (when set), and dietary requirements (when set) per attendee.
 - **Souvenirs**: pre-ordered t-shirt sizes/quantities shown when any souvenir order line has a quantity greater than zero.
 - **Accommodation & transport** (when applicable):

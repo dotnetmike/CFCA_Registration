@@ -21,9 +21,31 @@ type EmailSection = {
   rows: EmailRow[]
 }
 
+export type EmailStatusTone = "pending" | "partial" | "paid" | "overpaid"
+
+export type EmailDetailsCard = {
+  heading: string
+  subtitle: string
+  status: { label: string; tone: EmailStatusTone }
+  infoRows: EmailRow[]
+  uniqueCode: string
+  uniqueCodeNote?: string
+  payment: {
+    fee: string
+    paid: string
+    balance?: string
+    helper?: string
+    ctaLabel?: string
+    ctaUrl?: string
+    footnote?: string
+  }
+}
+
 type RenderEmailOptions = {
   heading: string
   introHtml: string
+  /** "Registration details" card (info, Unique Code, payment summary) shown before sections. */
+  detailsCard?: EmailDetailsCard
   sections?: EmailSection[]
   ctaLabel?: string
   ctaUrl?: string
@@ -33,24 +55,129 @@ type RenderEmailOptions = {
 }
 
 const brand = {
-  deep: "#0D47A1",
-  mid: "#1565C0",
-  pale: "#BBDEFB",
-  mist: "#F5F9FC",
-  ink: "#0B1F33",
-  grey: "#757575",
-  line: "#D6E4F5",
+  deep: "#173F7A",
+  mid: "#1E5AA8",
+  pale: "#C7D7EE",
+  mist: "#F6F8FB",
+  ink: "#172033",
+  grey: "#64748B",
+  line: "#E2E8F0",
   white: "#FFFFFF",
-  codeText: "#DC2626",
-  codeBg: "#FEF2F2",
-  codeBorder: "#FECACA",
+  codeText: "#173F7A",
+  codeBg: "#F2F6FC",
+  codeBorder: "#C7D7EE",
 }
 
 export const uniqueCodeHtml = (code: string) =>
-  `<span style="display:inline-block;padding:4px 12px;font-family:'Courier New',Courier,monospace;font-size:22px;line-height:1.3;font-weight:700;letter-spacing:0.04em;color:${brand.codeText};background:${brand.codeBg};border:2px solid ${brand.codeBorder};border-radius:6px;word-break:break-all;">${escapeHtml(code)}</span>`
+  `<span style="display:inline-block;padding:6px 14px;font-family:'Courier New',Courier,monospace;font-size:26px;line-height:1.3;font-weight:700;letter-spacing:0.04em;color:${brand.codeText};background:${brand.codeBg};border:2px solid ${brand.codeBorder};border-radius:6px;word-break:break-all;">${escapeHtml(code)}</span>`
 
 const rowValueHtml = (row: EmailRow) =>
   row.emphasis === "code" ? uniqueCodeHtml(row.value) : escapeHtml(row.value)
+
+const STATUS_TONES: Record<EmailStatusTone, { bg: string; text: string }> = {
+  pending: { bg: "#FEF3C7", text: "#92400E" },
+  partial: { bg: "#E0F2FE", text: "#075985" },
+  paid: { bg: "#DCFCE7", text: "#166534" },
+  overpaid: { bg: "#EDE9FE", text: "#5B21B6" },
+}
+
+const sectionLabelHtml = (text: string) =>
+  `<p style="margin:0 0 12px;font-size:11px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:${brand.grey};">${escapeHtml(text)}</p>`
+
+const renderDetailsCard = (card: EmailDetailsCard) => {
+  const tone = STATUS_TONES[card.status.tone]
+  const infoRows = card.infoRows
+    .map(
+      (row) => `
+        <tr>
+          <td style="padding:6px 12px 6px 0;width:40%;vertical-align:top;font-size:13px;color:${brand.grey};">${escapeHtml(row.label)}</td>
+          <td style="padding:6px 0;vertical-align:top;font-size:15px;color:${brand.ink};">${escapeHtml(row.value)}</td>
+        </tr>`
+    )
+    .join("")
+
+  const amountRow = (label: string, value: string) => `
+        <tr>
+          <td style="padding:4px 0;font-size:14px;color:${brand.grey};">${escapeHtml(label)}</td>
+          <td align="right" style="padding:4px 0;font-size:15px;font-weight:600;color:${brand.ink};">${escapeHtml(value)}</td>
+        </tr>`
+
+  const { payment } = card
+  const balanceHtml = payment.balance
+    ? `
+        <tr><td colspan="2" style="padding:12px 0 0;border-top:1px solid ${brand.line};font-size:0;line-height:0;">&nbsp;</td></tr>
+        <tr><td colspan="2" style="padding:0;font-size:17px;font-weight:700;color:${brand.ink};">Balance due</td></tr>
+        <tr><td colspan="2" style="padding:2px 0 0;font-size:32px;line-height:1.2;font-weight:700;color:${brand.ink};">${escapeHtml(payment.balance)}</td></tr>`
+    : ""
+  const helperHtml = payment.helper
+    ? `<p style="margin:12px 0 0;font-size:14px;line-height:1.5;color:${brand.grey};">${escapeHtml(payment.helper)}</p>`
+    : ""
+  const ctaHtml =
+    payment.ctaLabel && payment.ctaUrl
+      ? `
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:16px 0 0;">
+          <tr>
+            <td align="center" style="border-radius:8px;background:${brand.mid};">
+              <a href="${escapeHtml(payment.ctaUrl)}" style="display:block;padding:14px 16px;font-size:15px;font-weight:700;color:${brand.white};text-decoration:none;">${escapeHtml(payment.ctaLabel)}</a>
+            </td>
+          </tr>
+        </table>`
+      : ""
+  const footnoteHtml = payment.footnote
+    ? `<p style="margin:14px 0 0;font-size:12px;color:${brand.grey};">${escapeHtml(payment.footnote)}</p>`
+    : ""
+  const codeNoteHtml = card.uniqueCodeNote
+    ? `<p style="margin:8px 0 0;font-size:13px;line-height:1.5;color:${brand.grey};">${escapeHtml(card.uniqueCodeNote)}</p>`
+    : ""
+
+  return `
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 18px;border:1px solid ${brand.line};border-radius:12px;background:${brand.white};">
+          <tr>
+            <td style="padding:20px 20px 16px;border-bottom:1px solid ${brand.line};">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td style="vertical-align:top;">
+                    <h2 style="margin:0;font-size:24px;line-height:1.25;font-weight:700;color:${brand.ink};">${escapeHtml(card.heading)}</h2>
+                    <p style="margin:6px 0 0;font-size:14px;line-height:1.5;color:${brand.grey};">${escapeHtml(card.subtitle)}</p>
+                  </td>
+                  <td align="right" style="vertical-align:top;padding-left:12px;white-space:nowrap;">
+                    <span style="display:inline-block;padding:5px 12px;border-radius:999px;font-size:13px;font-weight:700;background:${tone.bg};color:${tone.text};">${escapeHtml(card.status.label)}</span>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:20px;">
+              ${sectionLabelHtml("Registration information")}
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0">${infoRows}</table>
+              <div style="margin:16px 0;border-top:1px solid ${brand.line};font-size:0;line-height:0;">&nbsp;</div>
+              <p style="margin:0 0 8px;font-size:13px;color:${brand.grey};">Unique Code</p>
+              ${uniqueCodeHtml(card.uniqueCode)}
+              ${codeNoteHtml}
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:0 20px 20px;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-radius:12px;background:${brand.codeBg};border:1px solid ${brand.line};">
+                <tr>
+                  <td style="padding:20px;">
+                    ${sectionLabelHtml("Payment summary")}
+                    <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                      ${amountRow("Registration fee", payment.fee)}
+                      ${amountRow("Amount paid", payment.paid)}
+                      ${balanceHtml}
+                    </table>
+                    ${helperHtml}
+                    ${ctaHtml}
+                    ${footnoteHtml}
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+        </table>`
+}
 
 /** Inline CID used by Resend attachments so the logo renders without a public URL. */
 export const EMAIL_LOGO_CID = "cfca-logo"
@@ -71,6 +198,7 @@ export const getEmailLogoAttachment = () => {
 export const renderEmail = ({
   heading,
   introHtml,
+  detailsCard,
   sections = [],
   ctaLabel,
   ctaUrl,
@@ -159,6 +287,7 @@ export const renderEmail = ({
           </tr>
           <tr>
             <td style="padding:8px 24px 8px;">
+              ${detailsCard ? renderDetailsCard(detailsCard) : ""}
               ${sectionsHtml}
               ${ctaHtml}
               ${footer}

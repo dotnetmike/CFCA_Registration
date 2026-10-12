@@ -7,6 +7,7 @@ synced_at: 2026-10-08
 owners: [team]
 files:
   - src/app/r/[token]/page.tsx
+  - src/components/registrations/registration-details-view.tsx
   - src/app/api/registrations/view/[token]/route.ts
   - src/lib/registrations/view-token.ts
   - src/lib/site-url.ts
@@ -31,7 +32,8 @@ Permanent read-only view of a registration from the confirmation email, without 
 - Accommodation/transport summary includes hotel/accommodation name and address when provided.
 - Edit CTA: if `hasAccount` �?login redirect to `/register`; else signup with email + redirect `/register`.
 - Editing always requires an account; magic link never allows registration edits.
-- **Pay balance due:** payment summary uses the canonical wording in `features.payment` (Payment status badge, Registration fee, Amount paid, Balance due only when > $0). When the registration is submitted and balance due > 0, show a “**Balance due: $X**” callout with a **Pay $X** button → `/register/pay?view=<token>`.
+- **Layout:** one main card — header with title **Registration details**, subtitle (“Review your registration and complete payment to confirm your attendance.” when a balance is due), and the Payment status badge (top right). On this page only, `pending` shows as an amber **Payment pending** pill with a clock icon (`#FEF3C7` / `#92400E`); other statuses use the shared badge. Body has two columns on large screens (stacked on smaller): left **Registration information** (label/value rows: muted 14px labels `#64748B`, 15–16px values `#172033` — same labels as the original registration emails: Registration No, Name, Email, Mobile, Conference State, Ministry, Ministry Role, Elder's assembly (when attending), Address (line 1, line 2, suburb, state, postcode; always shown, “—” when not provided), Spouse attending / name / email / mobile / dietary requirements, Dietary requirements) with the **Unique Code** badge + copy button below; right the **Payment summary** card. Below: secure-link notice, **Other people attending** and **Accommodation & transport** cards, then edit/home actions.
+- **Pay balance due:** payment summary uses the canonical wording in `features.payment`. When the registration is submitted and balance due > 0, the summary shows: helper text “Your registration is reserved. Complete payment to confirm your attendance.”, full-width **Pay $X securely** (lock icon, loading “Opening payment...”) → `/register/pay?view=<token>` (where Online / Bank are chosen), plus “Secure payment · Confirmation emailed after payment”. There is no separate bank-transfer text link. When online payment is unavailable (workflow V1 or Stripe off, per `GET /api/registration-settings`) the button reads **View bank transfer details**. The layout is the shared `RegistrationDetailsView` component, also used by My Registration (`features.my-registration`); its styles are local to that component (no global theme change).
   - Pay page in this mode (view token only, no signup token) is labelled “Registration payment” (not “Step 2 of 3”), offers the same Online (V2 + Stripe) / Bank options, and links back to the registration details.
   - Stripe Checkout success returns to `/r/<token>?payment=success&session_id=…`, which shows the checkout outcome (`StripeCheckoutReturn`, retry → pay page) and reloads the registration once confirmed. Bank “continue” returns to `/r/<token>`. Cancel returns to the pay page.
   - Fully paid registrations show no pay button.

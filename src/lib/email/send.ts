@@ -18,7 +18,9 @@ import {
   renderEmail,
   getEmailLogoAttachment,
   assertEmailIncludesLogo,
+  type EmailDetailsCard,
   type EmailRow,
+  type EmailStatusTone,
 } from "@/lib/email/template"
 import { sendTransactionalEmail } from "@/lib/email/provider"
 import { PAYMENT_LABELS, balanceDue, formatPaymentStatus } from "@/lib/payments/labels"
@@ -45,11 +47,13 @@ export type RegistrationEmailRecord = {
   given_name: string
   surname: string
   mobile?: string
+  dietary_requirements?: string | null
   state?: string | null
   cfca_position?: string | null
   ministry?: string | null
   elder_assembly_attending?: boolean | null
   address_line1?: string
+  address_line2?: string | null
   suburb?: string
   address_state?: string | null
   postcode?: string
@@ -146,7 +150,15 @@ const formatAttendees = (reg: RegistrationEmailRecord) => {
 
 const hasText = (value?: string | null) => Boolean(value && value.trim())
 
-const buildRegistrationSections = (reg: RegistrationEmailRecord): EmailSection[] => {
+const formatAddress = (reg: RegistrationEmailRecord) =>
+  [reg.address_line1, reg.address_line2, reg.suburb, reg.address_state, reg.postcode]
+    .filter(hasText)
+    .join(", ") || "—"
+
+const buildRegistrationContent = (
+  reg: RegistrationEmailRecord,
+  payUrl?: string
+): { detailsCard: EmailDetailsCard; sections: EmailSection[] } => {
   const name = `${reg.given_name} ${reg.surname}`.trim()
   const ref = paymentRef(reg)
   const transport = booleansToTransportOption(
@@ -161,37 +173,21 @@ const buildRegistrationSections = (reg: RegistrationEmailRecord): EmailSection[]
     ? MINISTRY_LABELS[reg.ministry as keyof typeof MINISTRY_LABELS] ?? reg.ministry
     : "—"
 
-  const sections: EmailSection[] = [
-    {
-      title: "Registration",
-      rows: [
-        { label: "Registration No", value: reg.registration_no },
-        uniqueCodeRow(ref),
-        { label: "Name", value: name },
-        { label: "Email", value: reg.email },
-        { label: "Mobile", value: reg.mobile ?? "—" },
-        { label: "Conference State", value: reg.state ?? "—" },
-        { label: "Ministry", value: ministry },
-        { label: "Ministry Role", value: position },
-        ...(reg.elder_assembly_attending ? [{ label: "Elder's assembly", value: "Attending" }] : []),
-      ],
-    },
+  const infoRows: EmailRow[] = [
+    { label: "Registration No", value: reg.registration_no },
+    { label: "Name", value: name },
+    { label: "Email", value: reg.email },
+    { label: "Mobile", value: reg.mobile ?? "—" },
+    { label: "Conference State", value: reg.state ?? "—" },
+    { label: "Ministry", value: ministry },
+    { label: "Ministry Role", value: position },
+    ...(reg.elder_assembly_attending ? [{ label: "Elder's assembly", value: "Attending" }] : []),
+    { label: "Address", value: formatAddress(reg) },
   ]
 
-  if (reg.address_line1 || reg.suburb || reg.postcode) {
-    sections[0].rows.push({
-      label: "Address",
-      value: [reg.address_line1, reg.suburb, reg.address_state, reg.postcode]
-        .filter(Boolean)
-        .join(", "),
-    })
-  }
-
-  const spouseRows: EmailSection["rows"] = [
-    { label: "Spouse attending", value: reg.spouse_attending ? "Yes" : "No" },
-  ]
+  infoRows.push({ label: "Spouse attending", value: reg.spouse_attending ? "Yes" : "No" })
   if (reg.spouse_attending) {
-    spouseRows.push(
+    infoRows.push(
       {
         label: "Spouse name",
         value: `${reg.spouse_given_name ?? ""} ${reg.spouse_surname ?? ""}`.trim() || "—",
@@ -200,7 +196,50 @@ const buildRegistrationSections = (reg: RegistrationEmailRecord): EmailSection[]
       { label: "Spouse mobile", value: reg.spouse_mobile || "—" }
     )
   }
-  sections.push({ title: "Spouse", rows: spouseRows })
+  if (reg.dietary_requirements !== undefined) {
+    infoRows.push({
+      label: "Dietary requirements",
+      value: reg.dietary_requirements?.trim() || "None specified",
+    })
+  }
+
+  const balance = balanceDue(reg.amount_due, reg.amount_paid)
+  const statusKey = String(reg.payment_status ?? "").toLowerCase()
+  const tone: EmailStatusTone =
+    statusKey === "paid" || statusKey === "partial" || statusKey === "overpaid"
+      ? statusKey
+      : "pending"
+
+  const detailsCard: EmailDetailsCard = {
+    heading: "Registration details",
+    subtitle:
+      balance > 0
+        ? "Review your registration and complete payment to confirm your attendance."
+        : "Review your registration details.",
+    status: {
+      label: tone === "pending" ? "Payment pending" : formatPaymentStatus(statusKey),
+      tone,
+    },
+    infoRows,
+    uniqueCode: ref,
+    uniqueCodeNote:
+      balance > 0 ? "Paying by bank transfer? Include this code in both Message and Ref." : undefined,
+    payment: {
+      fee: formatCurrency(Number(reg.amount_due)),
+      paid: formatCurrency(Number(reg.amount_paid)),
+      ...(balance > 0
+        ? {
+            balance: formatCurrency(balance),
+            helper: "Your registration is reserved. Complete payment to confirm your attendance.",
+            ctaLabel: payUrl ? `Pay ${formatCurrency(balance)} securely` : undefined,
+            ctaUrl: payUrl,
+            footnote: "Secure payment · Confirmation emailed after payment",
+          }
+        : {}),
+    },
+  }
+
+  const sections: EmailSection[] = []
 
   sections.push({
     title: "Additional Attendees",
@@ -281,22 +320,7 @@ const buildRegistrationSections = (reg: RegistrationEmailRecord): EmailSection[]
     })
   }
 
-  sections.push({
-    title: "Payment",
-    rows: [
-      ...buildPaymentRows(reg),
-      ...(balanceDue(reg.amount_due, reg.amount_paid) > 0
-        ? [
-            {
-              label: "Bank reference",
-              value: `Include Unique Code (${ref}) in Message and Ref.`,
-            },
-          ]
-        : []),
-    ],
-  })
-
-  return sections
+  return { detailsCard, sections }
 }
 
 const buildFullRegistrationDetails = (
@@ -332,13 +356,7 @@ const buildFullRegistrationDetails = (
     `Elder's assembly: ${reg.elder_assembly_attending ? "Attending" : "Not attending"}`
   )
 
-  if (reg.address_line1 || reg.suburb || reg.postcode) {
-    lines.push(
-      `Address: ${[reg.address_line1, reg.suburb, reg.address_state, reg.postcode]
-        .filter(Boolean)
-        .join(", ")}`
-    )
-  }
+  lines.push(`Address: ${formatAddress(reg)}`)
 
   lines.push(
     "",
@@ -505,7 +523,7 @@ Please include ${ref} in your payment reference.`
 const buildHtml = (
   type: EmailType,
   reg: RegistrationEmailRecord,
-  links: { viewUrl?: string; portalUrl?: string; siteUrl: string }
+  links: { viewUrl?: string; portalUrl?: string; payUrl?: string; siteUrl: string }
 ) => {
   const name = `${reg.given_name} ${reg.surname}`.trim()
   const ref = paymentRef(reg)
@@ -520,7 +538,7 @@ const buildHtml = (
           paragraphHtml(
             "Thank you for registering for the 2027 CFCA National Conference. Here is a summary of your registration:"
           ),
-        sections: buildRegistrationSections(reg),
+        ...buildRegistrationContent(reg, links.payUrl),
         ctaLabel: links.viewUrl ? "View registration" : undefined,
         ctaUrl: links.viewUrl,
         footerNote:
@@ -535,7 +553,7 @@ const buildHtml = (
           paragraphHtml(
             `Your registration (${ref}) has been updated. Please review the full details below.`
           ),
-        sections: buildRegistrationSections(reg),
+        ...buildRegistrationContent(reg, links.payUrl),
         ctaLabel: "Open my registration",
         ctaUrl: links.portalUrl,
         footerNote:
@@ -550,7 +568,7 @@ const buildHtml = (
           paragraphHtml(
             `Your transport and/or accommodation details (${ref}) have been updated. Please review the full details below.`
           ),
-        sections: buildRegistrationSections(reg),
+        ...buildRegistrationContent(reg, links.payUrl),
         ctaLabel: "Open my registration",
         ctaUrl: links.portalUrl,
         footerNote:
@@ -615,7 +633,10 @@ export const sendRegistrationEmail = async (
 
   const subject = buildSubject(type, registration)
   const text = buildBody(type, registration, { viewUrl, portalUrl })
-  const html = buildHtml(type, registration, { viewUrl, portalUrl, siteUrl })
+  const payUrl = options.viewToken
+    ? `${siteUrl}/register/pay?view=${encodeURIComponent(options.viewToken)}`
+    : `${siteUrl}/payment`
+  const html = buildHtml(type, registration, { viewUrl, portalUrl, payUrl, siteUrl })
   assertEmailIncludesLogo(html)
   const logoAttachment = getEmailLogoAttachment()
   const registrationUpdate = type === "registration_submitted" || type === "registration_updated" || type === "accommodation_updated"

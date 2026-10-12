@@ -23,6 +23,7 @@ CFCA_Registration/
 | If you need to change… | Start here | Spec |
 |------------------------|------------|------|
 | Registration form UI | `src/components/registrations/registration-form.tsx` | `features.registration` |
+| Registration details view (shared by `/r/[token]` and `/my-registration`) | `src/components/registrations/registration-details-view.tsx` | `features.magic-link-view`, `features.my-registration` |
 | Registration validation | `src/lib/registrations/schema.ts` | `features.registration` |
 | Amount due / pricing | `src/lib/pricing/calculate.ts` + `service.computeAmountDue` | `features.registration` / payment |
 | Souvenirs | `src/lib/registrations/souvenirs.ts` | `features.registration` |
