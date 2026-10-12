@@ -8,6 +8,7 @@ import { PaymentReferenceMockup } from "@/components/registrations/payment-refer
 import { PaymentMethodBadges } from "@/components/payments/payment-method-badges"
 import { BankTransferDetails } from "@/components/payments/bank-transfer-details"
 import { PaymentSummary } from "@/components/payments/payment-summary"
+import { UniqueCode } from "@/components/payments/unique-code"
 import type { BankDetails } from "@/lib/payments/bank-details"
 import { formatCurrency } from "@/lib/pricing/calculate"
 import { cn } from "@/lib/utils"
@@ -188,6 +189,7 @@ export const PaymentStep = ({
           >
             <div className="space-y-4">
               <BankTransferDetails bankDetails={bankDetails} />
+              <UniqueCode code={uniqueCode} label="Unique Code (Message and Ref.)" />
               <Alert variant="info">
                 <strong>IMPORTANT:</strong> Include your <strong>Unique Code</strong> in both
                 Message and Ref. when paying via your bank app.
@@ -215,10 +217,7 @@ export const PaymentStep = ({
               <strong>Name:</strong> {registration.given_name} {registration.surname}
             </p>
           )}
-          <p>
-            <strong>Unique Code:</strong>{" "}
-            <span className="font-bold text-[color:var(--danger)]">{uniqueCode}</span>
-          </p>
+          <UniqueCode code={uniqueCode} />
           {registration.registration_no &&
             !String(registration.registration_no).startsWith("DRAFT") && (
               <p>

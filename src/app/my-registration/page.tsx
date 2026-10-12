@@ -5,6 +5,7 @@ import Link from "next/link"
 import { useSearchParams } from "next/navigation"
 import { StripeCheckoutReturn } from "@/components/payments/stripe-checkout-return"
 import { PaymentSummary } from "@/components/payments/payment-summary"
+import { UniqueCode } from "@/components/payments/unique-code"
 import { PAYMENT_LABELS, balanceDue } from "@/lib/payments/labels"
 import { useAuth } from "@/lib/auth/context"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -162,12 +163,7 @@ const MyRegistrationContent = () => {
             <strong>State:</strong> {registration.state}
           </div>
           {registration.participant_reference && (
-            <div className="md:col-span-2">
-              <strong>Unique Code:</strong>{" "}
-              <span className="font-bold text-[color:var(--danger)]">
-                {registration.participant_reference}
-              </span>
-            </div>
+            <UniqueCode code={registration.participant_reference} className="md:col-span-2" />
           )}
           <div>
             <strong>Position:</strong>{" "}

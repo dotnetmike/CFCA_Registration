@@ -24,6 +24,7 @@ files:
   - src/app/api/admin/registration-settings/route.ts
   - src/lib/payments/labels.ts
   - src/components/payments/payment-summary.tsx
+  - src/components/payments/unique-code.tsx
   - src/components/payments/payment-status-badge.tsx
   - src/lib/dashboard/reports-csv.ts
 ---
@@ -50,7 +51,7 @@ Presentation (`PaymentSummary` component and email payment rows):
 - Order: **Payment status** badge, **Registration fee**, **Amount paid**, then **Balance due** only when it is greater than $0.00.
 - When balance due is $0.00: no banner and no “no remaining balance” message; the Paid badge says it.
 - When money is owed: a callout naming the amount (“**Balance due: $X**”) with a **Pay $X** action where online/bank payment is available. Emails include the bank-reference reminder only when a balance is due.
-- **Unique Code** label and red styling are unchanged (it is the bank payment reference).
+- **Unique Code** label is unchanged (it is the bank payment reference). Its value is shown prominently via the shared `UniqueCode` component (`src/components/payments/unique-code.tsx`): large red monospace text in a light-red chip (`text-xl`, `sm:text-2xl`), wrapping on narrow screens. Used on Step 2 pay, `/payment`, `/r/[token]`, My Registration, the review summary, and the admin registration detail. In the bank transfer sections (Step 2 and `/payment`) it also appears directly under the bank account details as **Unique Code (Message and Ref.)**, and the bank-app mockup shows the same large chip in its Message and Ref. rows and caption.
 - Admin CSV export keeps raw DB column names and adds a computed `balance_due` column.
 
 ## Behavior

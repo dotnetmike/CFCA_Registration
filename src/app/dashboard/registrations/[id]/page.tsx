@@ -13,6 +13,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert } from "@/components/ui/alert"
 import { formatCurrency } from "@/lib/pricing/calculate"
 import { PaymentStatusBadge } from "@/components/payments/payment-status-badge"
+import { UniqueCode } from "@/components/payments/unique-code"
 import {
   PAYMENT_LABELS,
   PAYMENT_STATUSES,
@@ -588,7 +589,7 @@ const RegistrationDetailPage = () => {
                   disabled={readOnly || !canEditRegistration}
                   aria-label="Attending the elder's assembly"
                 />
-                Attending the elder&apos;s assembly on Thursday, 8 April 2027
+                Attending the elder&apos;s assembly on Friday, 9 April 2027
               </label>
               <label className="flex items-center gap-2 text-sm md:col-span-2">
                 <input
@@ -612,12 +613,7 @@ const RegistrationDetailPage = () => {
               <CardTitle>Payment &amp; References</CardTitle>
             </CardHeader>
             <CardContent className="grid gap-4 text-sm md:grid-cols-2">
-              <div>
-                <strong>Unique Code:</strong>{" "}
-                <span className="font-mono font-bold text-red-600">
-                  {str("participant_reference") || "—"}
-                </span>
-              </div>
+              <UniqueCode code={str("participant_reference") || "—"} className="md:col-span-2" />
               <div>
                 <strong>Registration No:</strong> {str("registration_no")}
               </div>

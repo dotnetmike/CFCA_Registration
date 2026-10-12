@@ -1,4 +1,5 @@
 import { formatCurrency } from "@/lib/pricing/calculate"
+import { UniqueCodeValue } from "@/components/payments/unique-code"
 
 type PaymentReferenceMockupProps = {
   uniqueCode: string
@@ -6,7 +7,7 @@ type PaymentReferenceMockupProps = {
 }
 
 const UniqueCodeBadge = () => (
-  <span className="ml-2 shrink-0 rounded bg-blue-600 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-white">
+  <span className="shrink-0 rounded bg-blue-600 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-white">
     Unique Code
   </span>
 )
@@ -23,13 +24,13 @@ const PaymentFieldRow = ({
   charCount: number
 }) => (
   <div className="border-b border-gray-200 px-4 py-3">
-    <div className="flex items-start justify-between gap-2">
-      <span className="pt-0.5 text-sm text-gray-600">{label}</span>
-      <div className="min-w-0 flex-1 text-right">
-        <div className="flex items-center justify-end gap-0">
-          <span className="font-mono text-sm font-bold text-blue-700">{uniqueCode}</span>
-          <UniqueCodeBadge />
-        </div>
+    <div className="flex items-center justify-between gap-2">
+      <span className="text-sm text-gray-600">{label}</span>
+      <UniqueCodeBadge />
+    </div>
+    <div className="mt-1.5 text-right">
+      <UniqueCodeValue code={uniqueCode} className="px-2 py-0.5 text-lg sm:text-lg" />
+      <div>
         <p className="mt-1 text-[10px] italic text-blue-600">{hint}</p>
         <p className="mt-0.5 text-right text-[10px] text-gray-400">{charCount}</p>
       </div>
@@ -136,10 +137,10 @@ export const PaymentReferenceMockup = ({ uniqueCode, amount }: PaymentReferenceM
       </div>
     </div>
 
-    <figcaption className="text-center text-xs text-gray-500">
-      Enter your unique code{" "}
-      <span className="font-mono font-semibold text-red-600">{uniqueCode}</span> in both Message
-      and Ref. when paying via your bank app.
+    <figcaption className="space-y-1.5 text-center text-sm text-gray-600">
+      <span className="block">Enter your Unique Code</span>
+      <UniqueCodeValue code={uniqueCode} />
+      <span className="block">in both Message and Ref. when paying via your bank app.</span>
     </figcaption>
   </figure>
 )

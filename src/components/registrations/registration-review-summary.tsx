@@ -19,6 +19,7 @@ import { Alert } from "@/components/ui/alert"
 import { PaymentReferenceMockup } from "@/components/registrations/payment-reference-mockup"
 
 import { PAYMENT_LABELS } from "@/lib/payments/labels"
+import { UniqueCodeValue } from "@/components/payments/unique-code"
 
 type RegistrationReviewSummaryProps = {
   formData: RegistrationFormData
@@ -181,7 +182,9 @@ export const RegistrationReviewSummary = ({
         {participantReference && (
           <div className="md:col-span-2">
             <dt className="font-medium">Your Unique Code</dt>
-            <dd className="font-mono text-base font-bold text-red-600">{participantReference}</dd>
+            <dd className="mt-1">
+              <UniqueCodeValue code={participantReference} />
+            </dd>
           </div>
         )}
       </dl>

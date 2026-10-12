@@ -3,7 +3,7 @@ id: features.registration
 title: Registration form
 status: active
 synced_commit: working-tree
-synced_at: 2026-10-08
+synced_at: 2026-10-12
 owners: [team]
 files:
   - src/app/page.tsx
@@ -61,7 +61,8 @@ Single continuous conference registration page. Guests complete without login; l
 - Required fields marked with a prominent **red asterisk**; invalid fields show a red border on submit.
 - On submit, **all** validation errors are shown together in a summary list (not one-at-a-time).
 - Controls use comfortable sizing (`text-base` / taller inputs) for readability and touch.
-- Fields that may need extra explanation show a **help icon** (?) beside the label. Hover or keyboard focus on the icon opens a short tooltip with guidance.
+- Fields that may need extra explanation show a **help icon** (?) beside the label. Mouse hover, keyboard focus, or tap/click on the icon opens a short tooltip with guidance; tap again, tap outside, or press Escape to close.
+- Tooltips must stay fully visible on every screen size (phone, tablet, laptop, desktop): they render above other content (not clipped by cards or containers), stay inside the viewport horizontally, flip above the icon when there is no room below, and follow the icon on scroll/resize.
 - Multi-column field rows share a consistent label height, control height (`h-12`), and reserved error-message slot so siblings stay aligned (including action buttons such as **Remove**).
 
 ### Registration details
@@ -73,7 +74,7 @@ Single continuous conference registration page. Guests complete without login; l
 - **Ministry Role** options are Member, Household Leader, Unit Leader, HOLD, SOLD, Family Ministry Area Leader, Family Ministry Coordinator, Chapter Leader, Cluster Leader, Sector Leader National Coordinator, LIA Area Coordinator, PCS Area Coordinator, Comms Area Coordinator, National Director, and National Council Member.
 - **CFCA Membership State** (required, DB column `state`) is shown on the same row as **Ministry Role** on medium+ screens; on small screens membership state stacks below ministry role.
 - When the user selects or changes **Address State** (including via address autocomplete), **CFCA Membership State** is set to the same value automatically.
-- Family Ministry Area Leader, Chapter Leader, Cluster Leader, Sector Leader National Coordinator, LIA Area Coordinator, PCS Area Coordinator, Comms Area Coordinator, National Director, and National Council Member roles may record elder's assembly attendance on Thursday, 8 April 2027 with the checkbox label "Attending the elder's assembly on Thursday, 8 April 2027".
+- Family Ministry Area Leader, Chapter Leader, Cluster Leader, Sector Leader National Coordinator, LIA Area Coordinator, PCS Area Coordinator, Comms Area Coordinator, National Director, and National Council Member roles may record elder's assembly attendance on Friday, 9 April 2027 with the checkbox label "Attending the elder's assembly on Friday, 9 April 2027".
 
 ### Airport transport
 
@@ -163,7 +164,9 @@ Single continuous conference registration page. Guests complete without login; l
 - [ ] Early bird window and attendee pricing can be changed without redeploy
 - [ ] Early-bird payment deadline, payment reminders, and registration update recipient can be changed without redeploy
 - [ ] Closed registration blocks public/participant registration writes while allowing manager/admin role updates
-- [ ] Field help tooltips are available on hover/focus for key registration questions
+- [ ] Field help tooltips are available on hover/focus/tap for key registration questions
+- [ ] Field help tooltips are never clipped at the screen or card edge on mobile, tablet, laptop, or desktop
+- [ ] Elder's assembly checkbox reads "Attending the elder's assembly on Friday, 9 April 2027"
 
 ## Related specs
 

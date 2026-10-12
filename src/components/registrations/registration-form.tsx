@@ -1014,7 +1014,7 @@ const RegistrationForm = ({
                     {...form.register("elder_assembly_attending")}
                     aria-label="Attending the elder's assembly"
                   />
-                  <span>Attending the elder&apos;s assembly on Thursday, 8 April 2027</span>
+                  <span>Attending the elder&apos;s assembly on Friday, 9 April 2027</span>
                 </label>
               )}
 

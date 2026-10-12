@@ -9,6 +9,7 @@ import { PaymentReferenceMockup } from "@/components/registrations/payment-refer
 import { PaymentStep } from "@/components/payments/payment-step"
 import { BankTransferDetails } from "@/components/payments/bank-transfer-details"
 import { PaymentSummary } from "@/components/payments/payment-summary"
+import { UniqueCode } from "@/components/payments/unique-code"
 import { PAYMENT_LABELS } from "@/lib/payments/labels"
 import {
   EMPTY_BANK_DETAILS,
@@ -118,10 +119,7 @@ const PaymentPageContent = () => {
           <CardTitle>Your Registration</CardTitle>
         </CardHeader>
         <CardContent className="space-y-2 text-sm">
-          <p>
-            <strong>Unique Code:</strong>{" "}
-            <span className="font-bold text-[color:var(--danger)]">{paymentReference}</span>
-          </p>
+          <UniqueCode code={paymentReference} />
           {registration.registration_no && !registration.registration_no.startsWith("DRAFT") && (
             <p>
               <strong>Registration No:</strong> {registration.registration_no}
@@ -139,8 +137,9 @@ const PaymentPageContent = () => {
         <CardHeader>
           <CardTitle>Bank Transfer Details</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-4">
           <BankTransferDetails bankDetails={bankDetails} />
+          <UniqueCode code={paymentReference} label="Unique Code (Message and Ref.)" />
         </CardContent>
       </Card>
 

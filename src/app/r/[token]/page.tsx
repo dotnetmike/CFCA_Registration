@@ -8,6 +8,7 @@ import { Alert } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { StripeCheckoutReturn } from "@/components/payments/stripe-checkout-return"
 import { PaymentSummary } from "@/components/payments/payment-summary"
+import { UniqueCode } from "@/components/payments/unique-code"
 import { PAYMENT_LABELS, balanceDue } from "@/lib/payments/labels"
 import { formatCurrency } from "@/lib/pricing/calculate"
 import { CFCA_POSITION_LABELS } from "@/lib/registrations/schema"
@@ -176,10 +177,7 @@ const MagicRegistrationContent = () => {
           <div>
             <strong>Registration No:</strong> {registration.registration_no}
           </div>
-          <div className="md:col-span-2">
-            <strong>Unique Code:</strong>{" "}
-            <span className="font-bold text-red-600">{paymentRef}</span>
-          </div>
+          <UniqueCode code={paymentRef} className="md:col-span-2" />
           {(registration.address_line1 || registration.suburb) && (
             <div className="md:col-span-2">
               <strong>Address:</strong>{" "}
