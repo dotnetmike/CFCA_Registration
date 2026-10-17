@@ -57,9 +57,7 @@ export const PaymentStep = ({
   checkoutCancelled = false,
   successPath,
 }: PaymentStepProps) => {
-  const [selectedMethod, setSelectedMethod] = useState<PaymentMethod>(
-    showOnline ? "online" : "bank"
-  )
+  const [selectedMethod, setSelectedMethod] = useState<PaymentMethod>("bank")
   const [isLoadingCheckout, setIsLoadingCheckout] = useState(false)
   const [checkoutError, setCheckoutError] = useState("")
   useBusyCursor(isLoadingCheckout)

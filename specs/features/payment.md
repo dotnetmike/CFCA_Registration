@@ -63,7 +63,7 @@ Presentation (`PaymentSummary` component and email payment rows):
 - Public UI labels use **Unique Code** for Message and Ref.
 - Show the payment summary using the canonical wording above.
 - **Workflow V1:** Bank Transfer Details + How to Pay mockup (unchanged).
-- **Workflow V2:** radio choice of Online Payment (default, Stripe hosted Checkout when keys set) or Bank Payment, followed by the registration summary. Pays the balance due only; when balance due is $0.00 the options are hidden and only the summary (Paid badge) shows.
+- **Workflow V2:** radio choice of Online Payment (Stripe hosted Checkout when keys set; collapsed by default) or Bank Payment (selected and expanded by default, as bank transfer is recommended), followed by the registration summary. Pays the balance due only; when balance due is $0.00 the options are hidden and only the summary (Paid badge) shows.
 - **Bank transfer encouragement** (`BANK_TRANSFER_ENCOURAGEMENT` in `src/lib/payments/labels.ts`, one wording for web and email): “We’re encouraging participants to pay via bank transfer to avoid processing fees that will be incurred using other payment methods.”
   - Web payment step (`payment-step.tsx`, Step 2 and `/payment`): green **Bank transfer recommended.** callout under “Choose how you would like to pay” whenever a balance is due; the Bank Payment option description starts with “Recommended — no processing fees.”
   - HTML emails: same green callout inside the Payment summary (above **Pay $X securely**) of registration emails when a balance is due, and in the payment reminder. Plain-text emails include the same sentence when a balance is due.
