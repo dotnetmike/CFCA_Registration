@@ -6,6 +6,9 @@ export const PAYMENT_LABELS = {
   status: "Payment status",
 } as const
 
+export const BANK_TRANSFER_ENCOURAGEMENT =
+  "We’re encouraging participants to pay via bank transfer to avoid processing fees that will be incurred using other payment methods."
+
 export const PAYMENT_STATUSES = ["pending", "partial", "paid", "overpaid"] as const
 export type PaymentStatus = (typeof PAYMENT_STATUSES)[number]
 

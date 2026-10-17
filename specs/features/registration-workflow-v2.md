@@ -55,6 +55,7 @@ Run a pay-step registration flow (V2) side by side with classic bank-after-submi
    - **Online Payment** (selected by default when Stripe is enabled). Explains that the participant is redirected to Stripe's secure checkout to finish paying, returns here afterwards, and that card details are never stored by CFCA. Shows supported method badges: Visa, Mastercard, American Express, Apple Pay, Link, Klarna, Zip. CTA: **Pay $X online**.
    - **Bank Payment**: BSB/account details, Unique Code instructions, How to Pay mockup, and **I've noted the bank details — continue**.
    - When Stripe is not enabled, only Bank Payment is shown (selected).
+   - A green **Bank transfer recommended.** callout encourages bank transfer to avoid processing fees (wording per `features.payment`).
 2. **Your Registration** summary (name, Unique Code, registration no, then `PaymentSummary`: Payment status badge, Registration fee, Amount paid, Balance due when > $0) at the bottom. No banner when fully paid.
 
 ### Payment outcomes

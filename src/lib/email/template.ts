@@ -35,6 +35,8 @@ export type EmailDetailsCard = {
     paid: string
     balance?: string
     helper?: string
+    /** Bank transfer encouragement shown above the pay button. */
+    note?: string
     ctaLabel?: string
     ctaUrl?: string
     footnote?: string
@@ -81,6 +83,10 @@ const STATUS_TONES: Record<EmailStatusTone, { bg: string; text: string }> = {
   overpaid: { bg: "#EDE9FE", text: "#5B21B6" },
 }
 
+/** Green "Bank transfer recommended" callout. */
+export const bankTransferNoticeHtml = (text: string) =>
+  `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:14px 0 0;"><tr><td style="padding:12px 14px;border-radius:8px;background:#ECFDF5;border:1px solid #A7F3D0;font-size:14px;line-height:1.5;color:#065F46;"><strong>Bank transfer recommended.</strong> ${escapeHtml(text)}</td></tr></table>`
+
 const sectionLabelHtml = (text: string) =>
   `<p style="margin:0 0 12px;font-size:11px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:${brand.grey};">${escapeHtml(text)}</p>`
 
@@ -112,6 +118,7 @@ const renderDetailsCard = (card: EmailDetailsCard) => {
   const helperHtml = payment.helper
     ? `<p style="margin:12px 0 0;font-size:14px;line-height:1.5;color:${brand.grey};">${escapeHtml(payment.helper)}</p>`
     : ""
+  const noteHtml = payment.note ? bankTransferNoticeHtml(payment.note) : ""
   const ctaHtml =
     payment.ctaLabel && payment.ctaUrl
       ? `
@@ -169,6 +176,7 @@ const renderDetailsCard = (card: EmailDetailsCard) => {
                       ${balanceHtml}
                     </table>
                     ${helperHtml}
+                    ${noteHtml}
                     ${ctaHtml}
                     ${footnoteHtml}
                   </td>

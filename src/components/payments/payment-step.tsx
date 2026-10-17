@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, type ReactNode } from "react"
+import { Landmark } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
@@ -10,6 +11,7 @@ import { BankTransferDetails } from "@/components/payments/bank-transfer-details
 import { PaymentSummary } from "@/components/payments/payment-summary"
 import { UniqueCode } from "@/components/payments/unique-code"
 import type { BankDetails } from "@/lib/payments/bank-details"
+import { BANK_TRANSFER_ENCOURAGEMENT } from "@/lib/payments/labels"
 import { formatCurrency } from "@/lib/pricing/calculate"
 import { cn } from "@/lib/utils"
 import { useBusyCursor } from "@/hooks/use-busy-cursor"
@@ -137,6 +139,15 @@ export const PaymentStep = ({
             Choose how you would like to pay
           </legend>
 
+          <Alert variant="success">
+            <span className="flex items-start gap-2">
+              <Landmark className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+              <span>
+                <strong>Bank transfer recommended.</strong> {BANK_TRANSFER_ENCOURAGEMENT}
+              </span>
+            </span>
+          </Alert>
+
           {checkoutCancelled ? (
             <Alert variant="warning">
               Online payment was cancelled and you have not been charged. You can try again or
@@ -183,7 +194,7 @@ export const PaymentStep = ({
           <PaymentOption
             value="bank"
             title="Bank Payment"
-            description="Transfer from your bank app using your Unique Code"
+            description="Recommended — no processing fees. Transfer from your bank app using your Unique Code"
             selectedMethod={selectedMethod}
             onSelect={setSelectedMethod}
           >

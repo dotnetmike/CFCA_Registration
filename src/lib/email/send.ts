@@ -14,6 +14,7 @@ import {
 import { getRequestSiteUrl } from "@/lib/site-url"
 import { getRegistrationRuntimeSettings } from "@/lib/registration-settings"
 import {
+  bankTransferNoticeHtml,
   paragraphHtml,
   renderEmail,
   getEmailLogoAttachment,
@@ -23,7 +24,12 @@ import {
   type EmailStatusTone,
 } from "@/lib/email/template"
 import { sendTransactionalEmail } from "@/lib/email/provider"
-import { PAYMENT_LABELS, balanceDue, formatPaymentStatus } from "@/lib/payments/labels"
+import {
+  BANK_TRANSFER_ENCOURAGEMENT,
+  PAYMENT_LABELS,
+  balanceDue,
+  formatPaymentStatus,
+} from "@/lib/payments/labels"
 
 type EmailType =
   | "registration_submitted"
@@ -231,6 +237,7 @@ const buildRegistrationContent = (
         ? {
             balance: formatCurrency(balance),
             helper: "Your registration is reserved. Complete payment to confirm your attendance.",
+            note: BANK_TRANSFER_ENCOURAGEMENT,
             ctaLabel: payUrl ? `Pay ${formatCurrency(balance)} securely` : undefined,
             ctaUrl: payUrl,
             footnote: "Secure payment · Confirmation emailed after payment",
@@ -439,6 +446,8 @@ const buildFullRegistrationDetails = (
   if (balanceDue(reg.amount_due, reg.amount_paid) > 0) {
     lines.push(
       `IMPORTANT: Include your Unique Code (${ref}) in both Message and Ref. when paying via your bank app.`,
+      "",
+      `Bank transfer recommended. ${BANK_TRANSFER_ENCOURAGEMENT}`,
       ""
     )
   }
@@ -516,7 +525,9 @@ ${paymentRowsToText(buildPaymentRows(reg)).join("\n")}`
 
 ${PAYMENT_LABELS.balanceDue}: ${formatCurrency(balanceDue(reg.amount_due, reg.amount_paid))}
 
-Please include ${ref} in your payment reference.`
+Please include ${ref} in your payment reference.
+
+Bank transfer recommended. ${BANK_TRANSFER_ENCOURAGEMENT}`
   }
 }
 
@@ -596,7 +607,8 @@ const buildHtml = (
           greeting +
           paragraphHtml(
             `This is a reminder that registration ${ref} has a balance due.`
-          ),
+          ) +
+          bankTransferNoticeHtml(BANK_TRANSFER_ENCOURAGEMENT),
         sections: [
           {
             title: "Payment",
