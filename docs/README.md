@@ -42,6 +42,7 @@ Full index: **[INDEX.md](./INDEX.md)**
 - [Environments (DEV / UAT / Production)](./operations/environments.md)
 - [Email providers](./operations/email.md)
 - [Migrations](./operations/migrations.md)
+- [Database backup, restore & go-live cleanup](./operations/backup-and-go-live-cleanup.md)
 - [Fix a bug](./contributing/fix-a-bug.md)
 - [Code conventions](./contributing/code-conventions.md)
 

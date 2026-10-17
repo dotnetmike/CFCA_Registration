@@ -1,12 +1,16 @@
 {
   "name": "cfca-registration",
-  "version": "0.27.1",
+  "version": "0.27.2",
   "private": true,
   "scripts": {
     "env:select": "tsx scripts/env/select-env.ts",
     "db:deploy": "tsx scripts/env/select-env.ts && tsx scripts/db/deploy.ts",
     "db:repair-supabase-migrations": "tsx scripts/env/select-env.ts && tsx scripts/db/repair-supabase-migrations.ts",
     "db:login": "npx supabase@latest login",
+    "db:backup": "tsx scripts/env/select-env.ts && tsx scripts/db/backup.ts",
+    "db:backup:verify": "tsx scripts/env/select-env.ts && tsx scripts/db/verify-backup.ts",
+    "db:go-live-cleanup": "tsx scripts/env/select-env.ts && tsx scripts/db/go-live-cleanup.ts",
+    "db:restore": "tsx scripts/env/select-env.ts && tsx scripts/db/restore-backup.ts",
     "dev": "tsx scripts/env/select-env.ts && tsx scripts/db/deploy.ts && next dev --webpack",
     "dev:dev": "tsx scripts/env/select-env.ts --env=dev && tsx scripts/db/deploy.ts && next dev --webpack",
     "dev:uat": "tsx scripts/env/select-env.ts --env=uat && tsx scripts/db/deploy.ts && next dev --webpack",

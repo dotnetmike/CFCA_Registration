@@ -44,6 +44,7 @@
 | [operations/registration-workflow-v2.md](./operations/registration-workflow-v2.md) | Flip V1 ↔ V2 online payment in Settings |
 | [operations/debugging.md](./operations/debugging.md) | Diagnose issues |
 | [operations/migrations.md](./operations/migrations.md) | Schema changes |
+| [operations/backup-and-go-live-cleanup.md](./operations/backup-and-go-live-cleanup.md) | Database backup, verify, restore, go-live cleanup |
 | [contributing/add-a-feature.md](./contributing/add-a-feature.md) | Spec → code → docs |
 | [contributing/fix-a-bug.md](./contributing/fix-a-bug.md) | Reproduce → fix → verify |
 | [contributing/code-conventions.md](./contributing/code-conventions.md) | Patterns used in this repo |
