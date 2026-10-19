@@ -22,23 +22,25 @@ test("exposes the current ministry and role options", () => {
     "family_ministry_coordinator",
     "chapter_leader",
     "cluster_leader",
-    "sector_leader_national_coordinator",
-    "lia_area_coordinator",
-    "pcs_area_coordinator",
-    "comms_area_coordinator",
+    "sector_leader",
+    "lia_coordinator",
+    "pcs_coordinator",
+    "comms_coordinator",
     "national_director",
     "national_council_member",
+    "national_coordinator",
   ])
   assert.deepEqual(ELDER_ASSEMBLY_POSITIONS, [
     "family_ministry_area_leader",
     "chapter_leader",
     "cluster_leader",
-    "sector_leader_national_coordinator",
-    "lia_area_coordinator",
-    "pcs_area_coordinator",
-    "comms_area_coordinator",
+    "sector_leader",
+    "lia_coordinator",
+    "pcs_coordinator",
+    "comms_coordinator",
     "national_director",
     "national_council_member",
+    "national_coordinator",
   ])
 })
 

@@ -136,8 +136,9 @@ DO $$ BEGIN
       'ministry_coordinator', 'area_coordinator', 'area_head', 'national_council',
       'non_member', 'household_leader', 'hold', 'sold',
       'family_ministry_area_leader', 'family_ministry_coordinator', 'cluster_leader',
-      'sector_leader_national_coordinator', 'lia_area_coordinator', 'pcs_area_coordinator',
-      'comms_area_coordinator', 'national_director', 'national_council_member'
+      'sector_leader', 'lia_coordinator', 'pcs_coordinator',
+      'comms_coordinator', 'national_director', 'national_council_member',
+      'national_coordinator'
     );
   END IF;
   IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'australian_state') THEN
