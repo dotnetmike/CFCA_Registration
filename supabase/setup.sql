@@ -138,7 +138,7 @@ DO $$ BEGIN
       'family_ministry_area_leader', 'family_ministry_coordinator', 'cluster_leader',
       'sector_leader', 'lia_coordinator', 'pcs_coordinator',
       'comms_coordinator', 'national_director', 'national_council_member',
-      'national_coordinator'
+      'national_coordinator', 'music_coordinator'
     );
   END IF;
   IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'australian_state') THEN

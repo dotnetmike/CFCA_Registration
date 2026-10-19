@@ -29,6 +29,8 @@ test("exposes the current ministry and role options", () => {
     "national_director",
     "national_council_member",
     "national_coordinator",
+    "area_coordinator",
+    "music_coordinator",
   ])
   assert.deepEqual(ELDER_ASSEMBLY_POSITIONS, [
     "family_ministry_area_leader",

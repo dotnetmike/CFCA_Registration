@@ -38,6 +38,7 @@ files:
   - supabase/migrations/018_ministry_and_role_options.sql
   - supabase/migrations/022_national_coordinator_role.sql
   - supabase/migrations/023_rename_coordinator_roles.sql
+  - supabase/migrations/024_area_and_music_coordinator_roles.sql
   - supabase/migrations/020_souvenir_preorder_toggle.sql
 ---
 
@@ -73,10 +74,10 @@ Single continuous conference registration page. Guests complete without login; l
 - Australian mobile numbers are validated to the local format (`04xx xxx xxx` or `+61...`).
 - Address fields use labels **Address Suburb**, **Address Postcode**, and **Address State** (optional).
 - **Ministry** is selected before **Ministry Role**: CFCA, Family Ministries, LIA, PCS, Communications, or Non-Member. Selecting Non-Member locks Ministry Role to Non-member.
-- **Ministry Role** options are Member, Household Leader, Unit Leader, HOLD, SOLD, Family Ministry Area Leader, Family Ministry Coordinator, Chapter Leader, Cluster Leader, Sector Leader, LIA Coordinator, PCS Coordinator, Comms Coordinator, National Director, National Council Member, and National Coordinator (covers the LIA, Comms, PCS and FM national coordinators). Stored values match the labels: `sector_leader`, `lia_coordinator`, `pcs_coordinator`, `comms_coordinator` (renamed in place from the former `sector_leader_national_coordinator`, `lia_area_coordinator`, `pcs_area_coordinator`, `comms_area_coordinator` by migration `023`) and `national_coordinator` (added by migration `022`).
+- **Ministry Role** options are Member, Household Leader, Unit Leader, HOLD, SOLD, Family Ministry Area Leader, Family Ministry Coordinator, Chapter Leader, Cluster Leader, Sector Leader, LIA Coordinator, PCS Coordinator, Comms Coordinator, National Director, National Council Member, National Coordinator (covers the LIA, Comms, PCS and FM national coordinators), Area Coordinator, and Music Coordinator. Stored values match the labels: `sector_leader`, `lia_coordinator`, `pcs_coordinator`, `comms_coordinator` (renamed in place from the former `sector_leader_national_coordinator`, `lia_area_coordinator`, `pcs_area_coordinator`, `comms_area_coordinator` by migration `023`), `national_coordinator` (added by migration `022`), `area_coordinator` and `music_coordinator` (migration `024`).
 - **CFCA Membership State** (required, DB column `state`) is shown on the same row as **Ministry Role** on medium+ screens; on small screens membership state stacks below ministry role.
 - When the user selects or changes **Address State** (including via address autocomplete), **CFCA Membership State** is set to the same value automatically.
-- Family Ministry Area Leader, Chapter Leader, Cluster Leader, Sector Leader, LIA Coordinator, PCS Coordinator, Comms Coordinator, National Director, National Council Member, and National Coordinator roles may record elder's assembly attendance on Friday, 9 April 2027 with the checkbox label "Attending the elder's assembly on Friday, 9 April 2027".
+- Family Ministry Area Leader, Chapter Leader, Cluster Leader, Sector Leader, LIA Coordinator, PCS Coordinator, Comms Coordinator, National Director, National Council Member, and National Coordinator roles may record elder's assembly attendance on Friday, 9 April 2027 with the checkbox label "Attending the elder's assembly on Friday, 9 April 2027". Area Coordinator and Music Coordinator are not eligible.
 
 ### Airport transport
 

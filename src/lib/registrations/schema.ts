@@ -17,6 +17,8 @@ export const CFCA_POSITIONS = [
   "national_director",
   "national_council_member",
   "national_coordinator",
+  "area_coordinator",
+  "music_coordinator",
 ] as const
 
 const CFCA_POSITION_VALUES = [...CFCA_POSITIONS, "non_member"] as const
@@ -50,6 +52,8 @@ export const CFCA_POSITION_LABELS: Record<(typeof CFCA_POSITION_VALUES)[number],
   national_director: "National Director",
   national_council_member: "National Council Member",
   national_coordinator: "National Coordinator",
+  area_coordinator: "Area Coordinator",
+  music_coordinator: "Music Coordinator",
 }
 
 export const MINISTRY_LABELS: Record<(typeof MINISTRIES)[number], string> = {
