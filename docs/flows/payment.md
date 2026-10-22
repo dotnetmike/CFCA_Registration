@@ -1,6 +1,6 @@
 # Payment & reconcile flows
 
-Specs: `features.payment`, `features.registration-workflow-v2`, `features.dashboard` (reconcile + admin payment).
+Specs: `features.payment`, `features.registration-workflow-v2`, `features.payment-reconciliation`, `features.dashboard` (admin payment).
 
 ## Workflow modes
 
@@ -98,35 +98,107 @@ Attribution fields: `payment_last_updated_source` (`manual` | `bank_reconcile` |
 
 Admin detail shows the payment ledger (including Stripe PaymentIntent ids when present).
 
-## Bank PDF reconcile
+## Payment reconciliation (Stripe + CBA CSV)
+
+Spec: `features.payment-reconciliation`. Code: `src/lib/reconciliation/*` (pure `parsers.ts` / `matching.ts`, DB work in `service.ts` / `ledger.ts`), UI in `src/components/reconciliation/*`.
+
+| Route | Purpose |
+|-------|---------|
+| `GET /api/payments/reconcile` | Overview: runs, Stripe rows, bank lines, payouts, last 500 events, registration options |
+| `POST /api/payments/reconcile` | Multipart `file` (CSV ≤ 5 MB) + `source` = `stripe` \| `bank` |
+| `POST /api/payments/reconcile/recheck` | Re-match stored Unmatched rows (no file) |
+| `GET /api/payments/reconcile/items?itemType&itemId` | Full event history of one row |
+| `PATCH /api/payments/reconcile/items` | Ignore / override with comment |
+| `GET /api/payments/reconciled-amounts` | Per-registration money confirmed in the bank (`bank`, `stripeNet`, `stripeFees`) for the Registrations Dashboard **Reconciled in bank** card |
+
+All require `payments:reconcile`, except `reconciled-amounts`, which requires `registrations:read_all` (every dashboard role). Errors: 400 bad file / validation, 409 another run in progress.
+
+`reconciled-amounts` (`loadReconciledAmounts` → pure `summarizeReconciledAmounts`) sums `payments` rows with a `reconciliation_bank_line_id` (reversals are negative) and the `net` / `fee` of `stripe_balance_transactions` that are Matched, have a registration and a `bank_line_id` (payout received in the bank), counting only payment / refund types. Stripe net is after fees, so the total is lower than Amount paid for card payments.
+
+### Upload run
 
 ```mermaid
 sequenceDiagram
   actor S as Staff
   participant UI as /dashboard/payments/reconcile
   participant API as POST /api/payments/reconcile
-  participant Store as Storage
-  participant Parse as parseBankPdf
+  participant Svc as reconciliation/service
   participant DB as Postgres
-  S->>UI: upload PDF
-  UI->>API: multipart
-  API->>Store: bank-statements/...
-  API->>Parse: extract txns + refs
-  loop each transaction
-    API->>DB: match registration_no or participant_reference
-    alt amount >= amount_due and new
-      API->>DB: insert payments bank_reconcile
-      API->>DB: update amount_paid / status + attribution
-      API->>DB: audit + email payment_received
-    end
-    API->>DB: bank_transactions matched/unmatched
+  S->>UI: choose CSV + Upload
+  UI->>API: multipart file + source
+  API->>Svc: importStripeCsv / importBankCsv
+  Svc->>DB: reconciliation_runs (processing, 10 min lock)
+  Svc->>Svc: parse CSV (failed parse = failed run)
+  Svc->>DB: look up existing ids / fingerprints
+  Note over Svc: skip Matched / Ignored / N/A / admin-set rows
+  Svc->>DB: re-check stored Unmatched rows (conditional update)
+  Svc->>DB: insert new rows with match outcome
+  alt bank transfer matched
+    Svc->>DB: claim line, insert payments (bank_reconcile, bank line id)
+    Svc->>DB: update amount_paid / status + attribution, audit payment.record
   end
-  API-->>UI: results summary
+  Svc->>DB: match STRIPE Direct Credits to payouts
+  Svc->>DB: syncStripeSettlement (payout_id, bank_line_id, bank_received_date on Stripe rows)
+  Svc->>DB: reconciliation_events + run counters (completed)
+  Svc->>Svc: Payment received email once per registration
+  API-->>UI: run summary
+  UI->>API: GET overview (refresh tables)
 ```
+
+### Stripe payout grouping
+
+Stripe rows sorted by Available On; a payout row (`type = payout`, negative amount, `po_…` source) covers rows whose Available On is after the previous payout's created time and up to its own created time. Payout amount = −(sum of covered nets); a non-zero difference means rows are missing from the uploads. CBA shows the payout as `Direct Credit … STRIPE`, usually 0–3 days after the payout date (matched within −1…+7 days, equal amount).
+
+### Upload order independence
+
+Exports can arrive in any order (`features.payment-reconciliation` → Upload order). Matching is always recomputed from **all stored rows**, never just the current file:
+
+```mermaid
+sequenceDiagram
+  actor S as Staff
+  participant Svc as reconciliation/service
+  participant DB as Postgres
+  S->>Svc: upload CBA statement first
+  Svc->>DB: STRIPE line, no payout yet
+  Note over Svc,DB: Unmatched + match_method awaiting_stripe_export<br/>(Stripe exports do not cover the bank date)
+  S->>Svc: upload Stripe balance history later
+  Svc->>DB: insert Stripe rows (payouts grouped)
+  Svc->>DB: recheck Unmatched STRIPE lines → Matched (matched_stripe_payout_id)
+  Svc->>DB: syncStripeSettlement → Stripe rows get bank_line_id + bank_received_date
+  Svc->>DB: reconciliation_events bank_confirmed, run.bank_confirmed
+```
+
+Stripe-first works the same way in reverse: Stripe rows get `payout_id` (status "Paid out, awaiting bank statement"), and the later bank upload matches the Direct Credit and fills `bank_line_id`. Overriding or ignoring a STRIPE bank line re-runs `syncStripeSettlement` (`bank_unconfirmed` when a row loses its bank line). Coverage check: the stored Stripe rows must start at least 7 days before the bank date and reach the bank date; otherwise an unmatched STRIPE line shows **Awaiting Stripe export** instead of counting as Needs review.
+
+### Override
+
+```mermaid
+sequenceDiagram
+  actor S as Staff
+  participant UI as Status dialog
+  participant API as PATCH /api/payments/reconcile/items
+  participant DB as Postgres
+  S->>UI: status (+ participant / payout) + comment
+  UI->>API: PATCH
+  alt bank transfer leaves Matched or changes participant
+    API->>DB: negative payments row, lower amount_paid, audit payment.reconcile_reversed
+  end
+  alt bank transfer set to Matched
+    API->>DB: payments row + amount_paid, audit payment.record, email
+  end
+  API->>DB: row status + manual_override + comment
+  API->>DB: reconciliation_events + audit payment.reconcile_override
+  API-->>UI: ok
+```
+
+The legacy PDF tables (`bank_statements`, `bank_transactions`, storage bucket `bank-statements`) are no longer written; they remain for historical data.
 
 ## Debug tips
 
-- Payment not matched → Unique Code vs registration_no in statement text; amount threshold
+- Bank transfer Unmatched → read the reason: no Unique Code / registration number in the description, several candidates, or transaction dated before the registration (Unique Code reuse). Fix with Override → Matched + participant.
+- Stripe payment Unmatched "no recorded payment" → the webhook did not record it (check webhook delivery) or the registration was deleted; Ignore test payments with a comment.
+- Payout difference ≠ $0.00 → upload a Stripe export covering the earlier dates.
+- Upload returns 409 → another run is processing (lock expires after 10 minutes if a run crashed).
 - Balance due = `max(0, amount_due - amount_paid)` (`balanceDue` in `src/lib/payments/labels.ts`). UI/email wording: Registration fee / Amount paid / Balance due / Payment status badge — see `features.payment`.
 - Stripe Online missing → check `STRIPE_SECRET_KEY` and workflow = V2
 - Paid on Stripe but not marked paid → check webhook endpoint URL + `checkout.session.completed` delivery in Stripe Dashboard

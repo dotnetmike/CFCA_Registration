@@ -1,5 +1,7 @@
 # Database backup, restore, and go-live cleanup
 
+> Separate from these tools, the app keeps **automatic daily registration backups** (zipped CSV, private Supabase Storage bucket `registration-backups`) created when an admin opens the Registrations Dashboard; admins download them from `/dashboard/backups`. See `features.registration-backups`. They cover registrations only — use `npm run db:backup` for a full, restorable database backup.
+
 Tooling in [`scripts/db/`](../../scripts/db/) talks to Supabase through the Management API (`SUPABASE_ACCESS_TOKEN`) for the project selected by `env:select` (see [environments.md](./environments.md)). Every command prints `APP_ENV` and the project ref first — check it.
 
 | Command | What it does | Changes data? |
@@ -18,7 +20,7 @@ Default location: `../CFCA_Registration_Backups/<env>-<projectRef>-<timestamp>/`
 - `data/<table>.json` — every row of every `public` table
 - `restore.sql` — standalone restore you can paste into the Supabase SQL editor (inserts every row; existing rows untouched; sequences moved forward)
 - `schema/` — live schema snapshot (columns, constraints, indexes, enums, functions, RLS policies) + copy of `supabase/setup.sql` and migrations
-- `storage/` — downloaded storage files (e.g. `bank-statements`)
+- `storage/` — downloaded storage files (e.g. `bank-statements`, `registration-backups`)
 - `verification-report.json`, `cleanup-log.json` — written by verify / cleanup
 
 The folder contains personal data and password hashes: keep it private, never commit it.
@@ -29,7 +31,7 @@ Defined once in [`scripts/db/lib/cleanup-plan.ts`](../../scripts/db/lib/cleanup-
 
 | Cleared | Kept |
 |---|---|
-| `registrations`, `registration_attendees`, `registration_admin_notes`, `payments`, `bank_statements`, `bank_transactions`, `bank-statements` storage files | `runtime_registration_settings` (all Settings: dates, prices, workflow, bank details…) |
+| `registrations`, `registration_attendees`, `registration_admin_notes`, `payments`, `bank_statements`, `bank_transactions`, `bank-statements` storage files, reconciliation data (`reconciliation_runs`, `reconciliation_events`, `stripe_balance_transactions`, `bank_statement_lines`), daily registration backups (`registration_backups` + `registration-backups` storage files) | `runtime_registration_settings` (all Settings: dates, prices, workflow, bank details…) |
 | `email_log`, `audit_log` | `user_groups`, `permissions`, `user_group_permissions` |
 | `refresh_tokens`, `password_reset_tokens` (everyone signs in again) | `schema_migrations`, `early_bird_counters` (legacy, unused) |
 | `users` not in the `admin` group (+ their `user_user_groups`) | `admin` users and all their group memberships |

@@ -1,7 +1,7 @@
 import type { NextConfig } from "next"
 
 const nextConfig: NextConfig = {
-  serverExternalPackages: ["pg", "pdf-parse", "prettier"],
+  serverExternalPackages: ["pg", "prettier"],
 }
 
 export default nextConfig

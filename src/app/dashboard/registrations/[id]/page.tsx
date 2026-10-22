@@ -13,6 +13,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert } from "@/components/ui/alert"
 import { formatCurrency } from "@/lib/pricing/calculate"
 import { PaymentStatusBadge } from "@/components/payments/payment-status-badge"
+import { invalidateRegistrationCaches } from "@/lib/dashboard/invalidate-registration-caches"
 import { UniqueCode } from "@/components/payments/unique-code"
 import {
   PAYMENT_LABELS,
@@ -236,6 +237,7 @@ const RegistrationDetailPage = () => {
       if (data.unchanged) {
         setSuccess("No payment changes to save.")
       } else {
+        invalidateRegistrationCaches()
         setRegistration(data.registration)
         setPaymentAmountPaid(String(data.registration?.amount_paid ?? 0))
         setPaymentStatus(String(data.registration?.payment_status ?? "pending"))
@@ -412,6 +414,7 @@ const RegistrationDetailPage = () => {
       if (data.unchanged) {
         setSuccess("No changes to save.")
       } else {
+        invalidateRegistrationCaches()
         setRegistration(data.registration)
         setSuccess("Registration updated successfully.")
       }

@@ -20,7 +20,7 @@ C4Context
   Rel(app, supabase, "Service role SQL")
   Rel(app, resend, "Send mail")
   Rel(participant, bank, "Pays with Unique Code")
-  Rel(staff, bank, "PDF statement reconcile")
+  Rel(staff, bank, "CBA + Stripe CSV reconcile")
 ```
 
 ## Containers
@@ -38,7 +38,7 @@ flowchart TB
   end
   subgraph Data
     PG[(Postgres)]
-    Storage[Bank PDF storage]
+    Storage[Legacy bank PDF storage]
   end
   UI --> Pages
   UI --> API
@@ -67,7 +67,7 @@ mindmap
       View tokens
     payments
       Unique Code
-      Reconcile PDF
+      Reconcile Stripe + CBA CSV
       Manual admin update
     audit
       writeAuditLog

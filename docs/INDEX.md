@@ -24,7 +24,7 @@
 |-----|-------|
 | [flows/auth.md](./flows/auth.md) | `global.auth-security`, `features.login`, `features.signup`, `features.password-reset` |
 | [flows/registration.md](./flows/registration.md) | `features.registration`, `features.registration-complete`, `features.magic-link-view` |
-| [flows/payment.md](./flows/payment.md) | `features.payment`, `features.registration-workflow-v2`, payments reconcile in `features.dashboard` |
+| [flows/payment.md](./flows/payment.md) | `features.payment`, `features.registration-workflow-v2`, `features.payment-reconciliation` |
 | [flows/admin-dashboard.md](./flows/admin-dashboard.md) | `features.dashboard`, `features.audit` |
 
 ## Data

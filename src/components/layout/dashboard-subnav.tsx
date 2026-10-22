@@ -4,6 +4,7 @@ import Link from "next/link"
 import { useLayoutEffect, useMemo, useRef, useState } from "react"
 import { usePathname } from "next/navigation"
 import { useAuth } from "@/lib/auth/context"
+import { BACKUPS_PERMISSION } from "@/lib/backups/types"
 
 type NavItem = {
   href: string
@@ -28,6 +29,7 @@ export const DashboardSubnav = () => {
 
   const canReconcile = !!user?.permissions.includes("payments:reconcile")
   const canManageUsers = !!user?.permissions.includes("users:manage")
+  const canManageBackups = !!user?.permissions.includes(BACKUPS_PERMISSION)
 
   const visible = useMemo(() => {
     const items: NavItem[] = [
@@ -67,9 +69,15 @@ export const DashboardSubnav = () => {
         match: (p) => p.startsWith("/dashboard/audit"),
         show: canManageUsers,
       },
+      {
+        href: "/dashboard/backups",
+        label: "Backups",
+        match: (p) => p.startsWith("/dashboard/backups"),
+        show: canManageBackups,
+      },
     ]
     return items.filter((item) => item.show)
-  }, [canReconcile, canManageUsers])
+  }, [canReconcile, canManageUsers, canManageBackups])
 
   const activeHref = visible.find((item) => item.match(pathname))?.href ?? null
 

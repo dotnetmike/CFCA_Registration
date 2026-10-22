@@ -28,7 +28,9 @@ Use this index to find the right document. Specs are the source of truth; keep `
 | `features.payment` | [payment.md](./features/payment.md) | Payment info + mockup |
 | `features.registration-workflow-v2` | [registration-workflow-v2.md](./features/registration-workflow-v2.md) | V1/V2 workflow + Stripe online pay |
 | `features.dashboard` | [dashboard.md](./features/dashboard.md) | Manager dashboard |
+| `features.payment-reconciliation` | [payment-reconciliation.md](./features/payment-reconciliation.md) | Stripe + CBA CSV reconciliation, run history, overrides |
 | `features.audit` | [audit.md](./features/audit.md) | Audit log |
+| `features.registration-backups` | [registration-backups.md](./features/registration-backups.md) | Automatic daily zipped CSV backups, Backups page, download |
 
 ## Meta
 

@@ -35,6 +35,11 @@ import {
 import { buildDetailedRegistrationsCsv } from "@/lib/dashboard/reports-csv"
 import { downloadTextFile } from "@/lib/dashboard/download-csv"
 import { StatCard } from "@/components/dashboard/stat-card"
+import { DailyBackupStatus } from "@/components/backups/daily-backup-status"
+import { BACKUPS_PERMISSION } from "@/lib/backups/types"
+import { reconciledAmountsCache } from "@/lib/dashboard/reconciled-amounts-cache"
+import { toCents } from "@/lib/reconciliation/matching"
+import type { ReconciledAmount, ReconciledAmountsResponse } from "@/lib/reconciliation/types"
 
 const PAGE_SIZE = 100
 const formatContact = (name?: string | null, phone?: string | null) => {
@@ -133,11 +138,14 @@ const DashboardPage = () => {
   const [isExporting, setIsExporting] = useState(false)
   const [exportError, setExportError] = useState("")
   const [loadError, setLoadError] = useState("")
+  const [reconciledAmounts, setReconciledAmounts] = useState<Record<string, ReconciledAmount> | null>(null)
+  const [reconciledError, setReconciledError] = useState(false)
   useBusyCursor(isRefreshing || isExporting)
 
   const canEditRegistrations = !!user?.permissions.includes("registrations:write_all")
   const canEditAccommodation = !!user?.permissions.includes("accommodation:write_all")
   const canOpenEditor = canEditRegistrations || canEditAccommodation
+  const canManageBackups = !!user?.permissions.includes(BACKUPS_PERMISSION)
 
   const loadRegistrations = useCallback(
     async (forceRefresh: boolean) => {
@@ -184,6 +192,30 @@ const DashboardPage = () => {
     [authFetch]
   )
 
+  const loadReconciledAmounts = useCallback(
+    async (forceRefresh: boolean) => {
+      if (forceRefresh) reconciledAmountsCache.clear()
+      const cached = reconciledAmountsCache.get()
+      if (cached) setReconciledAmounts(cached.value)
+      if (cached?.isFresh) return
+
+      try {
+        const res = await authFetch("/api/payments/reconciled-amounts")
+        if (!res.ok) {
+          setReconciledError(true)
+          return
+        }
+        const data = (await res.json()) as ReconciledAmountsResponse
+        reconciledAmountsCache.set(data.amounts)
+        setReconciledAmounts(data.amounts)
+        setReconciledError(false)
+      } catch {
+        setReconciledError(true)
+      }
+    },
+    [authFetch]
+  )
+
   useEffect(() => {
     if (!user) return
     if (!isManager(user)) {
@@ -191,7 +223,8 @@ const DashboardPage = () => {
       return
     }
     void loadRegistrations(false)
-  }, [user, router, loadRegistrations])
+    void loadReconciledAmounts(false)
+  }, [user, router, loadRegistrations, loadReconciledAmounts])
 
   useEffect(() => {
     setPage(1)
@@ -234,7 +267,6 @@ const DashboardPage = () => {
       amountPaid += Number(row.amount_paid ?? 0)
     }
     return {
-      matching: filtered.length,
       paid,
       pendingLike,
       amountDue,
@@ -242,6 +274,34 @@ const DashboardPage = () => {
       remaining: Math.max(0, amountDue - amountPaid),
     }
   }, [filtered])
+
+  const reconciledKpi = useMemo(() => {
+    if (!reconciledAmounts) return null
+    let bankCents = 0
+    let stripeNetCents = 0
+    let stripeFeesCents = 0
+    for (const row of filtered) {
+      const amount = reconciledAmounts[row.id]
+      if (!amount) continue
+      bankCents += toCents(amount.bank)
+      stripeNetCents += toCents(amount.stripeNet)
+      stripeFeesCents += toCents(amount.stripeFees)
+    }
+    return {
+      total: (bankCents + stripeNetCents) / 100,
+      bank: bankCents / 100,
+      stripeNet: stripeNetCents / 100,
+      stripeFees: stripeFeesCents / 100,
+    }
+  }, [filtered, reconciledAmounts])
+
+  const getReconciledHint = () => {
+    if (reconciledKpi) {
+      return `Bank transfers ${formatCurrency(reconciledKpi.bank)} · Stripe ${formatCurrency(reconciledKpi.stripeNet)} after ${formatCurrency(reconciledKpi.stripeFees)} fees`
+    }
+    if (reconciledError) return "Could not load reconciled amounts"
+    return "Loading reconciled amounts..."
+  }
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
   const currentPage = Math.min(page, totalPages)
@@ -252,6 +312,7 @@ const DashboardPage = () => {
 
   const handleRefresh = () => {
     void loadRegistrations(true)
+    void loadReconciledAmounts(true)
   }
 
   const handleExportCsv = async () => {
@@ -326,12 +387,13 @@ const DashboardPage = () => {
       )}
       {loadError && <p className="text-sm text-red-600" role="alert">{loadError}</p>}
       {exportError && <p className="text-sm text-red-600" role="alert">{exportError}</p>}
+      {canManageBackups ? <DailyBackupStatus /> : null}
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard
-          label="Matching"
-          value={String(listKpis.matching)}
-          hint={`of ${registrations.length} loaded`}
+          label="Reconciled in bank"
+          value={reconciledKpi ? formatCurrency(reconciledKpi.total) : "—"}
+          hint={getReconciledHint()}
           tone="brand"
         />
         <StatCard

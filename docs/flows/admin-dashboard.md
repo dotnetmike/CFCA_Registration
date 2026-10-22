@@ -1,6 +1,6 @@
 # Admin dashboard flows
 
-Specs: `features.dashboard`, `features.audit`.
+Specs: `features.dashboard`, `features.audit`, `features.registration-backups`.
 
 ## List + filters + paging
 
@@ -63,6 +63,33 @@ flowchart LR
 
 Empty registration updates should **not** write rows (no-op guards).
 
+## Daily registration backup
+
+```mermaid
+sequenceDiagram
+  actor A as Admin (backups:manage)
+  participant UI as /dashboard (DailyBackupStatus)
+  participant API as POST /api/admin/registration-backups/daily
+  participant DB as registration_backups
+  participant S as Storage bucket registration-backups
+  A->>UI: open Registrations Dashboard
+  UI->>API: ensure today's backup
+  API->>DB: row for today's Melbourne date?
+  alt completed (or processing < 10 min)
+    API-->>UI: existing backup (UI polls while processing)
+  else none / stale claim
+    API->>DB: insert processing row (unique backup_date = claim)
+    API->>API: load all registrations + attendees (paged), detailed CSV, zip (fflate)
+    API->>S: upload YYYY/registrations-backup-YYYY-MM-DD.zip
+    API->>DB: completed + size, count, sha256
+    API->>API: audit registration.backup_create
+    API-->>UI: created
+  end
+  Note over API,DB: on failure the claim row is deleted and registration.backup_failed audited, so the next visit retries
+```
+
+`/dashboard/backups` lists `GET /api/admin/registration-backups`; **Download** streams `GET /api/admin/registration-backups/[id]/download` (audited `registration.backup_download`). The bucket is private; files only leave through that route.
+
 ## Permissions cheat sheet
 
 | Capability | Typical permission |
@@ -72,6 +99,7 @@ Empty registration updates should **not** write rows (no-op guards).
 | Edit accommodation/transport | `accommodation:write_all` |
 | Reconcile / manual payment | `payments:reconcile` (and/or write_all) |
 | Users + audit UI | `users:manage` |
+| Daily backups (create on visit, list, download) | `backups:manage` (admin) |
 
 ## Navigation submenu
 
@@ -84,11 +112,13 @@ flowchart LR
   Header --> Recon[/dashboard/payments/reconcile]
   Header --> Users[/dashboard/users]
   Header --> Audit[/dashboard/audit]
+  Header --> Backups[/dashboard/backups]
   Subnav --> Reg
   Subnav --> Reports
   Subnav --> Recon
   Subnav --> Users
   Subnav --> Audit
+  Subnav --> Backups
 ```
 
 Role editor: Users page → Edit roles → `PATCH /api/admin/users` → audit `user.update` + revoke sessions.
@@ -108,3 +138,4 @@ Role editor: Users page → Edit roles → `PATCH /api/admin/users` → audit `u
 - `src/lib/dashboard/reports-cache.ts`
 - `src/app/dashboard/registrations/[id]/page.tsx`
 - `src/app/dashboard/audit/page.tsx`
+- `src/app/dashboard/backups/page.tsx`, `src/components/backups/daily-backup-status.tsx`, `src/lib/backups/*`

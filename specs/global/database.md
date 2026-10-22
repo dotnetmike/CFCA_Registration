@@ -2,8 +2,8 @@
 id: global.database
 title: Database and migrations
 status: active
-synced_commit: 8ee5938
-synced_at: 2026-09-06
+synced_commit: working-tree
+synced_at: 2026-10-19
 owners: [team]
 files:
   - supabase/migrations/
@@ -41,6 +41,9 @@ Postgres via Supabase; schema changes only through numbered SQL migrations.
   - `017_registration_open_dates_and_early_bird_limits.sql` — registration opening/closing dates and configurable early bird capacity limits
   - `020_souvenir_preorder_toggle.sql` — `souvenir_preorder_enabled` runtime setting (default `false`)
   - `021_bank_transfer_settings.sql` — `bank_account_name`, `bank_bsb`, `bank_account_number` runtime settings (replace `NEXT_PUBLIC_BANK_*` env)
+  - `025_payment_reconciliation.sql` — `reconciliation_runs`, `stripe_balance_transactions`, `bank_statement_lines`, `reconciliation_events`, `payments.reconciliation_bank_line_id` (`features.payment-reconciliation`)
+  - `026_stripe_bank_settlement.sql` — `stripe_balance_transactions.payout_id`, `bank_line_id` (FK → `bank_statement_lines`, `ON DELETE SET NULL`), `bank_received_date`; `reconciliation_runs.bank_confirmed` (`features.payment-reconciliation`)
+  - `027_registration_backups.sql` — `backups:manage` permission (admin group), private storage bucket `registration-backups`, `registration_backups` table (one row per Melbourne day) (`features.registration-backups`)
 
 ## Acceptance criteria
 

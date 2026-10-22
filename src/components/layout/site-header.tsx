@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent }
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useAuth } from "@/lib/auth/context"
+import { BACKUPS_PERMISSION } from "@/lib/backups/types"
 import { isManager } from "@/lib/auth/permissions-client"
 import { useBusyCursor } from "@/hooks/use-busy-cursor"
 import { Button } from "@/components/ui/button"
@@ -92,6 +93,11 @@ export const SiteHeader = () => {
           href: "/dashboard/audit",
           label: "Audit Log",
           show: user.permissions.includes("users:manage"),
+        },
+        {
+          href: "/dashboard/backups",
+          label: "Backups",
+          show: user.permissions.includes(BACKUPS_PERMISSION),
         },
       ]
     : []

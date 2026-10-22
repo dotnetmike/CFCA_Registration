@@ -36,7 +36,8 @@ CFCA_Registration/
 | User roles / groups | `src/app/dashboard/users/page.tsx`, `src/app/api/admin/users/route.ts`, `src/lib/auth/user-groups.ts` | `features.dashboard` |
 | Payment page | `src/app/payment/page.tsx` | `features.payment` |
 | Manual payment / notes | `src/app/api/registrations/[id]/payment`, `.../notes` | `features.dashboard` |
-| Reconcile | `src/app/api/payments/reconcile/route.ts` | `features.dashboard` |
+| Payment reconciliation (Stripe + CBA CSV) | `src/lib/reconciliation/*`, `src/components/reconciliation/*`, `src/app/dashboard/payments/reconcile/page.tsx`, `src/app/api/payments/reconcile/**`, `src/app/api/payments/reconciled-amounts/route.ts` | `features.payment-reconciliation` |
+| Daily registration backups | `src/lib/backups/*`, `src/components/backups/*`, `src/app/dashboard/backups/page.tsx`, `src/app/api/admin/registration-backups/**` | `features.registration-backups` |
 | Dashboard list/cache | `src/app/dashboard/page.tsx`, `src/lib/dashboard/*` | `features.dashboard` |
 | Users / audit / reports cache | `users-list-cache.ts`, `audit-list-cache.ts`, `reports-cache.ts`, `list-cache.ts` | `features.dashboard` / `features.audit` |
 | Detailed CSV export | `src/app/api/admin/reports/route.ts` | `features.dashboard` |
@@ -67,6 +68,12 @@ flowchart LR
     D2["/api/admin/audit-log"]
     D3["/api/admin/reports"]
     D4["/api/payments/reconcile"]
+    D5["/api/payments/reconcile/recheck"]
+    D6["/api/payments/reconcile/items"]
+    D10["/api/payments/reconciled-amounts"]
+    D7["/api/admin/registration-backups"]
+    D8["/api/admin/registration-backups/daily"]
+    D9["/api/admin/registration-backups/id/download"]
   end
 ```
 
@@ -77,7 +84,9 @@ flowchart LR
 | `lib/auth` | JWT, cookies, session, permissions, paths |
 | `lib/registrations` | Zod schema, DB mapping, tokens, compare, souvenirs |
 | `lib/pricing` | Conference fee calculation |
-| `lib/payments` | Bank PDF parse helpers |
+| `lib/payments` | Payment labels, Stripe config / ledger helpers |
+| `lib/reconciliation` | Stripe / CBA CSV parsers, matching rules, bank-line ledger, reconciliation service |
+| `lib/backups` | Daily registration backup: zip archive builder, ensure / list / download service |
 | `lib/audit` | Sanitize + write audit rows |
 | `lib/email` | Providers (`provider.ts`: Resend / Microsoft Graph) + HTML templates (`template.ts`) |
 | `lib/dashboard` | Client list cache |

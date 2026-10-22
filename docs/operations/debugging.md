@@ -31,7 +31,7 @@ Ask: Is it **UI state**, **auth/proxy**, **API validation**, **DB data**, or **e
 | Email already used | DB uniqueness | `009_unique_registration_email.sql`; check-email API |
 | `Invalid API key` on POST `/api/registrations` (check-email may still look fine) | Env / service role | Production `SUPABASE_SERVICE_ROLE_KEY` must be Dashboard **secret** (`sb_secret_…`) or legacy `service_role` JWT — not publishable/anon. Restart after changing. |
 | Wrong amount due | Pricing + souvenirs | `pricing/calculate.ts`, `souvenirs.ts`, `amount_due` column |
-| Payment not matched | Reconcile parse | Unique Code in PDF text; amount ≥ due; `bank_transactions` |
+| Payment not matched | Reconciliation | Reason column on `/dashboard/payments/reconcile`; Unique Code / registration no in the CBA description; transaction dated before registration; `bank_statement_lines` / `stripe_balance_transactions` status |
 | Dashboard empty / stale | Cache / permissions | Refresh button; group membership; GET `/api/registrations` status |
 | Edit saves but no audit | No-op guard | `compare.ts`; “No changes to save” |
 | Emails missing | Email provider / env | `EMAIL_PROVIDER`; Resend: `RESEND_API_KEY` + `EMAIL_FROM`; Office 365 Graph: `OFFICE365_TENANT_ID` + `OFFICE365_CLIENT_ID` + `OFFICE365_CLIENT_SECRET` + `OFFICE365_USERNAME`; server logs — see [email.md](./email.md) |
@@ -59,9 +59,11 @@ Sequence reference: [flows/registration.md](../flows/registration.md).
 ## Payment / reconcile debugging
 
 1. Confirm Unique Code on registration (`participant_reference`).
-2. Open reconcile result: matched vs unmatched transactions.
-3. Check `payments.source` (`manual` vs `bank_reconcile`) and attribution columns.
-4. Balance due UI: `max(0, amount_due - amount_paid)` via `balanceDue()` in `src/lib/payments/labels.ts`.
+2. Open `/dashboard/payments/reconcile`: filter Unmatched, read the reason, open **History** for the row (all events), check **Run history** for failed runs.
+3. Check `payments.source` (`manual` vs `bank_reconcile` vs `stripe`), `payments.reconciliation_bank_line_id` and attribution columns.
+4. Stripe payout not found in bank → **Stripe payouts** tab: difference ≠ $0.00 means rows missing from the Stripe uploads; "Not in bank statement yet" means the CBA export does not cover the payout date.
+5. STRIPE bank line shows **Awaiting Stripe export** → upload the Stripe balance history covering that date (at least a week before it); the line and its Stripe rows are matched automatically. If Stripe rows say "Paid out, awaiting bank statement" after both uploads, compare `stripe_balance_transactions.payout_id` with `bank_statement_lines.matched_stripe_payout_id`.
+5. Balance due UI: `max(0, amount_due - amount_paid)` via `balanceDue()` in `src/lib/payments/labels.ts`.
 
 Sequence reference: [flows/payment.md](../flows/payment.md).
 

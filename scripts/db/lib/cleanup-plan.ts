@@ -14,14 +14,19 @@ const isAdminUser = (userIdColumn: string) =>
 
 /** Go-live cleanup: deleted in this order (children before parents). `t` is the row alias. */
 export const CLEANUP_STEPS: { table: string; where: string; description: string }[] = [
-  { table: "bank_transactions", where: "true", description: "all bank statement lines" },
+  { table: "registration_backups", where: "true", description: "all daily registration backup records" },
+  { table: "reconciliation_events", where: "true", description: "all reconciliation activity" },
+  { table: "stripe_balance_transactions", where: "true", description: "all imported Stripe transactions" },
+  { table: "bank_transactions", where: "true", description: "all legacy PDF bank statement lines" },
   { table: "payments", where: "true", description: "all payments" },
+  { table: "bank_statement_lines", where: "true", description: "all imported CBA statement lines" },
   { table: "registration_admin_notes", where: "true", description: "all admin notes" },
   { table: "registration_attendees", where: "true", description: "all additional attendees" },
   { table: "email_log", where: "true", description: "all email log entries" },
   { table: "audit_log", where: "true", description: "all audit log entries" },
   { table: "registrations", where: "true", description: "all registrations" },
   { table: "bank_statements", where: "true", description: "all uploaded bank statements" },
+  { table: "reconciliation_runs", where: "true", description: "all reconciliation run history" },
   { table: "password_reset_tokens", where: "true", description: "all password reset tokens" },
   { table: "refresh_tokens", where: "true", description: "all login sessions (admins sign in again)" },
   {
@@ -47,7 +52,7 @@ const VOLATILE_TABLES = new Set(["refresh_tokens", "password_reset_tokens"])
 
 export const SEQUENCE_RESETS = [{ name: "registration_no_seq", restartWith: 1 }]
 
-export const STORAGE_BUCKETS_TO_EMPTY = ["bank-statements"]
+export const STORAGE_BUCKETS_TO_EMPTY = ["bank-statements", "registration-backups"]
 
 /**
  * One transaction: lock the affected tables (concurrent writes wait), abort unless the rows to delete

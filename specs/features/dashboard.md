@@ -3,7 +3,7 @@ id: features.dashboard
 title: Manager dashboard
 status: active
 synced_commit: working-tree
-synced_at: 2026-09-09
+synced_at: 2026-10-22
 owners: [team]
 files:
   - src/app/dashboard/page.tsx
@@ -13,10 +13,13 @@ files:
   - src/lib/dashboard/users-list-cache.ts
   - src/lib/dashboard/audit-list-cache.ts
   - src/lib/dashboard/reports-cache.ts
+  - src/lib/dashboard/invalidate-registration-caches.ts
+  - src/lib/dashboard/reconciled-amounts-cache.ts
+  - src/app/api/payments/reconciled-amounts/route.ts
+  - src/lib/reconciliation/reconciled-amounts.ts
   - src/app/dashboard/users/page.tsx
   - src/app/dashboard/settings/page.tsx
   - src/app/dashboard/reports/page.tsx
-  - src/app/dashboard/payments/reconcile/page.tsx
   - src/app/dashboard/registrations/[id]/page.tsx
   - src/app/dashboard/audit/page.tsx
   - src/app/api/admin/users/route.ts
@@ -27,7 +30,6 @@ files:
   - src/lib/dashboard/registration-list-filters.ts
   - src/lib/dashboard/download-csv.ts
   - src/app/api/admin/audit-log/route.ts
-  - src/app/api/payments/reconcile/route.ts
   - src/app/api/registrations/[id]/payment/route.ts
   - src/app/api/registrations/[id]/notes/route.ts
   - src/components/dashboard/stat-card.tsx
@@ -49,16 +51,22 @@ Staff tools: list registrations, users, reports, payment reconcile.
 - **Dashboard submenu** (`DashboardSubnav`) appears on all `/dashboard/**` staff pages for consistent navigation:
   - Registrations (`/dashboard`)
   - Reports (`/dashboard/reports`)
-  - Payment Reconcile (`/dashboard/payments/reconcile`) when `payments:reconcile`
+  - Payment Reconcile (`/dashboard/payments/reconcile`) when `payments:reconcile` — behavior in `features.payment-reconciliation`
   - Users (`/dashboard/users`) when `users:manage`
   - Registration Settings (`/dashboard/settings`) when `users:manage`
   - Audit Log (`/dashboard/audit`) when `users:manage`
+  - Backups (`/dashboard/backups`) when `backups:manage` (admins) — behavior in `features.registration-backups`
+- Opening the Registrations list as an admin (`backups:manage`) triggers the daily automatic backup check and shows its status line (`features.registration-backups`).
 - Active item is highlighted from the current path.
 - Site header also exposes a **Dashboard** dropdown submenu (managers) with the same permission-gated links.
 - Registration list searchable; detail at `/dashboard/registrations/[id]`.
+- **KPI strip** (for the current filtered set): **Reconciled in bank**, Paid, Collected, Balance due.
+  - **Reconciled in bank** = money confirmed in the CBA account by payment reconciliation (`features.payment-reconciliation`): bank transfers applied from the CBA statement (reversals deducted) **plus** the **net** of matched Stripe payments minus refunds whose payout has been received in the bank. Hint shows the split: bank transfers, Stripe net, and Stripe fees.
+  - It is lower than **Collected** because Stripe fees are deducted before payout, and because payments not yet reconciled (Stripe payouts not yet in a bank statement, manual payments) are excluded.
+  - Loaded from `GET /api/payments/reconciled-amounts` (`registrations:read_all`; per-registration `{ bank, stripeNet, stripeFees }`) with its own client cache, refreshed by **Refresh** and cleared with the other registration caches.
 - **Filters** on the list: payment status, accommodation required, transpo required, state, **souvenir pre-order** (combinable with search). Filters apply to the **full** loaded set, then results are paginated.
 - **Paging**: default **100** rows per page; prev/next and page indicator (Registrations, Users, Audit).
-- **Client cache**: list/summary pages use in-browser caches (memory + sessionStorage when small; TTL + max row cap) to avoid repeat fetches when navigating back; **Refresh** forces a re-fetch and replaces the cache.
+- **Client cache**: list/summary pages use in-browser caches (memory + sessionStorage when small; TTL + max row cap) to avoid repeat fetches when navigating back; **Refresh** forces a re-fetch and replaces the cache. Any successful change to registration or payment data from the browser (registration detail **Save** / payment update, reconciliation upload / **Re-check unmatched** / Ignore / Override) clears the Registrations, Reconciled in bank and Reports caches, so the next visit shows the new payment status immediately. Caches are per browser tab: other tabs or other admins see changes after their 5-minute TTL or **Refresh**.
 - Registration list columns include: Reg No, Name, State, Payment, Amount, Submitted, plus:
   - **Actions** column with explicit **View** and **Edit** buttons (Edit opens detail in edit mode when permitted)
   - **Export CSV** exports **all rows matching current filters** (not only the current page), using the same detailed column set as Reports
@@ -118,7 +126,7 @@ Staff tools: list registrations, users, reports, payment reconcile.
 - Show Payment status badge, Registration fee, Amount paid, Balance due (canonical wording in `features.payment`). Status filter, list badges, admin status selector, and reports chart use the friendly status labels (Unpaid / Part paid / Paid / Overpaid); stored values are unchanged.
 - Admins with `payments:reconcile` or `registrations:write_all` can update **payment status** and **amount paid**.
 - Manual updates set `payment_last_updated_source = manual`, `payment_last_updated_at`, `payment_last_updated_by`; show admin name + date/time.
-- Bank reconcile sets source `bank_reconcile` the same way.
+- Bank reconciliation (CBA CSV, see `features.payment-reconciliation`) sets source `bank_reconcile` the same way and writes a `payments` row linked to the bank line.
 - Manual payment updates write `payments` row (`source: manual`) and audit `payment.manual_update`.
 
 ### Admin notes
@@ -141,6 +149,7 @@ Staff tools: list registrations, users, reports, payment reconcile.
 - [ ] Reports summary uses client cache + Refresh, with KPI cards and charts (payment status, by state, composition)
 - [ ] Detailed CSV exports all non-secret registration attributes and attendees JSON; new columns included automatically
 - [ ] Registrations list shows KPI strip for the current filtered set
+- [ ] "Reconciled in bank" card shows bank transfers + Stripe net (after fees) received in the bank for the filtered registrations, with the fee breakdown
 - [ ] Filter for registrants who pre-ordered souvenirs
 - [ ] Admin can update user roles/groups from Users page
 - [ ] Role update is audited and revokes target user sessions
