@@ -3,7 +3,7 @@ id: features.registration
 title: Registration form
 status: active
 synced_commit: working-tree
-synced_at: 2026-10-19
+synced_at: 2026-10-22
 owners: [team]
 files:
   - src/app/page.tsx
@@ -131,7 +131,8 @@ Single continuous conference registration page. Guests complete without login; l
 
 - Early bird window and attendee pricing are loaded from runtime registration settings (DB-backed), not hardcoded constants.
 - Form pricing preview and server-side amount calculations use the same runtime settings.
-- The early-bird payment due date, payment reminder dates, and registration-updates recipient are runtime settings. The daily payment cron changes unpaid/part-paid early-bird registrations to regular pricing after the deadline, sends reminders on configured dates, and BCCs new/modified registration emails to the configured address.
+- The early-bird payment due date, payment reminder dates, and email copy recipient (`notification_recipient_email`) are runtime settings. The daily payment cron changes unpaid/part-paid early-bird registrations to regular pricing after the deadline and sends reminders on configured dates.
+- When the email copy recipient is set, **every** email sent to a registrant (registration submitted / updated, transport/accommodation updated, payment received, payment reminder, admin resends) is **BCC'd** to it, so registrants never see the address. Password reset emails are never copied because they contain a sign-in link.
 
 ### API
 

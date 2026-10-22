@@ -651,10 +651,7 @@ export const sendRegistrationEmail = async (
   const html = buildHtml(type, registration, { viewUrl, portalUrl, payUrl, siteUrl })
   assertEmailIncludesLogo(html)
   const logoAttachment = getEmailLogoAttachment()
-  const registrationUpdate = type === "registration_submitted" || type === "registration_updated" || type === "accommodation_updated"
-  const notificationRecipient = registrationUpdate
-    ? (await getRegistrationRuntimeSettings()).notificationRecipientEmail
-    : ""
+  const { notificationRecipientEmail: notificationRecipient } = await getRegistrationRuntimeSettings()
 
   const result = await sendTransactionalEmail({
     to: registration.email,

@@ -3,7 +3,7 @@ id: global.email
 title: Branded transactional email
 status: active
 synced_commit: working-tree
-synced_at: 2026-09-07
+synced_at: 2026-10-22
 owners: [team]
 files:
   - src/lib/email/template.ts
@@ -30,6 +30,7 @@ All outbound transactional emails use a shared Couples for Christ Australia HTML
 - Absolute links (View registration, portal, password reset) use `getRequestSiteUrl(request)` from the incoming request `Host` / `X-Forwarded-Host` + `X-Forwarded-Proto`. They are **not** driven by `NEXT_PUBLIC_SITE_URL`.
 - Registration / payment emails (`send.ts`) and password reset (`password-reset.ts`) send `html` + `text` (Resend) or HTML with inline logo (Graph) and attach the logo.
 - `assertEmailIncludesLogo` runs before send and throws if the HTML omits the logo reference.
+- **Email copies**: every registrant email from `send.ts` is BCC'd to the Registration Settings email copy recipient (`notification_recipient_email`) when set. Password reset emails are never copied (they contain a sign-in link).
 - When the active provider’s credentials are missing, sends are logged to the console (dev) and still recorded in `email_log` when applicable.
 - HTML uses table layout + inline styles; user-controlled strings are escaped.
 
@@ -44,6 +45,7 @@ All outbound transactional emails use a shared Couples for Christ Australia HTML
 - [ ] `EMAIL_PROVIDER=resend` (default) uses Resend; `EMAIL_PROVIDER=office365` uses Microsoft Graph OAuth
 - [ ] Switching providers does not change email content/templates
 - [ ] Office 365 path does not require disabling Security Defaults or SMTP app passwords
+- [ ] Every registrant email (registration, payment received, reminders, resends) is BCC'd to the configured copy recipient; password reset emails are not
 
 ## Related specs
 

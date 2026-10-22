@@ -448,11 +448,15 @@ const RegistrationSettingsPage = () => {
 
           <Card>
             <CardHeader>
-              <CardTitle>Registration Updates</CardTitle>
+              <CardTitle>Email Copies</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="notificationRecipientEmail">Registration updates email</Label>
+                <Label htmlFor="notificationRecipientEmail">Copy all registrant emails to (BCC)</Label>
+                <p id="notificationRecipientEmail-hint" className="text-sm text-ink-soft">
+                  Receives a hidden copy of every email sent to registrants: registration confirmations and updates,
+                  payment received, payment reminders and resends. Password reset emails are never copied.
+                </p>
                 <Input
                   id="notificationRecipientEmail"
                   type="email"
@@ -462,7 +466,8 @@ const RegistrationSettingsPage = () => {
                     notificationRecipientEmail: e.target.value,
                   }))}
                   placeholder="registrations@example.org"
-                  aria-label="Registration updates email"
+                  aria-label="Copy all registrant emails to (BCC)"
+                  aria-describedby="notificationRecipientEmail-hint"
                 />
               </div>
             </CardContent>

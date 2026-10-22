@@ -89,6 +89,7 @@ Staff tools: list registrations, users, reports, payment reconcile.
   - `registration_open` force toggle (on/off override)
   - Opening date (`registration_start_date`) and closing date (`registration_end_date`) to automatically manage registration availability
   - Early bird start/end dates and configurable delegate capacity caps (default: 200 interstate, 250 Victoria)
+  - **Email Copies**: "Copy all registrant emails to (BCC)" address (`notification_recipient_email`); behavior in `global.email`
   - Attendee pricing (adult early bird, adult regular, child 12+, child 2–12)
   - **Registration payment workflow** `registration_workflow`: `v1` (classic, default) or `v2` (online payment capability). Change is audited.
   - **Bank Transfer Details**: CFCA account name, BSB (6 digits, saved as `123-456`), account number (4–10 digits). Shown on payment pages; warning shown in Settings while incomplete. Change is audited (`settings.bank_details_changed`).
