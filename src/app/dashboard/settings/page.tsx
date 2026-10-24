@@ -479,7 +479,7 @@ const RegistrationSettingsPage = () => {
             </CardHeader>
             <CardContent className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="adultEarlyBird">Adult early bird</Label>
+                <Label htmlFor="adultEarlyBird">Adult 18+ early bird</Label>
                 <Input
                   id="adultEarlyBird"
                   type="number"
@@ -491,7 +491,7 @@ const RegistrationSettingsPage = () => {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="adultRegular">Adult regular</Label>
+                <Label htmlFor="adultRegular">Adult 18+ regular</Label>
                 <Input
                   id="adultRegular"
                   type="number"
@@ -503,7 +503,7 @@ const RegistrationSettingsPage = () => {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="age12Plus">Child aged 12+</Label>
+                <Label htmlFor="age12Plus">Child aged 12 to 17</Label>
                 <Input
                   id="age12Plus"
                   type="number"
@@ -511,11 +511,11 @@ const RegistrationSettingsPage = () => {
                   step="0.01"
                   value={settings.pricing.age12Plus}
                   onChange={(e) => updatePricing("age12Plus", e.target.value)}
-                  aria-label="Child 12 plus price"
+                  aria-label="Child 12 to 17 price"
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="age2To12">Child aged 2 to 12</Label>
+                <Label htmlFor="age2To12">Child aged 2 to 11</Label>
                 <Input
                   id="age2To12"
                   type="number"
@@ -523,7 +523,7 @@ const RegistrationSettingsPage = () => {
                   step="0.01"
                   value={settings.pricing.age2To12}
                   onChange={(e) => updatePricing("age2To12", e.target.value)}
-                  aria-label="Child 2 to 12 price"
+                  aria-label="Child 2 to 11 price"
                 />
               </div>
             </CardContent>

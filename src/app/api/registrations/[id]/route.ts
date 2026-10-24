@@ -18,6 +18,8 @@ import {
 import { assignParticipantReferenceIfNeeded } from "@/lib/registrations/participant-reference"
 import { createViewAndSignupTokens } from "@/lib/registrations/view-token"
 import { sendRegistrationEmail } from "@/lib/email/send"
+import { derivePaymentStatus } from "@/lib/payments/stripe-ledger"
+import { toCents } from "@/lib/reconciliation/matching"
 import { writeAuditLog, pickChangedFields } from "@/lib/audit/log"
 import { pickRegistrationAuditSnapshot, REGISTRATION_AUDIT_FIELDS } from "@/lib/audit/registration"
 import { normalizeEmail } from "@/lib/utils"
@@ -254,6 +256,7 @@ export const PUT = async (request: NextRequest, { params }: RouteParams) => {
     earlyBirdSlot,
     runtime.pricing
   )
+  const amountDueChanged = toCents(amountDue) !== toCents(existing.amount_due)
 
   let registrationNo = existing.registration_no as string
   if (isSubmitting && String(registrationNo).startsWith("DRAFT")) {
@@ -279,6 +282,9 @@ export const PUT = async (request: NextRequest, { params }: RouteParams) => {
     .from("registrations")
     .update({
       ...dbUpdate,
+      ...(amountDueChanged
+        ? { payment_status: derivePaymentStatus(amountDue, Number(existing.amount_paid ?? 0)) }
+        : {}),
       ...(participantReference ? { participant_reference: participantReference } : {}),
     })
     .eq("id", id)

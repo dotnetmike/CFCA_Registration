@@ -25,6 +25,8 @@ files:
   - src/lib/registrations/rate-limit.ts
   - src/lib/registrations/compare.ts
   - src/lib/pricing/calculate.ts
+  - src/lib/registrations/reprice.ts
+  - scripts/db/reprice-registrations.ts
   - src/lib/registration-settings.ts
   - src/lib/site-url.ts
   - src/app/api/registrations/route.ts
@@ -131,6 +133,12 @@ Single continuous conference registration page. Guests complete without login; l
 
 - Early bird window and attendee pricing are loaded from runtime registration settings (DB-backed), not hardcoded constants.
 - Form pricing preview and server-side amount calculations use the same runtime settings.
+- **Price per person** (`src/lib/pricing/calculate.ts`, defaults in brackets):
+  - Registrant, spouse, and any additional attendee aged **18+** → adult rate: **adult early bird** ($220) when the registration holds an early-bird slot, otherwise **adult regular** ($240).
+  - Additional attendee aged **12–17** → $175. Aged **2–11** → $100. Aged **0–1** → free.
+  - The early-bird slot is claimed per registration when it is submitted inside the early-bird window (subject to the state caps); every adult on that registration then gets the early-bird rate, including adults added later.
+- **Saving a change that alters the registration fee** (e.g. adding attendees) recalculates **Payment status** from the new fee and the existing amount paid (a Paid registration with a new balance becomes Part paid). Saves that leave the fee unchanged keep the current status.
+- `npm run db:reprice-registrations` re-prices saved registrations with the current rules (dry run by default; `--apply` updates fee + payment status, audited as `registration.reprice`, no emails, amount paid unchanged).
 - The early-bird payment due date, payment reminder dates, and email copy recipient (`notification_recipient_email`) are runtime settings. The daily payment cron changes unpaid/part-paid early-bird registrations to regular pricing after the deadline and sends reminders on configured dates.
 - When the email copy recipient is set, **every** email sent to a registrant (registration submitted / updated, transport/accommodation updated, payment received, payment reminder, admin resends) is **BCC'd** to it, so registrants never see the address. Password reset emails are never copied because they contain a sign-in link.
 
@@ -166,6 +174,8 @@ Single continuous conference registration page. Guests complete without login; l
 - [ ] Update notification emails include full registration details and contacts when applicable
 - [ ] Update emails include a link that leads to My Registration after login
 - [ ] Early bird window and attendee pricing can be changed without redeploy
+- [ ] Additional attendees aged 18+ pay the adult rate (early bird when the registration holds an early-bird slot); 12–17, 2–11 and 0–1 use their bands
+- [ ] Adding attendees to a paid registration recalculates the fee and moves the payment status to Part paid
 - [ ] Early-bird payment deadline, payment reminders, and registration update recipient can be changed without redeploy
 - [ ] Closed registration blocks public/participant registration writes while allowing manager/admin role updates
 - [ ] Field help tooltips are available on hover/focus/tap for key registration questions

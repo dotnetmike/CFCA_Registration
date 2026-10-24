@@ -1,6 +1,6 @@
 {
   "name": "cfca-registration",
-  "version": "0.33.1",
+  "version": "0.33.2",
   "private": true,
   "scripts": {
     "env:select": "tsx scripts/env/select-env.ts",
@@ -11,6 +11,7 @@
     "db:backup:verify": "tsx scripts/env/select-env.ts && tsx scripts/db/verify-backup.ts",
     "db:go-live-cleanup": "tsx scripts/env/select-env.ts && tsx scripts/db/go-live-cleanup.ts",
     "db:restore": "tsx scripts/env/select-env.ts && tsx scripts/db/restore-backup.ts",
+    "db:reprice-registrations": "tsx scripts/env/select-env.ts && tsx scripts/db/reprice-registrations.ts",
     "dev": "tsx scripts/env/select-env.ts && tsx scripts/db/deploy.ts && next dev --webpack",
     "dev:dev": "tsx scripts/env/select-env.ts --env=dev && tsx scripts/db/deploy.ts && next dev --webpack",
     "dev:uat": "tsx scripts/env/select-env.ts --env=uat && tsx scripts/db/deploy.ts && next dev --webpack",

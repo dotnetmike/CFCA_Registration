@@ -26,13 +26,17 @@ export const computeAmountDue = (
   calculateTotal({ attendees: buildAttendeesForPricing(data), earlyBirdSlot }, pricingConfig) +
   souvenirTotalAmount(data.souvenir_orders)
 
-export const computeRegularAmountDue = (
-  registration: {
-    spouse_attending?: boolean | null
-    souvenir_orders?: unknown
-    attendees?: { age: number }[] | null
-    registration_attendees?: { age: number }[] | null
-  },
+export type StoredRegistrationForPricing = {
+  spouse_attending?: boolean | null
+  souvenir_orders?: unknown
+  attendees?: { age: number }[] | null
+  registration_attendees?: { age: number }[] | null
+}
+
+/** Amount due for a saved registration (DB row + attendee rows) at the given early-bird slot. */
+export const computeStoredAmountDue = (
+  registration: StoredRegistrationForPricing,
+  earlyBirdSlot: "interstate" | "melbourne" | "none",
   pricingConfig: PricingConfig = DEFAULT_PRICING_CONFIG
 ) => {
   const attendees: AttendeeInput[] = [{ age: 18, isPrimary: true }]
@@ -40,9 +44,14 @@ export const computeRegularAmountDue = (
   for (const attendee of registration.registration_attendees ?? registration.attendees ?? []) {
     attendees.push({ age: attendee.age })
   }
-  return calculateTotal({ attendees, earlyBirdSlot: "none" }, pricingConfig) +
+  return calculateTotal({ attendees, earlyBirdSlot }, pricingConfig) +
     souvenirTotalAmount(registration.souvenir_orders)
 }
+
+export const computeRegularAmountDue = (
+  registration: StoredRegistrationForPricing,
+  pricingConfig: PricingConfig = DEFAULT_PRICING_CONFIG
+) => computeStoredAmountDue(registration, "none", pricingConfig)
 
 export const claimEarlyBirdSlot = async (
   state: string,

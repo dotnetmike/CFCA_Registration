@@ -11,6 +11,8 @@ Tooling in [`scripts/db/`](../../scripts/db/) talks to Supabase through the Mana
 | `npm run db:go-live-cleanup -- --backup "<folder>"` | Dry run: shows the plan and rehearses the delete transaction (rolled back) | No |
 | `npm run db:go-live-cleanup -- --backup "<folder>" --execute --confirm-project <ref>` | Go-live cleanup | **Yes** |
 | `npm run db:restore -- --backup "<folder>" --confirm-project <ref>` | Restore a backup into the same project | **Yes** (inserts only) |
+| `npm run db:reprice-registrations` | Dry run: lists registrations whose stored fee differs from the current pricing rules (fee, balance, status before → after) | No |
+| `npm run db:reprice-registrations -- --apply` | Updates `amount_due` + `payment_status` of those registrations, one `registration.reprice` audit row each; amount paid unchanged, no emails (`features.registration`) | **Yes** |
 
 ## Backup folder
 
