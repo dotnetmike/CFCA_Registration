@@ -21,6 +21,7 @@ import { Button } from "@/components/ui/button"
 import { StatCard } from "@/components/dashboard/stat-card"
 import { WelcomePanel } from "@/components/dashboard/welcome-panel"
 import { DashboardPanel } from "@/components/dashboard/dashboard-panel"
+import { EarlyBirdCapacityPanel } from "@/components/dashboard/early-bird-capacity-panel"
 import { formatCurrency } from "@/lib/pricing/calculate"
 import { PAYMENT_LABELS, PAYMENT_STATUS_LABELS } from "@/lib/payments/labels"
 import { formatCacheAge } from "@/lib/dashboard/list-cache"
@@ -28,6 +29,7 @@ import {
   emptyPaymentStatusCounts,
   emptyReportsTotals,
   reportsCache,
+  type EarlyBirdUsage,
   type ReportsPaymentStatusCounts,
   type ReportsSummary,
   type ReportsTotals,
@@ -79,6 +81,7 @@ const ReportsPage = () => {
   const [totals, setTotals] = useState<ReportsTotals>(emptyReportsTotals())
   const [paymentStatusCounts, setPaymentStatusCounts] =
     useState<ReportsPaymentStatusCounts>(emptyPaymentStatusCounts())
+  const [earlyBird, setEarlyBird] = useState<EarlyBirdUsage | null>(null)
   const [fetchedAt, setFetchedAt] = useState<number | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isRefreshing, setIsRefreshing] = useState(false)
@@ -91,21 +94,15 @@ const ReportsPage = () => {
     async (forceRefresh: boolean) => {
       if (!forceRefresh) {
         const cached = reportsCache.get()
-        if (cached?.isFresh) {
-          setSummary(cached.value.summary)
-          setTotals(cached.value.totals)
-          setPaymentStatusCounts(cached.value.paymentStatusCounts)
-          setFetchedAt(cached.fetchedAt)
-          setIsLoading(false)
-          return
-        }
         if (cached) {
           setSummary(cached.value.summary)
           setTotals(cached.value.totals)
           setPaymentStatusCounts(cached.value.paymentStatusCounts)
+          setEarlyBird(cached.value.earlyBird)
           setFetchedAt(cached.fetchedAt)
           setIsLoading(false)
         }
+        if (cached?.isFresh) return
       } else {
         reportsCache.clear()
       }
@@ -125,15 +122,18 @@ const ReportsPage = () => {
         const nextTotals = (data.totals ?? emptyReportsTotals()) as ReportsTotals
         const nextPayment = (data.paymentStatusCounts ??
           emptyPaymentStatusCounts()) as ReportsPaymentStatusCounts
+        const nextEarlyBird = (data.earlyBird ?? null) as EarlyBirdUsage | null
         const entry = reportsCache.set({
           summary: nextSummary,
           total: nextTotals.registrations,
           totals: nextTotals,
           paymentStatusCounts: nextPayment,
+          earlyBird: nextEarlyBird,
         })
         setSummary(nextSummary)
         setTotals(nextTotals)
         setPaymentStatusCounts(nextPayment)
+        setEarlyBird(nextEarlyBird)
         setFetchedAt(entry.fetchedAt)
       } catch {
         setLoadError("Could not load reports.")
@@ -489,6 +489,8 @@ const ReportsPage = () => {
           </tbody>
         </table>
       </DashboardPanel>
+
+      {earlyBird ? <EarlyBirdCapacityPanel earlyBird={earlyBird} /> : null}
 
       <DashboardPanel
         title="Detailed export"

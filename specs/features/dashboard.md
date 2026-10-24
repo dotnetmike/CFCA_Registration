@@ -14,6 +14,7 @@ files:
   - src/lib/dashboard/audit-list-cache.ts
   - src/lib/dashboard/reports-cache.ts
   - src/lib/dashboard/reports-summary.ts
+  - src/components/dashboard/early-bird-capacity-panel.tsx
   - src/lib/registrations/people-count.ts
   - src/lib/dashboard/invalidate-registration-caches.ts
   - src/lib/dashboard/reconciled-amounts-cache.ts
@@ -107,6 +108,8 @@ Staff tools: list registrations, users, reports, payment reconcile.
   - **Welcome panel** with staff name + quick links
   - **Charts**: payment-status distribution, registrations by state, people composition (registrations / spouses / additional adults / kids)
   - **Summary-by-state table**: registrations, spouses, additional adults, kids, total people, with share progress bars
+  - **Early bird capacity** panel: window dates (effective end = earlier of early-bird end and early-bird payment due date) and Open / Closed; one card per capacity group — **Victoria** (VIC cap) and **Interstate** (one cap shared by all other states) — showing used / capacity, % used, remaining (highlighted when ≤ 10% left); and a per-state table (early bird registrations, capacity group, group capacity, group remaining) listing every state.
+  - Usage mirrors `claim_early_bird_slot`: registrations with `is_early_bird = true`, counted per registration (not per person). Caps and dates come from Registration Settings. Registrations moved to regular pricing after the early-bird deadline release their slot.
 - **People counts always include every additional attendee** (`src/lib/registrations/people-count.ts`): one registrant per registration + spouse (when attending) + additional adults (attendees aged 18+) + kids (attendees under 18) = total people. There is no separate "registrants" column because it always equals registrations.
   - **Export Detailed CSV** panel (always fetches a fresh full export from the API, not from the summary cache)
 - CSV includes **all registrant attributes** currently on the registration row (dynamic column union so newly added columns appear automatically), plus flattened spouse/attendee helpers as needed:

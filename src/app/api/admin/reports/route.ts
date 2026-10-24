@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from "next/server"
 import { createAdminClient } from "@/lib/supabase/admin"
 import { requireAuth, requirePermission, jsonError } from "@/lib/auth/api"
 import { buildDetailedRegistrationsCsv } from "@/lib/dashboard/reports-csv"
-import { buildReportsSummary } from "@/lib/dashboard/reports-summary"
+import { buildEarlyBirdUsage, buildReportsSummary } from "@/lib/dashboard/reports-summary"
+import { getRegistrationRuntimeSettings } from "@/lib/registration-settings"
 
 export const GET = async (request: NextRequest) => {
   const auth = await requireAuth(request)
@@ -33,11 +34,14 @@ export const GET = async (request: NextRequest) => {
   }
 
   const { summary, totals, paymentStatusCounts } = buildReportsSummary(registrations ?? [])
+  const { pricing } = await getRegistrationRuntimeSettings()
+  const earlyBird = buildEarlyBirdUsage(registrations ?? [], pricing)
 
   return NextResponse.json({
     registrations,
     summary,
     totals,
     paymentStatusCounts,
+    earlyBird,
   })
 }

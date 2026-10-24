@@ -1,7 +1,33 @@
 import assert from "node:assert/strict"
 import test from "node:test"
 
-import { buildReportsSummary } from "./reports-summary"
+import { DEFAULT_PRICING_CONFIG } from "@/lib/pricing/calculate"
+import { buildEarlyBirdUsage, buildReportsSummary } from "./reports-summary"
+
+test("early bird usage counts registrations per state against the VIC and interstate caps", () => {
+  const usage = buildEarlyBirdUsage(
+    [
+      { state: "VIC", is_early_bird: true },
+      { state: "VIC", is_early_bird: true },
+      { state: "VIC", is_early_bird: false },
+      { state: "NSW", is_early_bird: true },
+      { state: "WA", is_early_bird: true },
+      { state: null, is_early_bird: true },
+    ],
+    { ...DEFAULT_PRICING_CONFIG, earlyBirdVicLimit: 2, earlyBirdInterstateLimit: 5, earlyBirdEnd: "2027-03-31" },
+    new Date("2026-10-24T00:00:00Z")
+  )
+
+  assert.deepEqual(usage.pools, [
+    { id: "melbourne", label: "Victoria", capacity: 2, used: 2, remaining: 0 },
+    { id: "interstate", label: "Interstate (all other states)", capacity: 5, used: 2, remaining: 3 },
+  ])
+  assert.equal(usage.states.find((row) => row.state === "NSW")?.used, 1)
+  assert.equal(usage.states.find((row) => row.state === "QLD")?.used, 0)
+  assert.equal(usage.states.length, 8)
+  assert.equal(usage.windowEnd, "2027-02-28")
+  assert.equal(usage.isOpen, true)
+})
 
 test("counts registrants, spouses, additional adults and kids in every total", () => {
   const { summary, totals } = buildReportsSummary([

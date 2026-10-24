@@ -19,11 +19,38 @@ export type ReportsPaymentStatusCounts = {
   overpaid: number
 }
 
+export type EarlyBirdPoolId = "melbourne" | "interstate"
+
+/** Early-bird slots are counted per registration: VIC has its own cap, all other states share the interstate cap. */
+export type EarlyBirdPool = {
+  id: EarlyBirdPoolId
+  label: string
+  capacity: number
+  used: number
+  remaining: number
+}
+
+export type EarlyBirdStateRow = {
+  state: string
+  pool: EarlyBirdPoolId
+  used: number
+}
+
+export type EarlyBirdUsage = {
+  windowStart: string
+  /** Effective last day: the earlier of the early-bird end date and the early-bird payment due date. */
+  windowEnd: string
+  isOpen: boolean
+  pools: EarlyBirdPool[]
+  states: EarlyBirdStateRow[]
+}
+
 export type ReportsCacheValue = {
   summary: ReportsSummary
   total: number
   totals: ReportsTotals
   paymentStatusCounts: ReportsPaymentStatusCounts
+  earlyBird: EarlyBirdUsage | null
 }
 
 export const emptyReportsTotals = (): ReportsTotals => ({
@@ -42,5 +69,5 @@ export const emptyPaymentStatusCounts = (): ReportsPaymentStatusCounts => ({
 })
 
 export const reportsCache = createDashboardValueCache<ReportsCacheValue>({
-  storageKey: "cfca.dashboard.reports.v3",
+  storageKey: "cfca.dashboard.reports.v4",
 })
