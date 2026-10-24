@@ -103,11 +103,11 @@ Staff tools: list registrations, users, reports, payment reconcile.
 
 - Summary view uses **client cache** + **Refresh**.
 - Layout includes:
-  - **KPI cards**: registrations, total people (breakdown: registrants · spouses · additional adults · kids), collected (of total registration fees), balance due
+  - **KPI cards**: registrations, total people (breakdown: registrations · spouses · additional adults · kids), collected (of total registration fees), balance due
   - **Welcome panel** with staff name + quick links
-  - **Charts**: payment-status distribution, registrations by state, people composition (registrants / spouses / additional adults / kids)
-  - **Summary-by-state table**: registrations, registrants, spouses, additional adults, kids, total people, with share progress bars
-- **People counts always include every additional attendee** (`src/lib/registrations/people-count.ts`): registrant (1 per registration) + spouse (when attending) + additional adults (attendees aged 18+) + kids (attendees under 18) = total people.
+  - **Charts**: payment-status distribution, registrations by state, people composition (registrations / spouses / additional adults / kids)
+  - **Summary-by-state table**: registrations, spouses, additional adults, kids, total people, with share progress bars
+- **People counts always include every additional attendee** (`src/lib/registrations/people-count.ts`): one registrant per registration + spouse (when attending) + additional adults (attendees aged 18+) + kids (attendees under 18) = total people. There is no separate "registrants" column because it always equals registrations.
   - **Export Detailed CSV** panel (always fetches a fresh full export from the API, not from the summary cache)
 - CSV includes **all registrant attributes** currently on the registration row (dynamic column union so newly added columns appear automatically), plus flattened spouse/attendee helpers as needed:
   - Excludes secrets/tokens (`view_token_hash`, `signup_token_hash`, related token timestamps).

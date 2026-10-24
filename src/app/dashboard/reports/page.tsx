@@ -195,7 +195,7 @@ const ReportsPage = () => {
 
   const compositionData = useMemo(
     () => [
-      { name: "Registrants", value: totals.registrants, fill: "#0d47a1" },
+      { name: "Registrations", value: totals.registrations, fill: "#0d47a1" },
       { name: "Spouses", value: totals.spouses, fill: "#1565c0" },
       { name: "Additional adults", value: totals.additionalAdults, fill: "#1e88e5" },
       { name: "Kids", value: totals.kids, fill: "#42a5f5" },
@@ -285,7 +285,7 @@ const ReportsPage = () => {
         <StatCard
           label="Attendees"
           value={String(totals.people)}
-          hint={`${totals.registrants} registrants · ${totals.spouses} spouses · ${totals.additionalAdults} additional adults · ${totals.kids} kids`}
+          hint={`${totals.registrations} registrations · ${totals.spouses} spouses · ${totals.additionalAdults} additional adults · ${totals.kids} kids`}
           tone="info"
           icon={<IconPeople />}
           className="animate-rise-delay-1"
@@ -405,7 +405,7 @@ const ReportsPage = () => {
 
         <DashboardPanel
           title="People composition"
-          description="Registrants, spouses, additional adults (18+), and children under 18"
+          description="Registrations (one registrant each), spouses, additional adults (18+), and children under 18"
         >
           <div className="h-72">
             <ResponsiveContainer width="100%" height="100%">
@@ -441,7 +441,6 @@ const ReportsPage = () => {
             <tr>
               <th className="px-5 sm:px-6">State</th>
               <th>Registrations</th>
-              <th>Registrants</th>
               <th>Spouses</th>
               <th title="Additional attendees aged 18+">Additional adults</th>
               <th title="Additional attendees under 18">Kids</th>
@@ -452,7 +451,7 @@ const ReportsPage = () => {
           <tbody>
             {stateRows.length === 0 ? (
               <tr>
-                <td colSpan={8} className="px-6 py-8 text-center text-ink-soft">
+                <td colSpan={7} className="px-6 py-8 text-center text-ink-soft">
                   No registration data yet.
                 </td>
               </tr>
@@ -463,7 +462,6 @@ const ReportsPage = () => {
                   <tr key={row.state}>
                     <td className="px-5 font-semibold sm:px-6">{row.state}</td>
                     <td className="tabular-nums">{row.registrations}</td>
-                    <td className="tabular-nums">{row.registrants}</td>
                     <td className="tabular-nums">{row.spouses}</td>
                     <td className="tabular-nums">{row.additionalAdults}</td>
                     <td className="tabular-nums">{row.kids}</td>
