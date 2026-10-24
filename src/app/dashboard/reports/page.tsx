@@ -188,15 +188,16 @@ const ReportsPage = () => {
       stateRows.map((row) => ({
         state: row.state,
         registrations: row.registrations,
-        attendees: row.attendees + row.spouses + row.kids,
+        people: row.people,
       })),
     [stateRows]
   )
 
   const compositionData = useMemo(
     () => [
-      { name: "Primary", value: totals.attendees, fill: "#0d47a1" },
+      { name: "Registrants", value: totals.registrants, fill: "#0d47a1" },
       { name: "Spouses", value: totals.spouses, fill: "#1565c0" },
+      { name: "Additional adults", value: totals.additionalAdults, fill: "#1e88e5" },
       { name: "Kids", value: totals.kids, fill: "#42a5f5" },
     ],
     [totals]
@@ -277,14 +278,14 @@ const ReportsPage = () => {
         <StatCard
           label="Registrations"
           value={String(totals.registrations)}
-          hint={`${totals.attendees + totals.spouses + totals.kids} people in total`}
+          hint={`${totals.people} people in total`}
           tone="brand"
           icon={<IconUsers />}
         />
         <StatCard
           label="Attendees"
-          value={String(totals.attendees + totals.spouses + totals.kids)}
-          hint={`${totals.spouses} spouses · ${totals.kids} kids`}
+          value={String(totals.people)}
+          hint={`${totals.registrants} registrants · ${totals.spouses} spouses · ${totals.additionalAdults} additional adults · ${totals.kids} kids`}
           tone="info"
           icon={<IconPeople />}
           className="animate-rise-delay-1"
@@ -404,7 +405,7 @@ const ReportsPage = () => {
 
         <DashboardPanel
           title="People composition"
-          description="Primary registrants, spouses, and children under 18"
+          description="Registrants, spouses, additional adults (18+), and children under 18"
         >
           <div className="h-72">
             <ResponsiveContainer width="100%" height="100%">
@@ -431,7 +432,7 @@ const ReportsPage = () => {
       </div>
 
       <DashboardPanel
-        title={`Summary by state (${totals.registrations} registrations)`}
+        title={`Summary by state (${totals.registrations} registrations · ${totals.people} people)`}
         description="Share of total registrations shown as progress bars"
         bodyClassName="overflow-x-auto p-0 sm:p-0"
       >
@@ -440,16 +441,18 @@ const ReportsPage = () => {
             <tr>
               <th className="px-5 sm:px-6">State</th>
               <th>Registrations</th>
-              <th>Attendees</th>
+              <th>Registrants</th>
               <th>Spouses</th>
-              <th>Kids</th>
+              <th title="Additional attendees aged 18+">Additional adults</th>
+              <th title="Additional attendees under 18">Kids</th>
+              <th>Total people</th>
               <th className="min-w-[10rem] px-5 sm:px-6">Share</th>
             </tr>
           </thead>
           <tbody>
             {stateRows.length === 0 ? (
               <tr>
-                <td colSpan={6} className="px-6 py-8 text-center text-ink-soft">
+                <td colSpan={8} className="px-6 py-8 text-center text-ink-soft">
                   No registration data yet.
                 </td>
               </tr>
@@ -460,9 +463,11 @@ const ReportsPage = () => {
                   <tr key={row.state}>
                     <td className="px-5 font-semibold sm:px-6">{row.state}</td>
                     <td className="tabular-nums">{row.registrations}</td>
-                    <td className="tabular-nums">{row.attendees}</td>
+                    <td className="tabular-nums">{row.registrants}</td>
                     <td className="tabular-nums">{row.spouses}</td>
+                    <td className="tabular-nums">{row.additionalAdults}</td>
                     <td className="tabular-nums">{row.kids}</td>
+                    <td className="tabular-nums font-semibold">{row.people}</td>
                     <td className="px-5 sm:px-6">
                       <div className="flex items-center gap-3">
                         <div className="cfca-progress-track flex-1" aria-hidden="true">

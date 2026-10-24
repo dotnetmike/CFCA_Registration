@@ -1,4 +1,5 @@
 import { balanceDue } from "@/lib/payments/labels"
+import { countRegistrationPeople } from "@/lib/registrations/people-count"
 
 /** Never export token / secret columns even if present on the row. */
 const CSV_EXCLUDED_KEYS = new Set([
@@ -114,14 +115,17 @@ export const buildDetailedRegistrationsCsv = (
     "balance_due",
     "additional_attendees",
     "kids_count",
+    "additional_adults_count",
     "attendees_count",
+    "total_people",
   ]
 
   const rows = registrations.map((reg) => {
-    const attendees = (reg[NESTED_RELATION_KEY] as unknown[] | null) ?? []
-    const kidsCount = attendees.filter(
-      (a) => typeof a === "object" && a && Number((a as { age?: number }).age) < 18
-    ).length
+    const attendees = (reg[NESTED_RELATION_KEY] as { age?: number }[] | null) ?? []
+    const people = countRegistrationPeople({
+      spouse_attending: reg.spouse_attending as boolean | null,
+      registration_attendees: attendees,
+    })
 
     return [
       ...baseColumns.map((col) => {
@@ -132,8 +136,10 @@ export const buildDetailedRegistrationsCsv = (
       }),
       serializeCsvCell(balanceDue(reg.amount_due, reg.amount_paid).toFixed(2)),
       serializeCsvCell(formatAdditionalAttendees(attendees)),
-      String(kidsCount),
+      String(people.kids),
+      String(people.additionalAdults),
       String(attendees.length),
+      String(people.people),
     ]
   })
 

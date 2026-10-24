@@ -13,6 +13,8 @@ files:
   - src/lib/dashboard/users-list-cache.ts
   - src/lib/dashboard/audit-list-cache.ts
   - src/lib/dashboard/reports-cache.ts
+  - src/lib/dashboard/reports-summary.ts
+  - src/lib/registrations/people-count.ts
   - src/lib/dashboard/invalidate-registration-caches.ts
   - src/lib/dashboard/reconciled-amounts-cache.ts
   - src/app/api/payments/reconciled-amounts/route.ts
@@ -101,14 +103,16 @@ Staff tools: list registrations, users, reports, payment reconcile.
 
 - Summary view uses **client cache** + **Refresh**.
 - Layout includes:
-  - **KPI cards**: registrations, total people, collected (of total registration fees), balance due
+  - **KPI cards**: registrations, total people (breakdown: registrants · spouses · additional adults · kids), collected (of total registration fees), balance due
   - **Welcome panel** with staff name + quick links
-  - **Charts**: payment-status distribution, registrations by state, people composition (primary / spouses / kids)
-  - **Summary-by-state table** with share progress bars
+  - **Charts**: payment-status distribution, registrations by state, people composition (registrants / spouses / additional adults / kids)
+  - **Summary-by-state table**: registrations, registrants, spouses, additional adults, kids, total people, with share progress bars
+- **People counts always include every additional attendee** (`src/lib/registrations/people-count.ts`): registrant (1 per registration) + spouse (when attending) + additional adults (attendees aged 18+) + kids (attendees under 18) = total people.
   - **Export Detailed CSV** panel (always fetches a fresh full export from the API, not from the summary cache)
 - CSV includes **all registrant attributes** currently on the registration row (dynamic column union so newly added columns appear automatically), plus flattened spouse/attendee helpers as needed:
   - Excludes secrets/tokens (`view_token_hash`, `signup_token_hash`, related token timestamps).
   - Additional attendees exported as readable text, e.g. `John Smith (age 0) (kids supervision), Mary Smith (age 15)`.
+  - Count columns: `kids_count` (additional attendees under 18), `additional_adults_count` (18+), `attendees_count` (all additional attendees), `total_people` (registrant + spouse + additional attendees).
   - Souvenir orders exported as readable text, e.g. `1 x Small (S), 1 x Large (L)`.
 - JSON reports payload also returns `totals` and `paymentStatusCounts` for the KPI/chart widgets.
 

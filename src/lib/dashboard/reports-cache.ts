@@ -1,15 +1,12 @@
 import { createDashboardValueCache } from "@/lib/dashboard/list-cache"
+import { emptyPeopleCount, type PeopleCount } from "@/lib/registrations/people-count"
 
-export type ReportsSummary = Record<
-  string,
-  { attendees: number; spouses: number; kids: number; registrations: number }
->
+export type ReportsStateRow = PeopleCount & { registrations: number }
 
-export type ReportsTotals = {
+export type ReportsSummary = Record<string, ReportsStateRow>
+
+export type ReportsTotals = PeopleCount & {
   registrations: number
-  attendees: number
-  spouses: number
-  kids: number
   amount_due: number
   amount_paid: number
   amount_remaining: number
@@ -30,10 +27,8 @@ export type ReportsCacheValue = {
 }
 
 export const emptyReportsTotals = (): ReportsTotals => ({
+  ...emptyPeopleCount(),
   registrations: 0,
-  attendees: 0,
-  spouses: 0,
-  kids: 0,
   amount_due: 0,
   amount_paid: 0,
   amount_remaining: 0,
@@ -47,5 +42,5 @@ export const emptyPaymentStatusCounts = (): ReportsPaymentStatusCounts => ({
 })
 
 export const reportsCache = createDashboardValueCache<ReportsCacheValue>({
-  storageKey: "cfca.dashboard.reports.v2",
+  storageKey: "cfca.dashboard.reports.v3",
 })
