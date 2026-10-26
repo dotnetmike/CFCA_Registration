@@ -19,6 +19,7 @@ files:
   - src/components/registrations/registration-details-view.tsx
   - src/lib/registration-settings.ts
   - src/app/dashboard/settings/page.tsx
+  - src/components/dashboard/payment-reminder-dates-field.tsx
   - supabase/migrations/016_registration_operations_settings.sql
   - supabase/migrations/021_bank_transfer_settings.sql
   - src/lib/payments/bank-details.ts
@@ -77,6 +78,7 @@ Presentation (`PaymentSummary` component and email payment rows):
 - Stripe: `STRIPE_SECRET_KEY` only, plus a Dashboard webhook URL to `/api/payments/stripe/webhook`.
 - Online Payment redirects to Stripe Checkout; webhook + optional `session_id` status recovery mark the registration paid.
 - Administrators configure payment reminder dates in Registration Settings (not env vars). The authorized daily cron sends reminders only to submitted registrations with `pending` or `partial` payment status, and only when today's **Melbourne** calendar date is one of the reminder dates. With no reminder dates set, no reminders are sent (early-bird expiry still runs).
+  - **Reminder dates control** (`PaymentReminderDatesField`, Dashboard → Registration Settings → Payment Reminders): a date picker plus **Add date** button (Enter in the picker also adds). Added dates show as a sorted list of removable chips (e.g. `Tue, 1 Dec 2026`; past dates marked "(past)"), duplicates are refused, and at most 12 dates can be added (the API limit). Nothing is stored until **Save Settings**.
 - **Schedule:** Vercel Cron (`vercel.json`) calls `GET /api/cron/payment-reminders` on the production deployment at 22:00 UTC (9:00 am Melbourne in daylight saving, 8:00 am otherwise) and again at 23:00 UTC as a **catch-up** run (`?run=catch-up`, same handler) — both on the same Melbourne date. Vercel sends `Authorization: Bearer <CRON_SECRET>`, so `CRON_SECRET` must be set in the Vercel Production environment; any other caller without it gets `401`.
 - **No duplicate reminders** (`src/lib/payments/payment-reminders.ts`):
   - Each run first records a `cron.payment_reminders_run` audit row (`features.audit`). If an earlier run started within the last 330 seconds (the route's 300-second limit + 30s), this run stops without repricing or emailing (`message: "Another payment reminder run is already in progress"`). If the audit log cannot be written or read, the run goes ahead.
@@ -97,6 +99,7 @@ Presentation (`PaymentSummary` component and email payment rows):
 - [ ] A fully paid registration shows a Paid badge, no zero-balance banner, and no $0.00 Balance due row
 - [ ] How to Pay is the last section
 - [ ] Reminder dates and early-bird payment due date are configurable without deployment
+- [ ] Administrators can add several reminder dates one at a time and remove any of them before saving
 - [ ] The payment reminder job runs daily on Vercel Cron and sends reminders on the configured Melbourne dates
 - [ ] A registrant gets at most one payment reminder per reminder date, even if the job runs more than once
 - [ ] Payment reminders are sent only after early-bird repricing, so they never show a fee that repricing is about to change

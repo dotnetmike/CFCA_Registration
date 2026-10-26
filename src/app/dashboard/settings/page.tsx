@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Alert } from "@/components/ui/alert"
 import { useBusyCursor } from "@/hooks/use-busy-cursor"
+import { PaymentReminderDatesField } from "@/components/dashboard/payment-reminder-dates-field"
 import {
   EMPTY_BANK_DETAILS,
   isBankDetailsComplete,
@@ -429,20 +430,12 @@ const RegistrationSettingsPage = () => {
               <CardTitle>Payment Reminders</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="paymentReminderDates">Reminder dates</Label>
-                <Input
-                  id="paymentReminderDates"
-                  type="text"
-                  value={settings.paymentReminderDates.join(", ")}
-                  onChange={(e) => setSettings((current) => ({
-                    ...current,
-                    paymentReminderDates: e.target.value.split(",").map((date) => date.trim()).filter(Boolean),
-                  }))}
-                  placeholder="YYYY-MM-DD, YYYY-MM-DD"
-                  aria-label="Payment reminder dates"
-                />
-              </div>
+              <PaymentReminderDatesField
+                dates={settings.paymentReminderDates}
+                onChange={(paymentReminderDates) =>
+                  setSettings((current) => ({ ...current, paymentReminderDates }))
+                }
+              />
             </CardContent>
           </Card>
 

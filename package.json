@@ -1,6 +1,6 @@
 {
   "name": "cfca-registration",
-  "version": "0.37.3",
+  "version": "0.37.4",
   "private": true,
   "scripts": {
     "env:select": "tsx scripts/env/select-env.ts",

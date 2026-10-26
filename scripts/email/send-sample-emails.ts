@@ -3,6 +3,8 @@
  *
  *   npm run email:samples -- --registration CFCA27-000040 --to you@example.com --site-url https://www.cfcanatcon.com
  *
+ * Optional --types payment_reminder,early_bird_pricing_updated sends only those types.
+ *
  * Read-only: loads the registration but never writes to the database (no email_log rows, no new view tokens).
  * Sends only to --to: no BCC to the notification recipient and nothing to the registrant.
  * Links that need a view token (View registration / Pay) use a placeholder token and will not open the registration.
@@ -87,6 +89,13 @@ const main = async () => {
   const registrationNo = requireArg(args, "registration")
   const siteUrl = requireArg(args, "site-url").replace(/\/$/, "")
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to)) throw new Error(`Invalid --to address: ${to}`)
+  const allTypes: EmailType[] = [...SAMPLE_TYPES, "early_bird_pricing_updated"]
+  const typesArg = args.types
+  const types =
+    typeof typesArg === "string" ? typesArg.split(",").map((type) => type.trim()).filter(Boolean) : allTypes
+  const unknownType = types.find((type) => !allTypes.includes(type as EmailType))
+  if (unknownType) throw new Error(`Unknown --types value: ${unknownType} (use ${allTypes.join(", ")})`)
+  const wants = (type: EmailType) => types.includes(type)
 
   const { appEnv, projectRef } = initEnv()
   const admin = createAdminClient()
@@ -102,7 +111,7 @@ const main = async () => {
   if (!registration) throw new Error(`Could not load ${registrationNo}`)
   const { pricing } = await getRegistrationRuntimeSettings()
 
-  const samples: Sample[] = SAMPLE_TYPES.map((type) => ({ type, label: type, registration }))
+  const samples: Sample[] = SAMPLE_TYPES.filter(wants).map((type) => ({ type, label: type, registration }))
   const dueSample = simulateEarlyBirdExpiry(
     registration,
     pricing,
@@ -113,16 +122,16 @@ const main = async () => {
     { ...pricing, earlyBirdVicLimit: 0, earlyBirdInterstateLimit: 0 },
     new Date(Date.parse(`${pricing.earlyBirdPaymentDueDate}T12:00:00Z`) - 2 * DAY_MS)
   )
-  if (dueSample) {
+  if (dueSample && wants("early_bird_pricing_updated")) {
     samples.push({ type: "early_bird_pricing_updated", label: "early_bird_pricing_updated (due date passed)", ...dueSample })
   }
-  if (capacitySample) {
+  if (capacitySample && wants("early_bird_pricing_updated")) {
     samples.push({ type: "early_bird_pricing_updated", label: "early_bird_pricing_updated (places filled)", ...capacitySample })
   }
 
   console.log(`Environment: ${appEnv} (${projectRef}) · provider ${getEmailProviderId()}`)
   console.log(`Sample data: ${registrationNo} · sending ${samples.length} emails to ${to} only (no BCC, no email_log)`)
-  if (!dueSample && !capacitySample) {
+  if (wants("early_bird_pricing_updated") && !dueSample && !capacitySample) {
     console.log("  (no early bird pricing update samples: registration has no unpaid early-bird adults)")
   }
 
