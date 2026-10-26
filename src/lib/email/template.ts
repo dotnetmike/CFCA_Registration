@@ -16,9 +16,26 @@ export type EmailRow = {
   emphasis?: "code"
 }
 
+export type EmailLink = {
+  label: string
+  href: string
+}
+
+export type EmailHelpCard = {
+  text: string
+  link: EmailLink
+}
+
+export type EmailReminders = {
+  title: string
+  items: { label: string; text: string }[]
+}
+
 type EmailSection = {
   title: string
   rows: EmailRow[]
+  /** Support link shown under the section rows (e.g. accommodation `mailto:`). */
+  link?: EmailLink
 }
 
 export type EmailStatusTone = "pending" | "partial" | "paid" | "overpaid"
@@ -35,11 +52,15 @@ export type EmailDetailsCard = {
     paid: string
     balance?: string
     helper?: string
+    /** Amber early bird reminders shown while early-bird adults are unpaid. */
+    earlyBirdReminders?: EmailReminders
     /** Bank transfer encouragement shown above the pay button. */
     note?: string
     ctaLabel?: string
     ctaUrl?: string
     footnote?: string
+    /** Payment support link (`mailto:`) shown at the bottom of the payment summary. */
+    supportLink?: EmailLink
   }
 }
 
@@ -51,6 +72,8 @@ type RenderEmailOptions = {
   sections?: EmailSection[]
   ctaLabel?: string
   ctaUrl?: string
+  /** "Need help?" box shown after the main call to action. */
+  helpCard?: EmailHelpCard
   footerNote?: string
   /** Public origin for footer home link (from request Host). */
   siteUrl?: string
@@ -87,6 +110,41 @@ const STATUS_TONES: Record<EmailStatusTone, { bg: string; text: string }> = {
 export const bankTransferNoticeHtml = (text: string) =>
   `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:14px 0 0;"><tr><td style="padding:12px 14px;border-radius:8px;background:#ECFDF5;border:1px solid #A7F3D0;font-size:14px;line-height:1.5;color:#065F46;"><strong>Bank transfer recommended.</strong> ${escapeHtml(text)}</td></tr></table>`
 
+/** Amber callout with a bold title and a bulleted "Label: text" list (early bird reminders). */
+export const remindersCalloutHtml = (reminders: EmailReminders) => {
+  const items = reminders.items
+    .map(
+      (item) =>
+        `<li style="margin:4px 0 0;"><strong>${escapeHtml(item.label)}:</strong> ${escapeHtml(item.text)}</li>`
+    )
+    .join("")
+  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:14px 0 0;"><tr><td style="padding:12px 14px;border-radius:8px;background:#FFFBEB;border:1px solid #FDE68A;font-size:14px;line-height:1.5;color:#92400E;"><p style="margin:0;font-weight:700;">${escapeHtml(reminders.title)}</p><ul style="margin:6px 0 0;padding-left:20px;">${items}</ul></td></tr></table>`
+}
+
+/** Envelope (U+2709) forced to text presentation so clients do not swap in a colour emoji. */
+const ENVELOPE_HTML = "&#9993;&#65038;"
+
+/** Inline `mailto:` support link with an envelope icon before the underlined label. */
+export const emailSupportLinkHtml = (link: EmailLink) =>
+  `<p style="margin:14px 0 0;font-size:14px;line-height:1.5;"><a href="${escapeHtml(link.href)}" style="color:${brand.mid};font-weight:600;text-decoration:none;"><span aria-hidden="true" style="text-decoration:none;">${ENVELOPE_HTML}</span>&nbsp;<span style="text-decoration:underline;">${escapeHtml(link.label)}</span></a></p>`
+
+const renderHelpCard = (card: EmailHelpCard) => `
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 18px;border:1px solid ${brand.line};border-radius:12px;background:${brand.white};">
+          <tr>
+            <td style="padding:18px 20px;">
+              <p style="margin:0;font-size:16px;font-weight:700;color:${brand.ink};">Need help?</p>
+              <p style="margin:4px 0 0;font-size:14px;line-height:1.5;color:${brand.grey};">${escapeHtml(card.text)}</p>
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:14px 0 0;">
+                <tr>
+                  <td align="center" style="border:1px solid ${brand.mid};border-radius:8px;background:${brand.white};">
+                    <a href="${escapeHtml(card.link.href)}" style="display:block;padding:11px 16px;font-size:14px;font-weight:700;color:${brand.mid};text-decoration:none;"><span aria-hidden="true">${ENVELOPE_HTML}</span>&nbsp;${escapeHtml(card.link.label)}</a>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+        </table>`
+
 const sectionLabelHtml = (text: string) =>
   `<p style="margin:0 0 12px;font-size:11px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:${brand.grey};">${escapeHtml(text)}</p>`
 
@@ -118,6 +176,7 @@ const renderDetailsCard = (card: EmailDetailsCard) => {
   const helperHtml = payment.helper
     ? `<p style="margin:12px 0 0;font-size:14px;line-height:1.5;color:${brand.grey};">${escapeHtml(payment.helper)}</p>`
     : ""
+  const earlyBirdHtml = payment.earlyBirdReminders ? remindersCalloutHtml(payment.earlyBirdReminders) : ""
   const noteHtml = payment.note ? bankTransferNoticeHtml(payment.note) : ""
   const ctaHtml =
     payment.ctaLabel && payment.ctaUrl
@@ -133,6 +192,7 @@ const renderDetailsCard = (card: EmailDetailsCard) => {
   const footnoteHtml = payment.footnote
     ? `<p style="margin:14px 0 0;font-size:12px;color:${brand.grey};">${escapeHtml(payment.footnote)}</p>`
     : ""
+  const paymentSupportHtml = payment.supportLink ? emailSupportLinkHtml(payment.supportLink) : ""
   const codeNoteHtml = card.uniqueCodeNote
     ? `<p style="margin:8px 0 0;font-size:13px;line-height:1.5;color:${brand.grey};">${escapeHtml(card.uniqueCodeNote)}</p>`
     : ""
@@ -176,9 +236,11 @@ const renderDetailsCard = (card: EmailDetailsCard) => {
                       ${balanceHtml}
                     </table>
                     ${helperHtml}
+                    ${earlyBirdHtml}
                     ${noteHtml}
                     ${ctaHtml}
                     ${footnoteHtml}
+                    ${paymentSupportHtml}
                   </td>
                 </tr>
               </table>
@@ -210,6 +272,7 @@ export const renderEmail = ({
   sections = [],
   ctaLabel,
   ctaUrl,
+  helpCard,
   footerNote,
   siteUrl,
 }: RenderEmailOptions) => {
@@ -237,6 +300,7 @@ export const renderEmail = ({
           <tr>
             <td style="padding:10px 16px 14px;">
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0">${rows}</table>
+              ${section.link ? emailSupportLinkHtml(section.link) : ""}
             </td>
           </tr>
         </table>`
@@ -298,6 +362,7 @@ export const renderEmail = ({
               ${detailsCard ? renderDetailsCard(detailsCard) : ""}
               ${sectionsHtml}
               ${ctaHtml}
+              ${helpCard ? renderHelpCard(helpCard) : ""}
               ${footer}
             </td>
           </tr>

@@ -89,11 +89,33 @@ sequenceDiagram
 
 ```mermaid
 flowchart TB
+  Claim[assignEarlyBird early-bird-claim.ts]
   Fees[Conference fees pricing/calculate]
   Souvenir[T-shirts $30 × qty souvenirs.ts]
+  Claim -->|slot + adult limit| Fees
   Fees --> Total[amount_due]
   Souvenir --> Total
 ```
+
+## Early bird claim (submit / edit)
+
+Rules: `features.registration` → "Early bird is per adult". Runs in `POST /api/registrations` (submit) and `PUT /api/registrations/[id]` (first submit, or edit of a registration that already has early bird).
+
+```mermaid
+flowchart TB
+  Start[adults = registrant + spouse + attendees 18+] --> Kept[kept = min existing early-bird adults, adults]
+  Kept --> Open{Claim open today?<br/>Melbourne day, start..min end, due}
+  Open -->|no| Limit[limit = kept]
+  Open -->|yes, wants more| Pool[load paid adults of other registrations in pool]
+  Pool -->|load failed| Limit
+  Pool --> Room[limit = min adults, max kept, cap − paid by others]
+  Room --> Col{early_bird_adult_limit column exists?}
+  Limit --> Col
+  Col -->|yes| Save[save slot + limit, first limit adults at the early-bird rate]
+  Col -->|no, before migration 028| Legacy[keep previous all-or-nothing slot]
+```
+
+Unpaid early-bird adults are later moved to the regular rate by the daily cron (`docs/flows/payment.md` → Daily payment reminders and early-bird expiry).
 
 ## Key files
 
@@ -104,9 +126,13 @@ flowchart TB
 | Persist | `src/lib/registrations/service.ts` |
 | No-op detect | `src/lib/registrations/compare.ts` |
 | Public/auth POST | `src/app/api/registrations/route.ts` |
+| Early bird counting / dates / wording | `src/lib/pricing/early-bird.ts` |
+| Early bird claim | `src/lib/registrations/early-bird-claim.ts` |
+| Early bird expiry | `src/lib/registrations/early-bird-expiry.ts`, `early-bird-expiry-runner.ts` |
 
 ## Debug tips
 
 - Email already used → `EMAIL_IN_USE` + Login link
-- Amount wrong → check early bird slot + souvenir_orders JSON
+- Amount wrong → check `is_early_bird`, `early_bird_slot`, `early_bird_adult_limit` (adults on early bird; `NULL` = all), attendee ages and souvenir_orders JSON
+- Early bird missing on a new registration → pool full of paid adults, or submitted after the claim end date (Melbourne day)
 - Empty audits → ensure no-op path; see compare + PUT early return

@@ -12,6 +12,7 @@ export type RepriceCandidate = StoredRegistrationForPricing & {
   surname: string
   is_early_bird: boolean | null
   early_bird_slot: string | null
+  early_bird_adult_limit?: number | null
   amount_due: number | string
   amount_paid: number | string | null
   payment_status: string
@@ -46,7 +47,7 @@ export const planRegistrationRepricing = (
     const earlyBirdSlot = resolveSlot(row)
     const amountPaid = Number(row.amount_paid ?? 0)
     const oldDue = Number(row.amount_due ?? 0)
-    const newDue = computeStoredAmountDue(row, earlyBirdSlot, pricingConfig)
+    const newDue = computeStoredAmountDue(row, earlyBirdSlot, pricingConfig, row.early_bird_adult_limit)
     if (toCents(newDue) === toCents(oldDue)) return []
     return [
       {

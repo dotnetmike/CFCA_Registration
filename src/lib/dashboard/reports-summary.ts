@@ -8,13 +8,21 @@ import {
   type ReportsSummary,
   type ReportsTotals,
 } from "@/lib/dashboard/reports-cache"
-import { isEarlyBirdWindow, type PricingConfig } from "@/lib/pricing/calculate"
+import type { PricingConfig } from "@/lib/pricing/calculate"
+import {
+  earlyBirdAdultTally,
+  earlyBirdClaimEndDate,
+  earlyBirdPoolForState,
+  isEarlyBirdClaimOpen,
+} from "@/lib/pricing/early-bird"
 import { addPeopleCounts, countRegistrationPeople, emptyPeopleCount } from "@/lib/registrations/people-count"
 import { AUSTRALIAN_STATES } from "@/lib/registrations/schema"
 
 type ReportRegistration = {
   state?: string | null
   is_early_bird?: boolean | null
+  early_bird_slot?: string | null
+  early_bird_adult_limit?: number | null
   spouse_attending?: boolean | null
   payment_status?: string | null
   amount_due?: number | string | null
@@ -49,33 +57,40 @@ export const buildReportsSummary = (registrations: ReportRegistration[]) => {
   return { summary, totals, paymentStatusCounts }
 }
 
-const poolForState = (state: string): EarlyBirdPoolId => (state === "VIC" ? "melbourne" : "interstate")
-
-/** Mirrors `claim_early_bird_slot`: counts registrations holding an early-bird slot, VIC vs every other state. */
+/** Early-bird adults per state: confirmed (covered by payment) use capacity, unpaid ones are only reserved. */
 export const buildEarlyBirdUsage = (
   registrations: ReportRegistration[],
   config: PricingConfig,
   now = new Date()
 ): EarlyBirdUsage => {
-  const usedByState = new Map<string, number>(AUSTRALIAN_STATES.map((state) => [state, 0]))
+  const byState = new Map(AUSTRALIAN_STATES.map((state) => [state as string, { used: 0, reserved: 0 }]))
   for (const reg of registrations) {
-    if (!reg.is_early_bird || !reg.state) continue
-    usedByState.set(reg.state, (usedByState.get(reg.state) ?? 0) + 1)
+    if (!reg.state) continue
+    const { confirmed, reserved } = earlyBirdAdultTally(reg, config)
+    if (confirmed === 0 && reserved === 0) continue
+    const row = byState.get(reg.state) ?? { used: 0, reserved: 0 }
+    row.used += confirmed
+    row.reserved += reserved
+    byState.set(reg.state, row)
   }
 
-  const states = [...usedByState].map(([state, used]) => ({ state, pool: poolForState(state), used }))
-  const usedInPool = (pool: EarlyBirdPoolId) =>
-    states.filter((row) => row.pool === pool).reduce((sum, row) => sum + row.used, 0)
+  const states = [...byState].map(([state, counts]) => ({
+    state,
+    pool: earlyBirdPoolForState(state),
+    ...counts,
+  }))
+  const sumInPool = (pool: EarlyBirdPoolId, key: "used" | "reserved") =>
+    states.filter((row) => row.pool === pool).reduce((sum, row) => sum + row[key], 0)
   const buildPool = (id: EarlyBirdPoolId, label: string, capacity: number): EarlyBirdPool => {
-    const used = usedInPool(id)
-    return { id, label, capacity, used, remaining: Math.max(0, capacity - used) }
+    const used = sumInPool(id, "used")
+    return { id, label, capacity, used, reserved: sumInPool(id, "reserved"), remaining: Math.max(0, capacity - used) }
   }
 
   return {
     windowStart: config.earlyBirdStart,
-    windowEnd:
-      config.earlyBirdEnd < config.earlyBirdPaymentDueDate ? config.earlyBirdEnd : config.earlyBirdPaymentDueDate,
-    isOpen: isEarlyBirdWindow(now, config),
+    windowEnd: earlyBirdClaimEndDate(config),
+    paymentDueDate: config.earlyBirdPaymentDueDate,
+    isOpen: isEarlyBirdClaimOpen(config, now),
     pools: [
       buildPool("melbourne", "Victoria", config.earlyBirdVicLimit),
       buildPool("interstate", "Interstate (all other states)", config.earlyBirdInterstateLimit),

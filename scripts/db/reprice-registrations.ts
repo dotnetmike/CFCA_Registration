@@ -12,6 +12,7 @@ import { createAdminClient } from "@/lib/supabase/admin"
 import { formatCurrency } from "@/lib/pricing/calculate"
 import { getRegistrationRuntimeSettings } from "@/lib/registration-settings"
 import { planRegistrationRepricing, type RepriceCandidate, type RepriceChange } from "@/lib/registrations/reprice"
+import { earlyBirdLimitSelect } from "@/lib/registrations/early-bird-column"
 
 const REPRICE_ACTION = "registration.reprice"
 const REPRICE_REASON =
@@ -39,13 +40,15 @@ const main = async () => {
   const { data, error } = await admin
     .from("registrations")
     .select(
-      "id, registration_no, given_name, surname, spouse_attending, souvenir_orders, is_early_bird, early_bird_slot, amount_due, amount_paid, payment_status, registration_attendees(age)"
+      await earlyBirdLimitSelect(
+        "id, registration_no, given_name, surname, spouse_attending, souvenir_orders, is_early_bird, early_bird_slot, amount_due, amount_paid, payment_status, registration_attendees(age)"
+      )
     )
     .order("registration_no")
     .limit(10000)
   if (error) throw new Error(error.message)
 
-  const rows = (data ?? []) as RepriceCandidate[]
+  const rows = (data ?? []) as unknown as RepriceCandidate[]
   const changes = planRegistrationRepricing(rows, settings.pricing)
 
   console.log(`Environment: ${appEnv} (${projectRef}) · ${rows.length} registrations checked`)

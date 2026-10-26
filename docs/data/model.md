@@ -50,6 +50,9 @@ erDiagram
     cfca_position cfca_position
     bool elder_assembly_attending
     jsonb souvenir_orders
+    bool is_early_bird
+    text early_bird_slot
+    int early_bird_adult_limit
     payment_source payment_last_updated_source
   }
   payments {
@@ -139,6 +142,8 @@ erDiagram
 | `registration_no` | Display / alternate payment match |
 | `participant_reference` | **Unique Code** for bank Message/Ref |
 | `souvenir_orders` | `[{ size, quantity }, …]` t-shirts |
+| `is_early_bird` / `early_bird_slot` | Registration holds early bird in the `melbourne` (VIC) or `interstate` pool |
+| `early_bird_adult_limit` | How many adults (registrant → spouse → additional adults 18+) are on the early-bird rate; `NULL` = all adults (migration 028; code falls back to all-or-nothing until it exists). Confirmed (paid) adults = `min(limit, floor(amount_paid ÷ adult early-bird price))` — see `features.registration` |
 | `pickup_*` / `dropoff_*` | Transport flags + admin contacts |
 | `hotel_name` / `hotel_address` | UI: Accommodation name/address |
 | `runtime_registration_settings` | Admin runtime controls for registration open/close, early bird window, and pricing |

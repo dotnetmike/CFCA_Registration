@@ -4,12 +4,14 @@ import { createAdminClient } from "@/lib/supabase/admin"
 import { verifyAccessToken } from "@/lib/auth/jwt"
 import { registrationSchema, formatRegistrationSchemaError } from "@/lib/registrations/schema"
 import {
-  claimEarlyBirdSlot,
   computeAmountDue,
   generateRegistrationNo,
   getRegistrationWithAttendees,
   mapFormToDb,
 } from "@/lib/registrations/service"
+import { NO_EARLY_BIRD, assignEarlyBird } from "@/lib/registrations/early-bird-claim"
+import { earlyBirdLimitSelect } from "@/lib/registrations/early-bird-column"
+import { registrationAdultCount } from "@/lib/pricing/early-bird"
 import { assignParticipantReferenceIfNeeded } from "@/lib/registrations/participant-reference"
 import {
   createViewAndSignupTokens,
@@ -85,7 +87,7 @@ export const GET = async (request: NextRequest) => {
     "id, registration_no, user_id, surname, given_name, email, mobile, dietary_requirements, address_line1, address_line2, suburb, address_state, postcode, ministry, cfca_position, elder_assembly_attending, state, spouse_surname, spouse_given_name, spouse_attending, spouse_email, spouse_mobile, spouse_dietary_requirements, accommodation_type, pickup_melbourne_airport, dropoff_melbourne_airport, hotel_transport_required, arrival_date, arrival_airport, arrival_flight_no, departure_date, departure_airport, departure_flight_no, hotel_name, hotel_address, accommodation_contact_name, accommodation_contact_phone, pickup_transport_contact_name, pickup_transport_contact_phone, dropoff_transport_contact_name, dropoff_transport_contact_phone, payment_status, amount_due, amount_paid, payment_last_updated_source, payment_last_updated_at, payment_last_updated_by, souvenir_orders, is_early_bird, early_bird_slot, submitted_at, created_at, updated_at, participant_reference, view_token_hash, registration_attendees(*)"
   const { data, error } = await admin
     .from("registrations")
-    .select(ownRegistrationSelect)
+    .select((await earlyBirdLimitSelect(ownRegistrationSelect)) as typeof ownRegistrationSelect)
     .eq("user_id", auth.sub)
     .maybeSingle()
 
@@ -169,8 +171,12 @@ const handlePublicSubmit = async (request: NextRequest, body: unknown) => {
     )
   }
 
-  const earlyBirdSlot = await claimEarlyBirdSlot(parsed.data.state ?? "", runtime.pricing)
-  const amountDue = computeAmountDue(parsed.data, earlyBirdSlot, runtime.pricing)
+  const earlyBird = await assignEarlyBird({
+    state: parsed.data.state,
+    adults: registrationAdultCount(parsed.data),
+    config: runtime.pricing,
+  })
+  const amountDue = computeAmountDue(parsed.data, earlyBird.slot, runtime.pricing, earlyBird.pricingLimit)
   const registrationNo = await generateRegistrationNo()
 
   const dbData = mapFormToDb(
@@ -179,8 +185,7 @@ const handlePublicSubmit = async (request: NextRequest, body: unknown) => {
       registration_no: registrationNo,
       user_id: null,
       amount_due: amountDue,
-      early_bird_slot: earlyBirdSlot,
-      is_early_bird: earlyBirdSlot !== "none",
+      ...earlyBird.dbFields,
       submitted_at: new Date().toISOString(),
     }
   )
@@ -284,11 +289,15 @@ const handleAuthenticatedPost = async (request: NextRequest, body: unknown) => {
     )
   }
 
-  const earlyBirdSlot = parsed.data.submit
-    ? await claimEarlyBirdSlot(parsed.data.state ?? "", runtime.pricing)
-    : ("none" as const)
+  const earlyBird = parsed.data.submit
+    ? await assignEarlyBird({
+        state: parsed.data.state,
+        adults: registrationAdultCount(parsed.data),
+        config: runtime.pricing,
+      })
+    : NO_EARLY_BIRD
 
-  const amountDue = computeAmountDue(parsed.data, earlyBirdSlot, runtime.pricing)
+  const amountDue = computeAmountDue(parsed.data, earlyBird.slot, runtime.pricing, earlyBird.pricingLimit)
   const registrationNo = parsed.data.submit
     ? await generateRegistrationNo()
     : `DRAFT-${auth.sub.slice(0, 8)}`
@@ -299,8 +308,7 @@ const handleAuthenticatedPost = async (request: NextRequest, body: unknown) => {
       registration_no: registrationNo,
       user_id: auth.sub,
       amount_due: amountDue,
-      early_bird_slot: earlyBirdSlot,
-      is_early_bird: earlyBirdSlot !== "none",
+      ...earlyBird.dbFields,
       submitted_at: parsed.data.submit ? new Date().toISOString() : null,
     }
   )

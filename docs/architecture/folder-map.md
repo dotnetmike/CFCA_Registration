@@ -15,6 +15,7 @@ CFCA_Registration/
 │   └── proxy.ts           # Auth gate for protected pages
 ├── supabase/migrations/   # Numbered SQL only
 ├── scripts/db/            # deploy runner
+├── scripts/email/         # send-sample-emails (read-only template review)
 └── .cursor/rules/         # AI always-on rules
 ```
 
@@ -26,6 +27,9 @@ CFCA_Registration/
 | Registration details view (shared by `/r/[token]` and `/my-registration`) | `src/components/registrations/registration-details-view.tsx` | `features.magic-link-view`, `features.my-registration` |
 | Registration validation | `src/lib/registrations/schema.ts` | `features.registration` |
 | Amount due / pricing | `src/lib/pricing/calculate.ts` + `service.computeAmountDue` | `features.registration` / payment |
+| Early bird (per adult: counting, claim, expiry, wording) | `src/lib/pricing/early-bird.ts`, `src/lib/registrations/early-bird-claim.ts`, `early-bird-expiry.ts`, `early-bird-expiry-runner.ts` | `features.registration`, `features.payment` |
+| Early Bird Important Reminders box (form review + details view) | `src/components/registrations/early-bird-reminders.tsx` | `features.registration`, `features.payment` |
+| Daily payment cron (early-bird expiry + reminders) | `src/app/api/cron/payment-reminders/route.ts` | `features.payment` |
 | Souvenirs | `src/lib/registrations/souvenirs.ts` | `features.registration` |
 | Guest vs auth submit API | `src/app/api/registrations/route.ts` | `features.registration` |
 | Update registration / no-op | `src/app/api/registrations/[id]/route.ts`, `compare.ts` | `features.registration` |
@@ -82,13 +86,14 @@ flowchart LR
 | Folder | Responsibility |
 |--------|----------------|
 | `lib/auth` | JWT, cookies, session, permissions, paths |
-| `lib/registrations` | Zod schema, DB mapping, tokens, compare, souvenirs |
-| `lib/pricing` | Conference fee calculation |
+| `lib/registrations` | Zod schema, DB mapping, tokens, compare, souvenirs, early-bird claim / expiry |
+| `lib/pricing` | Conference fee calculation; per-adult early-bird counting, Melbourne dates and Important Reminders wording (`early-bird.ts`) |
 | `lib/payments` | Payment labels, Stripe config / ledger helpers |
 | `lib/reconciliation` | Stripe / CBA CSV parsers, matching rules, bank-line ledger, reconciliation service |
 | `lib/backups` | Daily registration backup: zip archive builder, ensure / list / download service |
 | `lib/audit` | Sanitize + write audit rows |
-| `lib/email` | Providers (`provider.ts`: Resend / Microsoft Graph) + HTML templates (`template.ts`) |
+| `lib/email` | Providers (`provider.ts`: Resend / Microsoft Graph) + HTML templates (`template.ts`); `send.ts` builds (`buildRegistrationEmail`) and sends registrant emails |
+| `lib/support` | Support contact addresses, labels and `mailto:` builder shared by the details page and emails |
 | `lib/dashboard` | Client list cache |
 | `lib/db` | Migration helpers |
 | `lib/supabase` | Admin client |

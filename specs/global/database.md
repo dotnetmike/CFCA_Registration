@@ -3,7 +3,7 @@ id: global.database
 title: Database and migrations
 status: active
 synced_commit: working-tree
-synced_at: 2026-10-19
+synced_at: 2026-10-26
 owners: [team]
 files:
   - supabase/migrations/
@@ -44,6 +44,7 @@ Postgres via Supabase; schema changes only through numbered SQL migrations.
   - `025_payment_reconciliation.sql` — `reconciliation_runs`, `stripe_balance_transactions`, `bank_statement_lines`, `reconciliation_events`, `payments.reconciliation_bank_line_id` (`features.payment-reconciliation`)
   - `026_stripe_bank_settlement.sql` — `stripe_balance_transactions.payout_id`, `bank_line_id` (FK → `bank_statement_lines`, `ON DELETE SET NULL`), `bank_received_date`; `reconciliation_runs.bank_confirmed` (`features.payment-reconciliation`)
   - `027_registration_backups.sql` — `backups:manage` permission (admin group), private storage bucket `registration-backups`, `registration_backups` table (one row per Melbourne day) (`features.registration-backups`)
+  - `028_early_bird_adult_limit.sql` — additive, nullable `registrations.early_bird_adult_limit` (adults on the early-bird rate; `NULL` = all adults, so existing rows keep their pricing) (`features.registration`). Code checks the column exists (`src/lib/registrations/early-bird-column.ts`) and keeps the previous behaviour until it is applied.
 
 ## Acceptance criteria
 
