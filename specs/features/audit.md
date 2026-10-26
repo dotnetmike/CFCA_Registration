@@ -2,8 +2,8 @@
 id: features.audit
 title: Audit log
 status: active
-synced_commit: 8ee5938
-synced_at: 2026-10-22
+synced_commit: working-tree
+synced_at: 2026-10-26
 owners: [team]
 files:
   - src/lib/audit/log.ts
@@ -25,7 +25,7 @@ Record security- and data-sensitive actions with datetime, user, action, previou
 
 - Table `audit_log`: `created_at`, `user_id`, `action`, `previous_value`, `updated_value`, metadata, IP, user agent.
 - Sensitive fields redacted (`password_hash`, tokens).
-- Instrumented: login/logout/signup, password change/reset, registration create/update/submit, user admin, payment reconcile/record/manual_update, registration note create, registration backup create/failed/download (`features.registration-backups`), registration re-price by script (`registration.reprice`, no user; `features.registration`).
+- Instrumented: login/logout/signup, password change/reset, registration create/update/submit, user admin, payment reconcile/record/manual_update, registration note create, registration backup create/failed/download (`features.registration-backups`), registration re-price by script (`registration.reprice`, no user; `features.registration`), early-bird expiry by the daily payment cron (`registration.early_bird_expired`, no user; previous / updated fee, payment status and early-bird adults; metadata `registration_id`, `registration_no`, `reason`, `adults_moved_to_regular`; `features.registration`).
 - **No-op registration updates** (no field/attendee changes) do not write an audit row.
 - Admin UI `/dashboard/audit` requires `users:manage`.
 - UI loads a capped recent set (same max as other dashboard list caches), **caches client-side** (TTL + Refresh), and **pages at 100** rows.

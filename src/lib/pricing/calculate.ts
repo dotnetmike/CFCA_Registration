@@ -7,6 +7,8 @@ export type AttendeeInput = {
 export type PricingInput = {
   attendees: AttendeeInput[]
   earlyBirdSlot: "interstate" | "melbourne" | "none"
+  /** How many adults (in attendee order) get the early-bird rate; `null` / omitted = all adults. */
+  earlyBirdAdultLimit?: number | null
 }
 
 export type PricingConfig = {
@@ -81,26 +83,46 @@ export const priceForAttendee = (
   return config.ageFree
 }
 
+/** Early-bird slot each attendee is priced at: adults beyond `earlyBirdAdultLimit` fall back to "none". */
+export const attendeeEarlyBirdSlots = (
+  attendees: AttendeeInput[],
+  earlyBirdSlot: "interstate" | "melbourne" | "none",
+  earlyBirdAdultLimit?: number | null
+): ("interstate" | "melbourne" | "none")[] => {
+  let adultIndex = 0
+  return attendees.map((attendee) => {
+    if (getAttendeeAgeBand(attendee) !== "adult") return earlyBirdSlot
+    const withinLimit = earlyBirdAdultLimit == null || adultIndex < earlyBirdAdultLimit
+    adultIndex += 1
+    return withinLimit ? earlyBirdSlot : "none"
+  })
+}
+
 export const calculateTotal = (
   input: PricingInput,
   config: PricingConfig = DEFAULT_PRICING_CONFIG
-): number =>
-  input.attendees.reduce(
-    (sum, attendee) => sum + priceForAttendee(attendee, input.earlyBirdSlot, config),
+): number => {
+  const slots = attendeeEarlyBirdSlots(input.attendees, input.earlyBirdSlot, input.earlyBirdAdultLimit)
+  return input.attendees.reduce(
+    (sum, attendee, index) => sum + priceForAttendee(attendee, slots[index], config),
     0
   )
+}
 
 export const buildPricingBreakdown = (
   attendees: AttendeeInput[],
   earlyBirdSlot: "interstate" | "melbourne" | "none",
   descriptions: string[],
-  config: PricingConfig = DEFAULT_PRICING_CONFIG
-): PricingLineItem[] =>
-  attendees.map((attendee, index) => {
-    const amount = priceForAttendee(attendee, earlyBirdSlot, config)
+  config: PricingConfig = DEFAULT_PRICING_CONFIG,
+  earlyBirdAdultLimit?: number | null
+): PricingLineItem[] => {
+  const slots = attendeeEarlyBirdSlots(attendees, earlyBirdSlot, earlyBirdAdultLimit)
+  return attendees.map((attendee, index) => {
+    const attendeeSlot = slots[index]
+    const amount = priceForAttendee(attendee, attendeeSlot, config)
     const band = getAttendeeAgeBand(attendee)
     const isAdult = band === "adult"
-    const earlyBirdApplied = isAdult && earlyBirdSlot !== "none"
+    const earlyBirdApplied = isAdult && attendeeSlot !== "none"
     const standardAmount = earlyBirdApplied ? config.adultRegular : undefined
     const earlyBirdSaving = earlyBirdApplied
       ? getAdultEarlyBirdSaving(config)
@@ -109,7 +131,7 @@ export const buildPricingBreakdown = (
     let note: string | undefined
     if (earlyBirdApplied) {
       note =
-        earlyBirdSlot === "melbourne"
+        attendeeSlot === "melbourne"
           ? "Early bird — Melbourne slot"
           : "Early bird — Interstate slot"
     } else if (isAdult) {
@@ -130,18 +152,28 @@ export const buildPricingBreakdown = (
       note,
     }
   })
+}
 
+/** Calendar date (YYYY-MM-DD) in Melbourne, so settings dates mean the whole local day. */
+export const calendarDateInMelbourne = (date = new Date()) =>
+  new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Australia/Melbourne",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(date)
+
+/** Last day new registrations / added adults can get early bird: the earlier of end date and payment due date. */
+export const earlyBirdClaimEndDate = (config: PricingConfig) =>
+  config.earlyBirdEnd < config.earlyBirdPaymentDueDate ? config.earlyBirdEnd : config.earlyBirdPaymentDueDate
+
+/** Start and end dates are inclusive Melbourne calendar days. */
 export const isEarlyBirdWindow = (
   date = new Date(),
   config: PricingConfig = DEFAULT_PRICING_CONFIG
 ) => {
-  const start = new Date(config.earlyBirdStart)
-  const end = new Date(
-    config.earlyBirdEnd < config.earlyBirdPaymentDueDate
-      ? config.earlyBirdEnd
-      : config.earlyBirdPaymentDueDate
-  )
-  return date >= start && date <= end
+  const today = calendarDateInMelbourne(date)
+  return today >= config.earlyBirdStart && today <= earlyBirdClaimEndDate(config)
 }
 
 export const formatCurrency = (amount: number) =>

@@ -3,12 +3,13 @@ import { createAdminClient } from "@/lib/supabase/admin"
 import { requireAuth, requirePermission, jsonError } from "@/lib/auth/api"
 import { registrationSchema, registrationBaseSchema, REGISTRATION_FIELDS, formatRegistrationSchemaError } from "@/lib/registrations/schema"
 import {
-  claimEarlyBirdSlot,
   computeAmountDue,
   generateRegistrationNo,
   getRegistrationWithAttendees,
   mapFormToDb,
 } from "@/lib/registrations/service"
+import { NO_EARLY_BIRD, assignEarlyBird } from "@/lib/registrations/early-bird-claim"
+import { registrationAdultCount } from "@/lib/pricing/early-bird"
 import {
   hasRegistrationChanges,
   normalizeComparableAttendees,
@@ -239,22 +240,30 @@ export const PUT = async (request: NextRequest, { params }: RouteParams) => {
     })
   }
 
-  const earlyBirdSlot = existing.is_early_bird
-    ? (existing.early_bird_slot as "interstate" | "melbourne" | "none")
-    : isSubmitting && parsed.data.state
-      ? await claimEarlyBirdSlot(parsed.data.state ?? existing.state, runtime.pricing)
-      : ((existing.early_bird_slot as "interstate" | "melbourne" | "none") ?? "none")
-
   const formData = {
     ...merged,
     attendees: parsed.data.attendees ?? [],
     submit: parsed.data.submit ?? false,
   }
 
+  const earlyBird =
+    existing.is_early_bird || (isSubmitting && parsed.data.state)
+      ? await assignEarlyBird({
+          state: parsed.data.state ?? existing.state,
+          adults: registrationAdultCount({
+            spouse_attending: formData.spouse_attending,
+            attendees: parsed.data.attendees ?? existingFull?.attendees ?? [],
+          }),
+          existing: existing.is_early_bird && existingFull ? existingFull : null,
+          config: runtime.pricing,
+        })
+      : NO_EARLY_BIRD
+
   const amountDue = computeAmountDue(
     formData as Parameters<typeof computeAmountDue>[0],
-    earlyBirdSlot,
-    runtime.pricing
+    earlyBird.slot,
+    runtime.pricing,
+    earlyBird.pricingLimit
   )
   const amountDueChanged = toCents(amountDue) !== toCents(existing.amount_due)
 
@@ -272,8 +281,7 @@ export const PUT = async (request: NextRequest, { params }: RouteParams) => {
   const dbUpdate = mapFormToDb(formData as Parameters<typeof mapFormToDb>[0], {
     user_id: existing.user_id,
     amount_due: amountDue,
-    early_bird_slot: earlyBirdSlot,
-    is_early_bird: earlyBirdSlot !== "none",
+    ...earlyBird.dbFields,
     submitted_at: isSubmitting ? new Date().toISOString() : existing.submitted_at,
     registration_no: registrationNo,
   })

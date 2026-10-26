@@ -11,7 +11,9 @@ import { PaymentStatusBadge } from "@/components/payments/payment-status-badge"
 import { UniqueCode } from "@/components/payments/unique-code"
 import { NeedHelpCard, SupportLink } from "@/components/support/support-links"
 import { balanceDue } from "@/lib/payments/labels"
-import { formatCurrency } from "@/lib/pricing/calculate"
+import { formatCurrency, type PricingConfig } from "@/lib/pricing/calculate"
+import { showsEarlyBirdReminders } from "@/lib/pricing/early-bird"
+import { EarlyBirdReminders } from "@/components/registrations/early-bird-reminders"
 import { CFCA_POSITION_LABELS, MINISTRY_LABELS } from "@/lib/registrations/schema"
 import {
   getAccommodationLabel,
@@ -65,6 +67,9 @@ export type RegistrationDetails = {
   dropoff_transport_contact_name?: string | null
   dropoff_transport_contact_phone?: string | null
   souvenir_orders?: unknown
+  is_early_bird?: boolean | null
+  early_bird_slot?: string | null
+  early_bird_adult_limit?: number | null
   registration_attendees?: {
     given_name: string
     surname: string
@@ -159,6 +164,8 @@ type RegistrationDetailsViewProps = {
   registration: RegistrationDetails
   payHref: string
   onlineEnabled: boolean
+  /** Runtime pricing settings; enables the early bird reminders. */
+  pricing?: PricingConfig | null
   /** Shown between the main card and the attendee / accommodation cards. */
   notice?: ReactNode
   actions?: ReactNode
@@ -168,6 +175,7 @@ export const RegistrationDetailsView = ({
   registration,
   payHref,
   onlineEnabled,
+  pricing,
   notice,
   actions,
 }: RegistrationDetailsViewProps) => {
@@ -178,6 +186,8 @@ export const RegistrationDetailsView = ({
   const paymentRef = registration.participant_reference || registration.registration_no
   const remainingBalance = balanceDue(registration.amount_due, registration.amount_paid)
   const canPay = !!registration.submitted_at && remainingBalance > 0
+  const earlyBirdPricing =
+    canPay && pricing && showsEarlyBirdReminders(registration, pricing) ? pricing : null
   const address = [
     registration.address_line1,
     registration.address_line2,
@@ -294,6 +304,7 @@ export const RegistrationDetailsView = ({
               status={registration.payment_status}
               showStatus={false}
             >
+              {earlyBirdPricing ? <EarlyBirdReminders pricing={earlyBirdPricing} /> : null}
               {canPay ? (
                 <PayBalanceActions
                   amount={remainingBalance}

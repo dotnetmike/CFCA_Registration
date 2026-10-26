@@ -3,10 +3,10 @@ import { getRegistrationCodePrefix } from "@/lib/supabase/env"
 import {
   DEFAULT_PRICING_CONFIG,
   calculateTotal,
-  isEarlyBirdWindow,
   type AttendeeInput,
   type PricingConfig,
 } from "@/lib/pricing/calculate"
+import { earlyBirdLimitSelect } from "./early-bird-column"
 import type { RegistrationFormData } from "./schema"
 import { transportOptionToBooleans } from "./transport"
 import { normalizeSouvenirOrders, souvenirTotalAmount } from "./souvenirs"
@@ -21,10 +21,13 @@ export const buildAttendeesForPricing = (data: RegistrationFormData): AttendeeIn
 export const computeAmountDue = (
   data: RegistrationFormData,
   earlyBirdSlot: "interstate" | "melbourne" | "none",
-  pricingConfig: PricingConfig = DEFAULT_PRICING_CONFIG
+  pricingConfig: PricingConfig = DEFAULT_PRICING_CONFIG,
+  earlyBirdAdultLimit?: number | null
 ) =>
-  calculateTotal({ attendees: buildAttendeesForPricing(data), earlyBirdSlot }, pricingConfig) +
-  souvenirTotalAmount(data.souvenir_orders)
+  calculateTotal(
+    { attendees: buildAttendeesForPricing(data), earlyBirdSlot, earlyBirdAdultLimit },
+    pricingConfig
+  ) + souvenirTotalAmount(data.souvenir_orders)
 
 export type StoredRegistrationForPricing = {
   spouse_attending?: boolean | null
@@ -37,14 +40,15 @@ export type StoredRegistrationForPricing = {
 export const computeStoredAmountDue = (
   registration: StoredRegistrationForPricing,
   earlyBirdSlot: "interstate" | "melbourne" | "none",
-  pricingConfig: PricingConfig = DEFAULT_PRICING_CONFIG
+  pricingConfig: PricingConfig = DEFAULT_PRICING_CONFIG,
+  earlyBirdAdultLimit?: number | null
 ) => {
   const attendees: AttendeeInput[] = [{ age: 18, isPrimary: true }]
   if (registration.spouse_attending) attendees.push({ age: 18, isSpouse: true })
   for (const attendee of registration.registration_attendees ?? registration.attendees ?? []) {
     attendees.push({ age: attendee.age })
   }
-  return calculateTotal({ attendees, earlyBirdSlot }, pricingConfig) +
+  return calculateTotal({ attendees, earlyBirdSlot, earlyBirdAdultLimit }, pricingConfig) +
     souvenirTotalAmount(registration.souvenir_orders)
 }
 
@@ -52,23 +56,6 @@ export const computeRegularAmountDue = (
   registration: StoredRegistrationForPricing,
   pricingConfig: PricingConfig = DEFAULT_PRICING_CONFIG
 ) => computeStoredAmountDue(registration, "none", pricingConfig)
-
-export const claimEarlyBirdSlot = async (
-  state: string,
-  pricingConfig: PricingConfig = DEFAULT_PRICING_CONFIG
-): Promise<"interstate" | "melbourne" | "none"> => {
-  if (!isEarlyBirdWindow(new Date(), pricingConfig)) return "none"
-
-  const admin = createAdminClient()
-  const { data, error } = await admin.rpc("claim_early_bird_slot", {
-    p_state: state,
-    p_interstate_limit: pricingConfig.earlyBirdInterstateLimit,
-    p_vic_limit: pricingConfig.earlyBirdVicLimit,
-  })
-
-  if (error) return "none"
-  return (data as "interstate" | "melbourne" | "none") ?? "none"
-}
 
 export const generateRegistrationNo = async () => {
   const admin = createAdminClient()
@@ -84,6 +71,8 @@ export const mapFormToDb = (data: RegistrationFormData, extras: {
   amount_due: number
   early_bird_slot: string
   is_early_bird: boolean
+  /** Only set when the `early_bird_adult_limit` column exists (see `early-bird-column.ts`). */
+  early_bird_adult_limit?: number | null
   submitted_at?: string | null
 }) => {
   let transport: {
@@ -164,15 +153,20 @@ export const mapFormToDb = (data: RegistrationFormData, extras: {
   }
 }
 
+const REGISTRATION_DETAIL_SELECT =
+  "id, registration_no, user_id, surname, given_name, email, mobile, dietary_requirements, address_line1, address_line2, suburb, address_state, postcode, ministry, cfca_position, elder_assembly_attending, state, spouse_surname, spouse_given_name, spouse_attending, spouse_email, spouse_mobile, spouse_dietary_requirements, accommodation_type, pickup_melbourne_airport, dropoff_melbourne_airport, hotel_transport_required, arrival_date, arrival_airport, arrival_flight_no, departure_date, departure_airport, departure_flight_no, hotel_name, hotel_address, accommodation_contact_name, accommodation_contact_phone, pickup_transport_contact_name, pickup_transport_contact_phone, dropoff_transport_contact_name, dropoff_transport_contact_phone, payment_status, amount_due, amount_paid, payment_last_updated_source, payment_last_updated_at, payment_last_updated_by, souvenir_orders, is_early_bird, early_bird_slot, submitted_at, created_at, updated_at, participant_reference, view_token_hash"
+
 export const getRegistrationWithAttendees = async (id: string) => {
   const admin = createAdminClient()
-  const { data: registration, error } = await admin
+  const select = (await earlyBirdLimitSelect(REGISTRATION_DETAIL_SELECT)) as typeof REGISTRATION_DETAIL_SELECT
+  const { data, error } = await admin
     .from("registrations")
-    .select("id, registration_no, user_id, surname, given_name, email, mobile, dietary_requirements, address_line1, address_line2, suburb, address_state, postcode, ministry, cfca_position, elder_assembly_attending, state, spouse_surname, spouse_given_name, spouse_attending, spouse_email, spouse_mobile, spouse_dietary_requirements, accommodation_type, pickup_melbourne_airport, dropoff_melbourne_airport, hotel_transport_required, arrival_date, arrival_airport, arrival_flight_no, departure_date, departure_airport, departure_flight_no, hotel_name, hotel_address, accommodation_contact_name, accommodation_contact_phone, pickup_transport_contact_name, pickup_transport_contact_phone, dropoff_transport_contact_name, dropoff_transport_contact_phone, payment_status, amount_due, amount_paid, payment_last_updated_source, payment_last_updated_at, payment_last_updated_by, souvenir_orders, is_early_bird, early_bird_slot, submitted_at, created_at, updated_at, participant_reference, view_token_hash")
+    .select(select)
     .eq("id", id)
     .single()
 
   if (error) return null
+  const registration = data as typeof data & { early_bird_adult_limit?: number | null }
 
   const { data: attendees } = await admin
     .from("registration_attendees")

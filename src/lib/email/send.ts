@@ -1,5 +1,13 @@
 import { createAdminClient } from "@/lib/supabase/admin"
-import { formatCurrency } from "@/lib/pricing/calculate"
+import { formatCurrency, type PricingConfig } from "@/lib/pricing/calculate"
+import {
+  EARLY_BIRD_REMINDERS_TITLE,
+  earlyBirdReminders,
+  earlyBirdPoolForState,
+  showsEarlyBirdReminders,
+  formatAdultCount,
+  formatEarlyBirdDate,
+} from "@/lib/pricing/early-bird"
 import { CFCA_POSITION_LABELS, MINISTRY_LABELS } from "@/lib/registrations/schema"
 import {
   booleansToTransportOption,
@@ -15,12 +23,14 @@ import { getRequestSiteUrl } from "@/lib/site-url"
 import { getRegistrationRuntimeSettings } from "@/lib/registration-settings"
 import {
   bankTransferNoticeHtml,
+  remindersCalloutHtml,
   paragraphHtml,
   renderEmail,
   getEmailLogoAttachment,
   assertEmailIncludesLogo,
   type EmailDetailsCard,
   type EmailHelpCard,
+  type EmailReminders,
   type EmailLink,
   type EmailRow,
   type EmailStatusTone,
@@ -45,6 +55,29 @@ export type EmailType =
   | "accommodation_updated"
   | "payment_received"
   | "payment_reminder"
+  | "early_bird_pricing_updated"
+
+/** `email_log.email_type` is a DB enum; types without their own value are logged under the closest one. */
+const EMAIL_LOG_TYPE: Record<EmailType, Exclude<EmailType, "early_bird_pricing_updated">> = {
+  registration_submitted: "registration_submitted",
+  registration_updated: "registration_updated",
+  accommodation_updated: "accommodation_updated",
+  payment_received: "payment_received",
+  payment_reminder: "payment_reminder",
+  early_bird_pricing_updated: "registration_updated",
+}
+
+export type EarlyBirdChangeNotice = {
+  reason: "payment_due_passed" | "capacity_reached"
+  previousAmountDue: number
+  adultsMoved: number
+  adultsKeptEarlyBird: number
+}
+
+type EmailContext = {
+  pricing?: PricingConfig
+  earlyBirdChange?: EarlyBirdChangeNotice
+}
 
 type AttendeeRow = {
   given_name?: string
@@ -94,6 +127,9 @@ export type RegistrationEmailRecord = {
   dropoff_transport_contact_name?: string
   dropoff_transport_contact_phone?: string
   souvenir_orders?: { size?: string; quantity?: number }[] | null
+  is_early_bird?: boolean | null
+  early_bird_slot?: string | null
+  early_bird_adult_limit?: number | null
   amount_due: number
   amount_paid: number
   payment_status: string
@@ -105,6 +141,7 @@ type DetailEmailOptions = {
   introLines: string[]
   viewUrl?: string
   portalUrl?: string
+  pricing?: PricingConfig
 }
 
 type EmailSection = {
@@ -141,6 +178,29 @@ const supportTextLine = (topic: SupportTopic) =>
 
 const helpTextLines = () => [`Need help? ${SUPPORT_HELP_TEXT}`, supportTextLine("general")]
 
+/** Early bird reminders while early-bird adults on the registration are unpaid and the due date has not passed. */
+const earlyBirdRemindersFor = (
+  reg: RegistrationEmailRecord,
+  pricing?: PricingConfig
+): EmailReminders | undefined =>
+  pricing && showsEarlyBirdReminders(reg, pricing)
+    ? { title: EARLY_BIRD_REMINDERS_TITLE, items: earlyBirdReminders(pricing) }
+    : undefined
+
+const earlyBirdReminderTextLines = (reminders?: EmailReminders) =>
+  reminders
+    ? [
+        reminders.title.toUpperCase(),
+        ...reminders.items.map((item) => `- ${item.label}: ${item.text}`),
+        "",
+      ]
+    : []
+
+const earlyBirdRemindersHtml = (reg: RegistrationEmailRecord, pricing?: PricingConfig) => {
+  const reminders = earlyBirdRemindersFor(reg, pricing)
+  return reminders ? remindersCalloutHtml(reminders) : ""
+}
+
 /** Status first; Balance due only when money is still owed. */
 const buildPaymentRows = (reg: RegistrationEmailRecord): EmailSection["rows"] => {
   const balance = balanceDue(reg.amount_due, reg.amount_paid)
@@ -168,6 +228,8 @@ const buildSubject = (type: EmailType, reg: RegistrationEmailRecord) => {
       return `2027 CFCA National Conference Payment Received — ${ref}`
     case "payment_reminder":
       return `2027 CFCA National Conference Payment Reminder — ${ref}`
+    case "early_bird_pricing_updated":
+      return `2027 CFCA National Conference Registration Fee Updated (Early Bird) — ${ref}`
   }
 }
 
@@ -191,7 +253,8 @@ const formatAddress = (reg: RegistrationEmailRecord) =>
 
 const buildRegistrationContent = (
   reg: RegistrationEmailRecord,
-  payUrl?: string
+  payUrl?: string,
+  context: EmailContext = {}
 ): { detailsCard: EmailDetailsCard; sections: EmailSection[] } => {
   const name = `${reg.given_name} ${reg.surname}`.trim()
   const ref = paymentRef(reg)
@@ -265,6 +328,7 @@ const buildRegistrationContent = (
         ? {
             balance: formatCurrency(balance),
             helper: "Your registration is reserved. Complete payment to confirm your attendance.",
+            earlyBirdReminders: earlyBirdRemindersFor(reg, context.pricing),
             note: BANK_TRANSFER_ENCOURAGEMENT,
             ctaLabel: payUrl ? `Pay ${formatCurrency(balance)} securely` : undefined,
             ctaUrl: payUrl,
@@ -486,6 +550,7 @@ const buildFullRegistrationDetails = (
   )
   if (balanceDue(reg.amount_due, reg.amount_paid) > 0) {
     lines.push(
+      ...earlyBirdReminderTextLines(earlyBirdRemindersFor(reg, options.pricing)),
       `IMPORTANT: Include your Unique Code (${ref}) in both Message and Ref. when paying via your bank app.`,
       "",
       `Bank transfer recommended. ${BANK_TRANSFER_ENCOURAGEMENT}`,
@@ -522,10 +587,50 @@ const buildFullRegistrationDetails = (
   return lines.join("\n")
 }
 
+/** Why the fee changed, and which adults keep the early bird rate. */
+const earlyBirdChangeParagraphs = (
+  reg: RegistrationEmailRecord,
+  change: EarlyBirdChangeNotice,
+  pricing?: PricingConfig
+) => {
+  const earlyBirdRate = pricing ? `${formatCurrency(pricing.adultEarlyBird)} per adult` : "per adult"
+  const regularRate = pricing ? `${formatCurrency(pricing.adultRegular)} per adult` : "per adult"
+  const moved = change.adultsMoved
+  const kept = change.adultsKeptEarlyBird
+  const reason =
+    change.reason === "payment_due_passed"
+      ? `The early bird rate of ${earlyBirdRate} required full payment by ${
+          pricing ? formatEarlyBirdDate(pricing.earlyBirdPaymentDueDate) : "the early bird payment due date"
+        }. Payment for ${formatAdultCount(moved)} on your registration had not been received by then, so ${
+          moved === 1 ? "that adult moves" : "those adults move"
+        } to the regular rate of ${regularRate}.`
+      : `Early bird places for ${
+          earlyBirdPoolForState(reg.state) === "melbourne" ? "Victorian" : "interstate"
+        } delegates have now been filled by paid registrations. Early bird pricing is only secured once payment is received, so ${formatAdultCount(moved)} on your registration not yet covered by payment ${
+          moved === 1 ? "moves" : "move"
+        } to the regular rate of ${regularRate}.`
+  const keptText =
+    kept > 0
+      ? `${formatAdultCount(kept)} already covered by your payment ${kept === 1 ? "keeps" : "keep"} the early bird rate.`
+      : undefined
+  return keptText ? [reason, keptText] : [reason]
+}
+
+const earlyBirdChangeRows = (reg: RegistrationEmailRecord, change: EarlyBirdChangeNotice): EmailRow[] => {
+  const balance = balanceDue(reg.amount_due, reg.amount_paid)
+  return [
+    { label: "Previous registration fee", value: formatCurrency(Number(change.previousAmountDue)) },
+    { label: "New registration fee", value: formatCurrency(Number(reg.amount_due)) },
+    { label: PAYMENT_LABELS.paid, value: formatCurrency(Number(reg.amount_paid)) },
+    ...(balance > 0 ? [{ label: PAYMENT_LABELS.balanceDue, value: formatCurrency(balance) }] : []),
+  ]
+}
+
 const buildBody = (
   type: EmailType,
   reg: RegistrationEmailRecord,
-  links: { viewUrl?: string; portalUrl?: string }
+  links: { viewUrl?: string; portalUrl?: string },
+  context: EmailContext = {}
 ) => {
   const name = `${reg.given_name} ${reg.surname}`.trim()
   const ref = paymentRef(reg)
@@ -540,6 +645,7 @@ const buildBody = (
           "Thank you for registering for the 2027 CFCA National Conference. Here is a summary of your registration:",
         ],
         viewUrl: links.viewUrl,
+        pricing: context.pricing,
       })
     case "registration_updated":
       return buildFullRegistrationDetails(reg, {
@@ -549,6 +655,7 @@ const buildBody = (
           `Your registration (${ref}) has been updated. Please review the full details below.`,
         ],
         portalUrl: links.portalUrl,
+        pricing: context.pricing,
       })
     case "accommodation_updated":
       return buildFullRegistrationDetails(reg, {
@@ -558,7 +665,36 @@ const buildBody = (
           `Your transport and/or accommodation details (${ref}) have been updated. Please review the full details below.`,
         ],
         portalUrl: links.portalUrl,
+        pricing: context.pricing,
       })
+    case "early_bird_pricing_updated": {
+      const change = context.earlyBirdChange
+      const balance = balanceDue(reg.amount_due, reg.amount_paid)
+      return [
+        `Dear ${name},`,
+        "",
+        `The registration fee for ${ref} has been updated.`,
+        "",
+        ...(change ? [...earlyBirdChangeParagraphs(reg, change, context.pricing), ""] : []),
+        "=== Fee update ===",
+        ...(change
+          ? paymentRowsToText(earlyBirdChangeRows(reg, change))
+          : paymentRowsToText(buildPaymentRows(reg))),
+        `Unique Code: ${ref}`,
+        supportTextLine("payment"),
+        "",
+        ...(balance > 0
+          ? [
+              `IMPORTANT: Include your Unique Code (${ref}) in both Message and Ref. when paying via your bank app.`,
+              "",
+              `Bank transfer recommended. ${BANK_TRANSFER_ENCOURAGEMENT}`,
+              "",
+            ]
+          : []),
+        ...(links.portalUrl ? ["View your registration online (log in required):", links.portalUrl, ""] : []),
+        ...helpTextLines(),
+      ].join("\n")
+    }
     case "payment_received":
       return `${base}We have received your payment for registration ${ref}.
 
@@ -573,7 +709,7 @@ ${PAYMENT_LABELS.balanceDue}: ${formatCurrency(balanceDue(reg.amount_due, reg.am
 
 Please include ${ref} in your payment reference.
 
-Bank transfer recommended. ${BANK_TRANSFER_ENCOURAGEMENT}
+${earlyBirdReminderTextLines(earlyBirdRemindersFor(reg, context.pricing)).map((line) => `${line}\n`).join("")}Bank transfer recommended. ${BANK_TRANSFER_ENCOURAGEMENT}
 ${supportTextLine("payment")}
 
 ${helpTextLines().join("\n")}`
@@ -583,7 +719,8 @@ ${helpTextLines().join("\n")}`
 const buildHtml = (
   type: EmailType,
   reg: RegistrationEmailRecord,
-  links: { viewUrl?: string; portalUrl?: string; payUrl?: string; siteUrl: string }
+  links: { viewUrl?: string; portalUrl?: string; payUrl?: string; siteUrl: string },
+  context: EmailContext = {}
 ) => {
   const name = `${reg.given_name} ${reg.surname}`.trim()
   const ref = paymentRef(reg)
@@ -598,7 +735,7 @@ const buildHtml = (
           paragraphHtml(
             "Thank you for registering for the 2027 CFCA National Conference. Here is a summary of your registration:"
           ),
-        ...buildRegistrationContent(reg, links.payUrl),
+        ...buildRegistrationContent(reg, links.payUrl, context),
         ctaLabel: links.viewUrl ? "View registration" : undefined,
         ctaUrl: links.viewUrl,
         footerNote:
@@ -614,7 +751,7 @@ const buildHtml = (
           paragraphHtml(
             `Your registration (${ref}) has been updated. Please review the full details below.`
           ),
-        ...buildRegistrationContent(reg, links.payUrl),
+        ...buildRegistrationContent(reg, links.payUrl, context),
         ctaLabel: "Open my registration",
         ctaUrl: links.portalUrl,
         footerNote:
@@ -630,7 +767,7 @@ const buildHtml = (
           paragraphHtml(
             `Your transport and/or accommodation details (${ref}) have been updated. Please review the full details below.`
           ),
-        ...buildRegistrationContent(reg, links.payUrl),
+        ...buildRegistrationContent(reg, links.payUrl, context),
         ctaLabel: "Open my registration",
         ctaUrl: links.portalUrl,
         footerNote:
@@ -662,6 +799,7 @@ const buildHtml = (
           paragraphHtml(
             `This is a reminder that registration ${ref} has a balance due.`
           ) +
+          earlyBirdRemindersHtml(reg, context.pricing) +
           bankTransferNoticeHtml(BANK_TRANSFER_ENCOURAGEMENT),
         sections: [
           {
@@ -685,6 +823,42 @@ const buildHtml = (
         helpCard: supportHelpCard(reg),
         siteUrl: links.siteUrl,
       })
+    case "early_bird_pricing_updated": {
+      const change = context.earlyBirdChange
+      const balance = balanceDue(reg.amount_due, reg.amount_paid)
+      return renderEmail({
+        heading: "Registration fee updated",
+        introHtml:
+          greeting +
+          paragraphHtml(`The registration fee for ${ref} has been updated.`) +
+          (change
+            ? earlyBirdChangeParagraphs(reg, change, context.pricing)
+                .map((text) => paragraphHtml(text))
+                .join("")
+            : "") +
+          (balance > 0
+            ? paragraphHtml(
+                `Please pay the balance of ${formatCurrency(balance)}. Paying by bank transfer? Include your Unique Code in both Message and Ref.`
+              ) + bankTransferNoticeHtml(BANK_TRANSFER_ENCOURAGEMENT)
+            : ""),
+        sections: [
+          {
+            title: "Fee update",
+            rows: [
+              ...(change ? earlyBirdChangeRows(reg, change) : buildPaymentRows(reg)),
+              uniqueCodeRow(ref),
+            ],
+            link: supportLink("payment", reg),
+          },
+        ],
+        ctaLabel: "Open my registration",
+        ctaUrl: links.portalUrl,
+        footerNote:
+          "Log in is required. If you do not have an account yet, create one using the same email as this registration.",
+        helpCard: supportHelpCard(reg),
+        siteUrl: links.siteUrl,
+      })
+    }
   }
 }
 
@@ -700,20 +874,21 @@ export type RegistrationEmailContent = {
 export const buildRegistrationEmail = (
   registration: RegistrationEmailRecord,
   type: EmailType,
-  options: { siteUrl: string; viewToken?: string }
+  options: { siteUrl: string; viewToken?: string } & EmailContext
 ): RegistrationEmailContent => {
-  const { siteUrl, viewToken } = options
+  const { siteUrl, viewToken, pricing, earlyBirdChange } = options
+  const context: EmailContext = { pricing, earlyBirdChange }
   const viewUrl = viewToken ? `${siteUrl}/r/${encodeURIComponent(viewToken)}` : undefined
   const portalUrl = `${siteUrl}/my-registration`
   const payUrl = viewToken
     ? `${siteUrl}/register/pay?view=${encodeURIComponent(viewToken)}`
     : `${siteUrl}/payment`
-  const html = buildHtml(type, registration, { viewUrl, portalUrl, payUrl, siteUrl })
+  const html = buildHtml(type, registration, { viewUrl, portalUrl, payUrl, siteUrl }, context)
   assertEmailIncludesLogo(html)
 
   return {
     subject: buildSubject(type, registration),
-    text: buildBody(type, registration, { viewUrl, portalUrl }),
+    text: buildBody(type, registration, { viewUrl, portalUrl }, context),
     html,
     viewUrl,
     portalUrl,
@@ -723,14 +898,17 @@ export const buildRegistrationEmail = (
 export const sendRegistrationEmail = async (
   registration: RegistrationEmailRecord,
   type: EmailType,
-  options: { request: Request; viewToken?: string }
+  options: { request: Request; viewToken?: string; earlyBirdChange?: EarlyBirdChangeNotice }
 ) => {
+  const { notificationRecipientEmail: notificationRecipient, pricing } =
+    await getRegistrationRuntimeSettings()
   const { subject, text, html, viewUrl, portalUrl } = buildRegistrationEmail(registration, type, {
     siteUrl: getRequestSiteUrl(options.request),
     viewToken: options.viewToken,
+    pricing,
+    earlyBirdChange: options.earlyBirdChange,
   })
   const logoAttachment = getEmailLogoAttachment()
-  const { notificationRecipientEmail: notificationRecipient } = await getRegistrationRuntimeSettings()
 
   const result = await sendTransactionalEmail({
     to: registration.email,
@@ -745,7 +923,7 @@ export const sendRegistrationEmail = async (
     console.log(`[email] (dev) ${type} to ${registration.email}${notificationRecipient ? `; bcc ${notificationRecipient}` : ""}: ${subject}`)
     console.log(`[email] (dev) logo attached as cid:${logoAttachment.inlineContentId}`)
     if (viewUrl) console.log(`[email] (dev) view link: ${viewUrl}`)
-    if (type === "registration_updated" || type === "accommodation_updated") {
+    if (type === "registration_updated" || type === "accommodation_updated" || type === "early_bird_pricing_updated") {
       console.log(`[email] (dev) portal link: ${portalUrl}`)
     }
   }
@@ -763,7 +941,7 @@ const logEmail = async (
   const admin = createAdminClient()
   await admin.from("email_log").insert({
     registration_id: registration.id,
-    email_type: type,
+    email_type: EMAIL_LOG_TYPE[type],
     recipient,
     subject,
     resend_id: resendId,

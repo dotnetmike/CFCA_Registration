@@ -26,6 +26,11 @@ export type EmailHelpCard = {
   link: EmailLink
 }
 
+export type EmailReminders = {
+  title: string
+  items: { label: string; text: string }[]
+}
+
 type EmailSection = {
   title: string
   rows: EmailRow[]
@@ -47,6 +52,8 @@ export type EmailDetailsCard = {
     paid: string
     balance?: string
     helper?: string
+    /** Amber early bird reminders shown while early-bird adults are unpaid. */
+    earlyBirdReminders?: EmailReminders
     /** Bank transfer encouragement shown above the pay button. */
     note?: string
     ctaLabel?: string
@@ -103,6 +110,17 @@ const STATUS_TONES: Record<EmailStatusTone, { bg: string; text: string }> = {
 export const bankTransferNoticeHtml = (text: string) =>
   `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:14px 0 0;"><tr><td style="padding:12px 14px;border-radius:8px;background:#ECFDF5;border:1px solid #A7F3D0;font-size:14px;line-height:1.5;color:#065F46;"><strong>Bank transfer recommended.</strong> ${escapeHtml(text)}</td></tr></table>`
 
+/** Amber callout with a bold title and a bulleted "Label: text" list (early bird reminders). */
+export const remindersCalloutHtml = (reminders: EmailReminders) => {
+  const items = reminders.items
+    .map(
+      (item) =>
+        `<li style="margin:4px 0 0;"><strong>${escapeHtml(item.label)}:</strong> ${escapeHtml(item.text)}</li>`
+    )
+    .join("")
+  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:14px 0 0;"><tr><td style="padding:12px 14px;border-radius:8px;background:#FFFBEB;border:1px solid #FDE68A;font-size:14px;line-height:1.5;color:#92400E;"><p style="margin:0;font-weight:700;">${escapeHtml(reminders.title)}</p><ul style="margin:6px 0 0;padding-left:20px;">${items}</ul></td></tr></table>`
+}
+
 /** Envelope (U+2709) forced to text presentation so clients do not swap in a colour emoji. */
 const ENVELOPE_HTML = "&#9993;&#65038;"
 
@@ -158,6 +176,7 @@ const renderDetailsCard = (card: EmailDetailsCard) => {
   const helperHtml = payment.helper
     ? `<p style="margin:12px 0 0;font-size:14px;line-height:1.5;color:${brand.grey};">${escapeHtml(payment.helper)}</p>`
     : ""
+  const earlyBirdHtml = payment.earlyBirdReminders ? remindersCalloutHtml(payment.earlyBirdReminders) : ""
   const noteHtml = payment.note ? bankTransferNoticeHtml(payment.note) : ""
   const ctaHtml =
     payment.ctaLabel && payment.ctaUrl
@@ -217,6 +236,7 @@ const renderDetailsCard = (card: EmailDetailsCard) => {
                       ${balanceHtml}
                     </table>
                     ${helperHtml}
+                    ${earlyBirdHtml}
                     ${noteHtml}
                     ${ctaHtml}
                     ${footnoteHtml}

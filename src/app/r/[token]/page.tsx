@@ -10,6 +10,7 @@ import {
   RegistrationDetailsView,
   type RegistrationDetails,
 } from "@/components/registrations/registration-details-view"
+import type { PricingConfig } from "@/lib/pricing/calculate"
 
 const MagicRegistrationContent = () => {
   const params = useParams<{ token: string }>()
@@ -20,6 +21,7 @@ const MagicRegistrationContent = () => {
   const [registration, setRegistration] = useState<RegistrationDetails | null>(null)
   const [hasAccount, setHasAccount] = useState(false)
   const [onlineEnabled, setOnlineEnabled] = useState(false)
+  const [pricing, setPricing] = useState<PricingConfig | null>(null)
   const [error, setError] = useState("")
   const [isLoading, setIsLoading] = useState(true)
   const [reloadCount, setReloadCount] = useState(0)
@@ -42,6 +44,7 @@ const MagicRegistrationContent = () => {
           settingsData.settings?.registrationWorkflow === "v2" &&
             settingsData.stripePaymentsEnabled === true
         )
+        setPricing(settingsData.settings?.pricing ?? null)
       }
       if (!res.ok) {
         const data = await res.json().catch(() => ({}))
@@ -92,6 +95,7 @@ const MagicRegistrationContent = () => {
         registration={registration}
         payHref={payHref}
         onlineEnabled={onlineEnabled}
+        pricing={pricing}
         notice={
           <Alert variant="info">
             You are viewing this registration via a secure email link. To make changes,{" "}

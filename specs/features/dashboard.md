@@ -3,7 +3,7 @@ id: features.dashboard
 title: Manager dashboard
 status: active
 synced_commit: working-tree
-synced_at: 2026-10-22
+synced_at: 2026-10-26
 owners: [team]
 files:
   - src/app/dashboard/page.tsx
@@ -108,8 +108,9 @@ Staff tools: list registrations, users, reports, payment reconcile.
   - **Welcome panel** with staff name + quick links
   - **Charts**: payment-status distribution, registrations by state, people composition (registrations / spouses / additional adults / kids)
   - **Summary-by-state table**: registrations, spouses, additional adults, kids, total people, with share progress bars
-  - **Early bird capacity** panel: window dates (effective end = earlier of early-bird end and early-bird payment due date) and Open / Closed; one card per capacity group — **Victoria** (VIC cap) and **Interstate** (one cap shared by all other states) — showing used / capacity, % used, remaining (highlighted when ≤ 10% left); and a per-state table (early bird registrations, capacity group, group capacity, group remaining) listing every state.
-  - Usage mirrors `claim_early_bird_slot`: registrations with `is_early_bird = true`, counted per registration (not per person). Caps and dates come from Registration Settings. Registrations moved to regular pricing after the early-bird deadline release their slot.
+  - **Early bird capacity** panel: window dates (effective end = earlier of early-bird end and early-bird payment due date), Open / Closed and the payment due date; one card per capacity group — **Victoria** (VIC cap) and **Interstate** (one cap shared by all other states) — showing **adults confirmed (paid)** / capacity, % confirmed, remaining (highlighted when ≤ 10% left) and adults **reserved, awaiting payment**; and a per-state table (Confirmed adults (paid), Reserved adults (unpaid), capacity group, group capacity, group remaining) listing every state.
+  - Counting matches the early-bird rules in `features.registration` (`earlyBirdAdultTally`): submitted registrations holding early bird, counted **per adult** (registrant, spouse, additional adults 18+, up to the registration's early-bird adult limit). Only adults covered by payment are **confirmed** and use capacity; unpaid early-bird adults are shown as **reserved**. Caps and dates come from Registration Settings. Adults moved to the regular rate by early-bird expiry release their place.
+  - The Registrations dashboard has no early-bird figures; Reports is the single place for early-bird capacity.
 - **People counts always include every additional attendee** (`src/lib/registrations/people-count.ts`): one registrant per registration + spouse (when attending) + additional adults (attendees aged 18+) + kids (attendees under 18) = total people. There is no separate "registrants" column because it always equals registrations.
   - **Export Detailed CSV** panel (always fetches a fresh full export from the API, not from the summary cache)
 - CSV includes **all registrant attributes** currently on the registration row (dynamic column union so newly added columns appear automatically), plus flattened spouse/attendee helpers as needed:

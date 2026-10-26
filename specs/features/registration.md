@@ -3,7 +3,7 @@ id: features.registration
 title: Registration form
 status: active
 synced_commit: working-tree
-synced_at: 2026-10-22
+synced_at: 2026-10-26
 owners: [team]
 files:
   - src/app/page.tsx
@@ -14,6 +14,7 @@ files:
   - src/lib/registrations/form-tooltips.ts
   - src/components/registrations/registration-form.tsx
   - src/components/registrations/registration-review-summary.tsx
+  - src/components/registrations/early-bird-reminders.tsx
   - src/components/registrations/transport-schedule-alert.tsx
   - src/lib/registrations/schema.ts
   - src/lib/registrations/validation.test.ts
@@ -25,6 +26,11 @@ files:
   - src/lib/registrations/rate-limit.ts
   - src/lib/registrations/compare.ts
   - src/lib/pricing/calculate.ts
+  - src/lib/pricing/early-bird.ts
+  - src/lib/registrations/early-bird-claim.ts
+  - src/lib/registrations/early-bird-expiry.ts
+  - src/lib/registrations/early-bird-expiry-runner.ts
+  - src/lib/registrations/early-bird-column.ts
   - src/lib/registrations/reprice.ts
   - scripts/db/reprice-registrations.ts
   - src/lib/registration-settings.ts
@@ -42,6 +48,7 @@ files:
   - supabase/migrations/023_rename_coordinator_roles.sql
   - supabase/migrations/024_area_and_music_coordinator_roles.sql
   - supabase/migrations/020_souvenir_preorder_toggle.sql
+  - supabase/migrations/028_early_bird_adult_limit.sql
 ---
 
 # Registration form
@@ -134,12 +141,20 @@ Single continuous conference registration page. Guests complete without login; l
 - Early bird window and attendee pricing are loaded from runtime registration settings (DB-backed), not hardcoded constants.
 - Form pricing preview and server-side amount calculations use the same runtime settings.
 - **Price per person** (`src/lib/pricing/calculate.ts`, defaults in brackets):
-  - Registrant, spouse, and any additional attendee aged **18+** → adult rate: **adult early bird** ($220) when the registration holds an early-bird slot, otherwise **adult regular** ($240).
+  - Registrant, spouse, and any additional attendee aged **18+** → adult rate: **adult early bird** ($220) for adults holding an early-bird place, otherwise **adult regular** ($240).
   - Additional attendee aged **12–17** → $175. Aged **2–11** → $100. Aged **0–1** → free.
-  - The early-bird slot is claimed per registration when it is submitted inside the early-bird window (subject to the state caps); every adult on that registration then gets the early-bird rate, including adults added later.
+- **Early bird is per adult** (`src/lib/pricing/early-bird.ts`). Adults on a registration are ordered registrant → spouse → additional adults 18+ (in attendee order). `registrations.early_bird_adult_limit` stores how many of them are on the early-bird rate; `NULL` (every registration created before this rule) means all adults.
+  - **Capacity** caps in Settings (Victoria, Interstate = every other state) count **adults**, not registrations.
+  - **Confirmed** early-bird adults = adults covered by payment: each adult early-bird fee paid confirms one early-bird adult in the order above, i.e. `min(early-bird adults, floor(amount paid ÷ adult early-bird price))`. Only confirmed adults use capacity. Unpaid early-bird adults are **reserved**, not confirmed.
+  - **Claiming**: a registration submitted on or before the early-bird **end date** (and on/after the start date) gets early bird for `min(its adults, cap − confirmed adults of other registrations in its pool)` adults. Adults added to a registration later get early bird only while the window is open and the pool has room; otherwise they pay the regular rate (adults already on early bird keep it). Removing adults lowers the early-bird count to the remaining adults.
+  - **Expiry** (automatic, daily payment cron): after the early-bird **payment due date**, or once a pool's confirmed adults reach its cap, every early-bird adult on a submitted registration that is not confirmed moves to the regular rate. Adults already covered by payment keep early bird. The fee and payment status are recalculated (amount paid unchanged), an `registration.early_bird_expired` audit row is written, and the registrant is emailed (see `global.email`). Reruns change nothing.
+  - Without the `early_bird_adult_limit` column (before migration `028` runs) the app keeps the previous behaviour: all adults of an early-bird registration share its rate, and part-confirmed registrations are not repriced.
+  - **Dates** are whole Melbourne calendar days, inclusive: claiming is open from the start date through the earlier of the end date and the payment due date (`earlyBirdClaimEndDate`); the due date has passed from the following Melbourne day.
+- **Registrant-facing wording**: wherever early-bird pricing is shown (form review step, registration details, registration emails, payment reminders), an amber **Early Bird Registration – Important Reminders** box lists, as bullets, Limited slots (first-paid, first-served), Payment required (secured only once full payment is received and confirmed), Deadline (the payment due date from settings, or until all early bird slots are filled) and Unpaid registrations (revert to the regular adult rate from settings). Exact wording is in `features.payment`; text comes from `earlyBirdReminders` and the web box is `EarlyBirdReminders` (`early-bird-reminders.tsx`).
+  - Review step (`registration-review-summary.tsx`): a green line with the early-bird rate and saving "subject to available places", then the amber Important Reminders box. The cost table is an estimate (places are checked when saving): while claiming is open every adult is shown on early bird; a submitted registration without early bird does not gain it on edit; after claiming closes an edited registration keeps only the adults it already had on early bird.
 - **Saving a change that alters the registration fee** (e.g. adding attendees) recalculates **Payment status** from the new fee and the existing amount paid (a Paid registration with a new balance becomes Part paid). Saves that leave the fee unchanged keep the current status.
 - `npm run db:reprice-registrations` re-prices saved registrations with the current rules (dry run by default; `--apply` updates fee + payment status, audited as `registration.reprice`, no emails, amount paid unchanged).
-- The early-bird payment due date, payment reminder dates, and email copy recipient (`notification_recipient_email`) are runtime settings. The daily payment cron changes unpaid/part-paid early-bird registrations to regular pricing after the deadline and sends reminders on configured dates.
+- The early-bird payment due date, payment reminder dates, and email copy recipient (`notification_recipient_email`) are runtime settings. The daily payment cron applies early-bird expiry (above) and sends reminders on configured dates.
 - When the email copy recipient is set, **every** email sent to a registrant (registration submitted / updated, transport/accommodation updated, payment received, payment reminder, admin resends) is **BCC'd** to it, so registrants never see the address. Password reset emails are never copied because they contain a sign-in link.
 
 ### API
@@ -174,7 +189,11 @@ Single continuous conference registration page. Guests complete without login; l
 - [ ] Update notification emails include full registration details and contacts when applicable
 - [ ] Update emails include a link that leads to My Registration after login
 - [ ] Early bird window and attendee pricing can be changed without redeploy
-- [ ] Additional attendees aged 18+ pay the adult rate (early bird when the registration holds an early-bird slot); 12–17, 2–11 and 0–1 use their bands
+- [ ] Additional attendees aged 18+ pay the adult rate (early bird when they hold an early-bird place); 12–17, 2–11 and 0–1 use their bands
+- [ ] Early-bird capacity counts adults, and only adults covered by payment are confirmed
+- [ ] Adults added after the early-bird end date, or when the pool is full, pay the regular rate
+- [ ] After the payment due date or when a pool is full, unpaid early-bird adults move to the regular rate automatically, paid adults keep early bird, and the registrant is emailed
+- [ ] The review step shows the bulleted Early Bird Registration – Important Reminders with the deadline and regular rate from Registration Settings
 - [ ] Adding attendees to a paid registration recalculates the fee and moves the payment status to Part paid
 - [ ] Early-bird payment deadline, payment reminders, and registration update recipient can be changed without redeploy
 - [ ] Closed registration blocks public/participant registration writes while allowing manager/admin role updates

@@ -8,6 +8,7 @@ import {
   RegistrationDetailsView,
   type RegistrationDetails,
 } from "@/components/registrations/registration-details-view"
+import type { PricingConfig } from "@/lib/pricing/calculate"
 import { useAuth } from "@/lib/auth/context"
 import { Alert } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
@@ -19,6 +20,7 @@ const MyRegistrationContent = () => {
     searchParams.get("payment") === "success" ? searchParams.get("session_id") : null
   const [registration, setRegistration] = useState<RegistrationDetails | null>(null)
   const [onlineEnabled, setOnlineEnabled] = useState(false)
+  const [pricing, setPricing] = useState<PricingConfig | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [reloadKey, setReloadKey] = useState(0)
 
@@ -34,6 +36,7 @@ const MyRegistrationContent = () => {
           settingsData.settings?.registrationWorkflow === "v2" &&
             settingsData.stripePaymentsEnabled === true
         )
+        setPricing(settingsData.settings?.pricing ?? null)
       }
       if (res.ok) {
         const data = await res.json()
@@ -73,6 +76,7 @@ const MyRegistrationContent = () => {
         registration={registration}
         payHref="/payment"
         onlineEnabled={onlineEnabled}
+        pricing={pricing}
         actions={
           <>
             <Link href="/">

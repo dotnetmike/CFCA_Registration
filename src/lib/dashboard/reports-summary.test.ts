@@ -4,28 +4,32 @@ import test from "node:test"
 import { DEFAULT_PRICING_CONFIG } from "@/lib/pricing/calculate"
 import { buildEarlyBirdUsage, buildReportsSummary } from "./reports-summary"
 
-test("early bird usage counts registrations per state against the VIC and interstate caps", () => {
+test("early bird usage counts paid adults per state against the VIC and interstate caps", () => {
+  const vic = { state: "VIC", is_early_bird: true, early_bird_slot: "melbourne" }
+  const interstate = { is_early_bird: true, early_bird_slot: "interstate" }
   const usage = buildEarlyBirdUsage(
     [
-      { state: "VIC", is_early_bird: true },
-      { state: "VIC", is_early_bird: true },
-      { state: "VIC", is_early_bird: false },
-      { state: "NSW", is_early_bird: true },
-      { state: "WA", is_early_bird: true },
-      { state: null, is_early_bird: true },
+      { ...vic, spouse_attending: true, amount_paid: 440 },
+      { ...vic, spouse_attending: true, registration_attendees: [{ age: 40 }, { age: 9 }], amount_paid: 220 },
+      { state: "VIC", is_early_bird: false, early_bird_slot: "none", amount_paid: 240 },
+      { ...interstate, state: "NSW", spouse_attending: true, amount_paid: 615 },
+      { ...interstate, state: "WA", amount_paid: 0 },
+      { ...interstate, state: null, amount_paid: 220 },
     ],
-    { ...DEFAULT_PRICING_CONFIG, earlyBirdVicLimit: 2, earlyBirdInterstateLimit: 5, earlyBirdEnd: "2027-03-31" },
+    { ...DEFAULT_PRICING_CONFIG, earlyBirdVicLimit: 4, earlyBirdInterstateLimit: 5, earlyBirdEnd: "2027-03-31" },
     new Date("2026-10-24T00:00:00Z")
   )
 
   assert.deepEqual(usage.pools, [
-    { id: "melbourne", label: "Victoria", capacity: 2, used: 2, remaining: 0 },
-    { id: "interstate", label: "Interstate (all other states)", capacity: 5, used: 2, remaining: 3 },
+    { id: "melbourne", label: "Victoria", capacity: 4, used: 3, reserved: 2, remaining: 1 },
+    { id: "interstate", label: "Interstate (all other states)", capacity: 5, used: 2, reserved: 1, remaining: 3 },
   ])
-  assert.equal(usage.states.find((row) => row.state === "NSW")?.used, 1)
+  assert.deepEqual(usage.states.find((row) => row.state === "NSW"), { state: "NSW", pool: "interstate", used: 2, reserved: 0 })
+  assert.deepEqual(usage.states.find((row) => row.state === "WA"), { state: "WA", pool: "interstate", used: 0, reserved: 1 })
   assert.equal(usage.states.find((row) => row.state === "QLD")?.used, 0)
   assert.equal(usage.states.length, 8)
   assert.equal(usage.windowEnd, "2027-02-28")
+  assert.equal(usage.paymentDueDate, "2027-02-28")
   assert.equal(usage.isOpen, true)
 })
 

@@ -3,11 +3,12 @@ id: features.magic-link-view
 title: Magic-link registration view
 status: active
 synced_commit: working-tree
-synced_at: 2026-10-24
+synced_at: 2026-10-26
 owners: [team]
 files:
   - src/app/r/[token]/page.tsx
   - src/components/registrations/registration-details-view.tsx
+  - src/components/registrations/early-bird-reminders.tsx
   - src/components/support/support-links.tsx
   - src/lib/support/contact.ts
   - src/app/api/registrations/view/[token]/route.ts
@@ -39,6 +40,7 @@ Permanent read-only view of a registration from the confirmation email, without 
   - Pay page in this mode (view token only, no signup token) is labelled “Registration payment” (not “Step 2 of 3”), offers the same Online (V2 + Stripe) / Bank options, and links back to the registration details.
   - Stripe Checkout success returns to `/r/<token>?payment=success&session_id=…`, which shows the checkout outcome (`StripeCheckoutReturn`, retry → pay page) and reloads the registration once confirmed. Bank “continue” returns to `/r/<token>`. Cancel returns to the pay page.
   - Fully paid registrations show no pay button.
+  - **Early Bird Registration – Important Reminders:** while early-bird adults on the registration are not covered by payment and the early-bird payment due date has not passed, an amber box (`EarlyBirdReminders` in `src/components/registrations/early-bird-reminders.tsx`: warning icon + bold title, bulleted list, `#FFFBEB` / `#FDE68A` / `#92400E`) appears in the Payment summary above the helper text, using the pricing from `GET /api/registration-settings` (`settings.pricing`) and the bullets in `features.payment`.
 - **Card headings:** **Payment summary** title in brand blue (`#1E5AA8`, uppercase). **Other people attending** (people icon) and **Accommodation & transport** (bed icon) cards have an icon + bold 16px title header with a divider below.
 - **Support contacts** (`src/lib/support/contact.ts`, `SupportLink` / `NeedHelpCard` in `src/components/support/support-links.tsx`): each opens the visitor's email app (`mailto:`) with a subject naming their registration — `<topic> — <Registration No> (<Unique Code>)` — and a body listing Registration No, Unique Code and name. The two inline support links and the **Ask a question** button show a mail (envelope) icon before the label so it is clear they open an email. Always shown, whether or not money is owed:
   - **Ask about conference payment** link inside the Payment summary card → `payment@cfcanatcon.com`, subject “Conference payment question — …”.

@@ -7,6 +7,7 @@ import {
   type PricingConfig,
   type PricingLineItem,
 } from "@/lib/pricing/calculate"
+import { isEarlyBirdClaimOpen, type EarlyBirdSlot } from "@/lib/pricing/early-bird"
 import { buildAttendeesForPricing } from "@/lib/registrations/service"
 import type { RegistrationFormData } from "@/lib/registrations/schema"
 import {
@@ -17,15 +18,42 @@ import {
 } from "@/lib/registrations/souvenirs"
 import { Alert } from "@/components/ui/alert"
 import { PaymentReferenceMockup } from "@/components/registrations/payment-reference-mockup"
+import { EarlyBirdReminders } from "@/components/registrations/early-bird-reminders"
 
 import { PAYMENT_LABELS } from "@/lib/payments/labels"
 import { UniqueCodeValue } from "@/components/payments/unique-code"
+
+/** Early bird already held by a submitted registration that is being edited. */
+export type StoredEarlyBird = {
+  slot: EarlyBirdSlot
+  earlyBirdAdults: number
+}
 
 type RegistrationReviewSummaryProps = {
   formData: RegistrationFormData
   participantReference: string | null
   pricingConfig?: PricingConfig
   souvenirPreorderEnabled?: boolean
+  storedEarlyBird?: StoredEarlyBird | null
+}
+
+/**
+ * Estimate only: the server also checks early bird places when the registration is saved.
+ * While claiming is open every adult is shown on early bird. A submitted registration without early bird
+ * does not gain it on edit; once claiming closes an edited registration keeps only the adults it already
+ * had on early bird and anyone added pays the regular rate.
+ */
+const previewEarlyBird = (
+  state: string | undefined,
+  config: PricingConfig,
+  stored?: StoredEarlyBird | null
+): { slot: EarlyBirdSlot; adultLimit: number | null } => {
+  if (stored?.slot === "none") return { slot: "none", adultLimit: null }
+  if (isEarlyBirdClaimOpen(config)) {
+    return { slot: resolveEarlyBirdSlot(state, new Date(), config), adultLimit: null }
+  }
+  if (!stored) return { slot: "none", adultLimit: null }
+  return { slot: stored.slot, adultLimit: stored.earlyBirdAdults }
 }
 
 const buildAttendeeDescriptions = (data: RegistrationFormData) => {
@@ -107,18 +135,20 @@ export const RegistrationReviewSummary = ({
   participantReference,
   pricingConfig = DEFAULT_PRICING_CONFIG,
   souvenirPreorderEnabled = true,
+  storedEarlyBird = null,
 }: RegistrationReviewSummaryProps) => {
   const attendees = buildAttendeesForPricing(formData)
-  const earlyBirdSlot = resolveEarlyBirdSlot(
+  const { slot: earlyBirdSlot, adultLimit } = previewEarlyBird(
     formData.state ?? undefined,
-    new Date(),
-    pricingConfig
+    pricingConfig,
+    storedEarlyBird
   )
   const lineItems = buildPricingBreakdown(
     attendees,
     earlyBirdSlot,
     buildAttendeeDescriptions(formData),
-    pricingConfig
+    pricingConfig,
+    adultLimit
   )
   const total = lineItems.reduce((sum, item) => sum + item.amount, 0)
   const souvenirAmount = souvenirTotalAmount(formData.souvenir_orders)
@@ -192,11 +222,14 @@ export const RegistrationReviewSummary = ({
       <div className="space-y-2">
         <h3 className="font-semibold">Registration cost</h3>
         {earlyBirdSlot !== "none" && (
-          <Alert variant="success">
-            Early bird pricing applies — {formatCurrency(pricingConfig.adultEarlyBird)}/adult (save{" "}
-            {formatCurrency(getAdultEarlyBirdSaving(pricingConfig))} per adult) until slots are
-            filled.
-          </Alert>
+          <>
+            <Alert variant="success">
+              Early bird pricing — {formatCurrency(pricingConfig.adultEarlyBird)} per adult (save{" "}
+              {formatCurrency(getAdultEarlyBirdSaving(pricingConfig))} per adult), subject to
+              available places.
+            </Alert>
+            <EarlyBirdReminders pricing={pricingConfig} />
+          </>
         )}
         <PricingTable
           lineItems={lineItems}

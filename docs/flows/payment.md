@@ -72,7 +72,41 @@ Only `STRIPE_SECRET_KEY` is required. The webhook ignores the posted payload bey
 
 ## Daily payment reminders and early-bird expiry
 
-The authorized payment-reminder cron runs daily. It first reprices submitted, unpaid or partially paid early-bird registrations to regular pricing when the configured early-bird payment due date has passed. It then sends reminder emails only when today is one of the configured reminder dates. Repricing clears the early-bird marker, making reruns idempotent; paid registrations are not changed.
+`GET /api/cron/payment-reminders` (Bearer `CRON_SECRET`) is called once a day by an external scheduler; nothing in this repo schedules it. Rules: `features.registration` (early bird is per adult) and `features.payment`.
+
+```mermaid
+sequenceDiagram
+  participant Cron as External scheduler
+  participant API as /api/cron/payment-reminders
+  participant Run as runEarlyBirdExpiry
+  participant Plan as planEarlyBirdExpiry (pure)
+  participant DB as Postgres
+  participant Mail as sendRegistrationEmail
+  Cron->>API: GET (Bearer CRON_SECRET)
+  API->>Run: runtime pricing
+  Run->>DB: submitted registrations with is_early_bird (+ early_bird_adult_limit when the column exists)
+  Run->>Plan: registrations, pricing, canStorePartial
+  Note over Plan: due date passed (Melbourne day) or pool paid adults ≥ cap<br/>→ unpaid early-bird adults move to regular, paid adults keep early bird
+  loop each change
+    Run->>DB: update fee, status, early-bird fields WHERE amount_due and amount_paid unchanged
+    alt row updated
+      Run->>DB: audit registration.early_bird_expired
+      opt fee changed
+        Run->>Mail: early_bird_pricing_updated (logged as registration_updated)
+      end
+    else row changed meanwhile
+      Note over Run: skipped, re-checked next run
+    end
+  end
+  API->>DB: on reminder dates, pending/partial submitted registrations (+ attendees)
+  API->>Mail: payment_reminder (with early-bird notice when adults are unpaid)
+  API-->>Cron: { sent, repriced, earlyBirdExpiry, date }
+```
+
+- A registration is repriced once: afterwards its unpaid adults are no longer on early bird, so reruns plan nothing for it.
+- Without migration `028` (`early_bird_adult_limit` missing) only registrations with no adults covered by payment are repriced (whole registration to regular); part-paid ones wait until the column exists.
+- An expiry failure is logged (`[cron] Early-bird expiry failed`) and reminders still go out.
+- Code: `src/lib/registrations/early-bird-expiry.ts` (plan), `early-bird-expiry-runner.ts` (DB + audit + email), `src/lib/pricing/early-bird.ts` (counting, dates, notice wording).
 
 ## Admin manual payment update
 

@@ -3,7 +3,7 @@ id: features.payment
 title: Payment information
 status: active
 synced_commit: working-tree
-synced_at: 2026-10-08
+synced_at: 2026-10-26
 owners: [team]
 files:
   - src/app/payment/page.tsx
@@ -12,6 +12,8 @@ files:
   - src/app/r/[token]/page.tsx
   - src/lib/email/send.ts
   - src/app/api/cron/payment-reminders/route.ts
+  - src/lib/registrations/early-bird-expiry-runner.ts
+  - src/components/registrations/registration-details-view.tsx
   - src/lib/registration-settings.ts
   - src/app/dashboard/settings/page.tsx
   - supabase/migrations/016_registration_operations_settings.sql
@@ -72,7 +74,12 @@ Presentation (`PaymentSummary` component and email payment rows):
 - Stripe: `STRIPE_SECRET_KEY` only, plus a Dashboard webhook URL to `/api/payments/stripe/webhook`.
 - Online Payment redirects to Stripe Checkout; webhook + optional `session_id` status recovery mark the registration paid.
 - Administrators configure payment reminder dates in Registration Settings. The authorized daily cron sends reminders only to submitted registrations with `pending` or `partial` payment status.
-- After the configurable early-bird payment due date, that cron updates pending/partial early-bird registrations to regular pricing and clears their early-bird status. Fully paid registrations retain their original price.
+- Before sending reminders, that cron applies **early-bird expiry** (`runEarlyBirdExpiry`, rules in `features.registration`): after the early-bird payment due date, or once a capacity group's paid early-bird adults reach its cap, early-bird adults not covered by payment move to the regular rate; adults covered by payment keep early bird. Each changed registration gets a recalculated fee and payment status (amount paid unchanged), a `registration.early_bird_expired` audit row, and an **Early Bird pricing update** email when the fee changed. A registration whose fee or payments changed while the cron was running is skipped and re-checked on the next run. An expiry failure is logged and does not stop the reminders. The JSON response adds `repriced` and an `earlyBirdExpiry` summary (`planned`, `repriced`, `emailed`, `skipped`).
+- **Early Bird Registration – Important Reminders** box: while early-bird adults on a submitted registration are not covered by payment and the payment due date has not passed (`showsEarlyBirdReminders`), the registration details (`/r/[token]`, My Registration) show an amber box with a bulleted list inside the Payment summary, and registration emails / payment reminders show the same amber callout (`global.email`). The registration form review step shows the same box (`features.registration`). Wording comes from `earlyBirdReminders` in `src/lib/pricing/early-bird.ts`, with dates and price from Registration Settings:
+  - **Limited slots:** First-paid, first-served basis.
+  - **Payment required:** Registration is secured only upon receipt and confirmation of full payment.
+  - **Deadline:** `<payment due date>` or until all early bird slots are filled, whichever comes first. When the early-bird end date is earlier than the payment due date it reads "register by `<end date>` and pay in full by `<payment due date>` or until …". Dates are shown like `31 January 2027`.
+  - **Unpaid registrations:** Automatically revert to the regular rate of `<regular adult rate>` per adult once the early bird offer closes. Whole-dollar rates show without cents (`$240`).
 
 ## Acceptance criteria
 
@@ -81,6 +88,8 @@ Presentation (`PaymentSummary` component and email payment rows):
 - [ ] A fully paid registration shows a Paid badge, no zero-balance banner, and no $0.00 Balance due row
 - [ ] How to Pay is the last section
 - [ ] Reminder dates and early-bird payment due date are configurable without deployment
+- [ ] The daily cron moves unpaid early-bird adults to the regular rate after the due date or once places are filled, audits it, and emails the registrant; reruns change nothing
+- [ ] Registration details and payment emails show the bulleted Early Bird Registration – Important Reminders (deadline and regular rate from Registration Settings) while early-bird adults are unpaid
 - [ ] Bank account name, BSB, and account number are configurable in Dashboard Settings without deployment
 - [ ] Incomplete bank details show a contact-the-team notice instead of placeholder values
 

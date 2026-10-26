@@ -37,7 +37,11 @@ import {
 } from "@/lib/registrations/souvenirs"
 import { TransportScheduleAlert } from "@/components/registrations/transport-schedule-alert"
 import { AustralianAddressAutocomplete } from "@/components/address/australian-address-autocomplete"
-import { RegistrationReviewSummary } from "@/components/registrations/registration-review-summary"
+import {
+  RegistrationReviewSummary,
+  type StoredEarlyBird,
+} from "@/components/registrations/registration-review-summary"
+import { earlyBirdAdultCount, registrationEarlyBirdSlot } from "@/lib/pricing/early-bird"
 import {
   FormFieldLabel,
   FormLabelSpacer,
@@ -274,6 +278,7 @@ const RegistrationForm = ({
   const [registrationId, setRegistrationId] = useState<string | null>(null)
   const [participantReference, setParticipantReference] = useState<string | null>(null)
   const [submitted, setSubmitted] = useState(false)
+  const [storedEarlyBird, setStoredEarlyBird] = useState<StoredEarlyBird | null>(null)
   const submitLabel = submitted
     ? "Submit Changes"
     : isV2Flow
@@ -364,6 +369,14 @@ const RegistrationForm = ({
         setRegistrationId(data.registration.id)
         setParticipantReference(data.registration.participant_reference ?? null)
         setSubmitted(!!data.registration.submitted_at)
+        setStoredEarlyBird(
+          data.registration.submitted_at
+            ? {
+                slot: registrationEarlyBirdSlot(data.registration),
+                earlyBirdAdults: earlyBirdAdultCount(data.registration),
+              }
+            : null
+        )
         const hasTransportSelection =
           data.registration.pickup_melbourne_airport != null ||
           data.registration.dropoff_melbourne_airport != null
@@ -1635,6 +1648,7 @@ const RegistrationForm = ({
                 participantReference={participantReference}
                 pricingConfig={pricingConfig}
                 souvenirPreorderEnabled={souvenirPreorderEnabled}
+                storedEarlyBird={storedEarlyBird}
               />
               <div className="rounded-md border border-[color:rgba(166,135,78,0.35)] bg-[rgba(166,135,78,0.1)] p-4 text-base text-accent-ink">
                 When you are ready, press the button below. You only need to do this once.
