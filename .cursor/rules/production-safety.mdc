@@ -1,0 +1,43 @@
+---
+description: Live production system with no test/dev environment — backward compatibility and database write approval
+alwaysApply: true
+---
+
+# Production safety (system is live)
+
+There is **no test or dev environment**. Every database, Stripe account, mailbox and Resend key reachable from this repo is **live production**. Real registrants and payments depend on it.
+
+## Backward compatibility (every code change)
+
+- Changes must be **additive** and must not break existing production code, data, URLs or emails.
+- Do not remove or rename API routes, response fields, request fields, DB columns, enum values, settings keys, env vars, or URL params that existing code or users rely on. Add new ones alongside.
+- New behavior must default to current behavior for existing rows (e.g. nullable columns or safe defaults; handle missing/legacy values).
+- Migrations: additive only (new tables, nullable columns, new enum values, new indexes). **No** `DROP`, `RENAME`, type changes, `NOT NULL` on existing columns, or data backfills without explicit approval.
+- `npm run start` (hosting) auto-applies pending files in `supabase/migrations/`, so **adding a migration file is a production DB change** — show the SQL and get approval before creating it.
+- Never change how the **Unique Code** (payment reference) is generated, stored or displayed.
+
+## Database writes require explicit approval
+
+Do **not** insert, update, delete, migrate, restore, seed or reprice production data unless the user has approved **that specific action in the current conversation**.
+
+1. Run read-only queries / dry runs first.
+2. Show the user the exact rows affected (before → after) and what else is triggered (emails, audit rows, Stripe).
+3. Wait for an explicit "yes" before `--apply` or any write.
+
+This includes: `scripts/db/*` with `--apply`, `npm run db:*`, migrations, backup restores, settings saves, and browser actions that submit forms, uploads, payments or emails.
+
+## Local dev server = production database
+
+- `npm run dev` runs `scripts/db/deploy.ts` first, which applies pending migrations **and** rewrites the seed admin user. Always start it with deploy skipped:
+
+```powershell
+$env:APP_ENV="production"; $env:SKIP_DB_DEPLOY="true"; npm run dev
+```
+
+- Running deploy/migrations without `SKIP_DB_DEPLOY` needs explicit approval.
+- Browser verification must be **read-only** (view pages, read DOM). Do not click submit/save/pay/upload/send without approval.
+
+## No assumptions
+
+- If requirements, data impact, or the target environment are unclear, **ask** (AskQuestion) before acting.
+- Do not guess email addresses, prices, dates, limits or business rules — confirm with the user.

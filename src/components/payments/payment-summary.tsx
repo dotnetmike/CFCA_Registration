@@ -46,7 +46,7 @@ export const PaymentSummary = ({
       )}
     >
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 className="font-sans text-xs font-semibold uppercase tracking-[0.12em] text-[#64748B]">{title}</h2>
+        <h2 className="font-sans text-xs font-bold uppercase tracking-[0.12em] text-[#1E5AA8]">{title}</h2>
         {showStatus ? (
           <span className="inline-flex items-center gap-2">
             <span className="sr-only">{PAYMENT_LABELS.status}:</span>

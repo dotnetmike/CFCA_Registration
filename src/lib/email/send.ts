@@ -20,10 +20,18 @@ import {
   getEmailLogoAttachment,
   assertEmailIncludesLogo,
   type EmailDetailsCard,
+  type EmailHelpCard,
+  type EmailLink,
   type EmailRow,
   type EmailStatusTone,
 } from "@/lib/email/template"
 import { sendTransactionalEmail } from "@/lib/email/provider"
+import {
+  SUPPORT_CONTACTS,
+  SUPPORT_HELP_TEXT,
+  buildSupportMailto,
+  type SupportTopic,
+} from "@/lib/support/contact"
 import {
   BANK_TRANSFER_ENCOURAGEMENT,
   PAYMENT_LABELS,
@@ -31,7 +39,7 @@ import {
   formatPaymentStatus,
 } from "@/lib/payments/labels"
 
-type EmailType =
+export type EmailType =
   | "registration_submitted"
   | "registration_updated"
   | "accommodation_updated"
@@ -102,6 +110,7 @@ type DetailEmailOptions = {
 type EmailSection = {
   title: string
   rows: EmailRow[]
+  link?: EmailLink
 }
 
 const uniqueCodeRow = (ref: string): EmailRow => ({
@@ -112,6 +121,25 @@ const uniqueCodeRow = (ref: string): EmailRow => ({
 
 const paymentRef = (reg: RegistrationEmailRecord) =>
   reg.participant_reference || reg.registration_no
+
+const supportLink = (topic: SupportTopic, reg: RegistrationEmailRecord): EmailLink => ({
+  label: SUPPORT_CONTACTS[topic].linkLabel,
+  href: buildSupportMailto(topic, {
+    registrationNo: reg.registration_no,
+    uniqueCode: reg.participant_reference,
+    name: `${reg.given_name} ${reg.surname}`.trim(),
+  }),
+})
+
+const supportHelpCard = (reg: RegistrationEmailRecord): EmailHelpCard => ({
+  text: SUPPORT_HELP_TEXT,
+  link: supportLink("general", reg),
+})
+
+const supportTextLine = (topic: SupportTopic) =>
+  `${SUPPORT_CONTACTS[topic].linkLabel}: email ${SUPPORT_CONTACTS[topic].email}`
+
+const helpTextLines = () => [`Need help? ${SUPPORT_HELP_TEXT}`, supportTextLine("general")]
 
 /** Status first; Balance due only when money is still owed. */
 const buildPaymentRows = (reg: RegistrationEmailRecord): EmailSection["rows"] => {
@@ -243,6 +271,7 @@ const buildRegistrationContent = (
             footnote: "Secure payment · Confirmation emailed after payment",
           }
         : {}),
+      supportLink: supportLink("payment", reg),
     },
   }
 
@@ -309,7 +338,11 @@ const buildRegistrationContent = (
     }
   }
 
-  sections.push({ title: "Accommodation & Transport", rows: transportRows })
+  sections.push({
+    title: "Accommodation & Transport",
+    rows: transportRows,
+    link: supportLink("accommodation", reg),
+  })
 
   if (hasSouvenirPreOrder(reg.souvenir_orders)) {
     sections.push({
@@ -433,6 +466,8 @@ const buildFullRegistrationDetails = (
     }
   }
 
+  lines.push(supportTextLine("accommodation"))
+
   if (hasSouvenirPreOrder(reg.souvenir_orders)) {
     lines.push(
       "",
@@ -442,7 +477,13 @@ const buildFullRegistrationDetails = (
     )
   }
 
-  lines.push("", "=== Payment ===", ...paymentRowsToText(buildPaymentRows(reg)), "")
+  lines.push(
+    "",
+    "=== Payment ===",
+    ...paymentRowsToText(buildPaymentRows(reg)),
+    supportTextLine("payment"),
+    ""
+  )
   if (balanceDue(reg.amount_due, reg.amount_paid) > 0) {
     lines.push(
       `IMPORTANT: Include your Unique Code (${ref}) in both Message and Ref. when paying via your bank app.`,
@@ -473,6 +514,8 @@ const buildFullRegistrationDetails = (
   }
 
   lines.push(
+    ...helpTextLines(),
+    "",
     "If you have already paid and receive this in error, please contact the registration team."
   )
 
@@ -519,7 +562,10 @@ const buildBody = (
     case "payment_received":
       return `${base}We have received your payment for registration ${ref}.
 
-${paymentRowsToText(buildPaymentRows(reg)).join("\n")}`
+${paymentRowsToText(buildPaymentRows(reg)).join("\n")}
+${supportTextLine("payment")}
+
+${helpTextLines().join("\n")}`
     case "payment_reminder":
       return `${base}This is a reminder that registration ${ref} has a balance due.
 
@@ -527,7 +573,10 @@ ${PAYMENT_LABELS.balanceDue}: ${formatCurrency(balanceDue(reg.amount_due, reg.am
 
 Please include ${ref} in your payment reference.
 
-Bank transfer recommended. ${BANK_TRANSFER_ENCOURAGEMENT}`
+Bank transfer recommended. ${BANK_TRANSFER_ENCOURAGEMENT}
+${supportTextLine("payment")}
+
+${helpTextLines().join("\n")}`
   }
 }
 
@@ -554,6 +603,7 @@ const buildHtml = (
         ctaUrl: links.viewUrl,
         footerNote:
           "If you have already paid and receive this in error, please contact the registration team.",
+        helpCard: supportHelpCard(reg),
         siteUrl: links.siteUrl,
       })
     case "registration_updated":
@@ -569,6 +619,7 @@ const buildHtml = (
         ctaUrl: links.portalUrl,
         footerNote:
           "Log in is required. If you do not have an account yet, create one using the same email as this registration.",
+        helpCard: supportHelpCard(reg),
         siteUrl: links.siteUrl,
       })
     case "accommodation_updated":
@@ -584,6 +635,7 @@ const buildHtml = (
         ctaUrl: links.portalUrl,
         footerNote:
           "Log in is required. If you do not have an account yet, create one using the same email as this registration.",
+        helpCard: supportHelpCard(reg),
         siteUrl: links.siteUrl,
       })
     case "payment_received":
@@ -596,8 +648,10 @@ const buildHtml = (
           {
             title: "Payment",
             rows: [...buildPaymentRows(reg), uniqueCodeRow(ref)],
+            link: supportLink("payment", reg),
           },
         ],
+        helpCard: supportHelpCard(reg),
         siteUrl: links.siteUrl,
       })
     case "payment_reminder":
@@ -623,12 +677,46 @@ const buildHtml = (
                 value: "Include your Unique Code in both Message and Ref.",
               },
             ],
+            link: supportLink("payment", reg),
           },
         ],
         ctaLabel: "View my registration",
         ctaUrl: links.portalUrl,
+        helpCard: supportHelpCard(reg),
         siteUrl: links.siteUrl,
       })
+  }
+}
+
+export type RegistrationEmailContent = {
+  subject: string
+  text: string
+  html: string
+  viewUrl?: string
+  portalUrl: string
+}
+
+/** Builds subject, plain text and HTML for a registration email without sending or logging it. */
+export const buildRegistrationEmail = (
+  registration: RegistrationEmailRecord,
+  type: EmailType,
+  options: { siteUrl: string; viewToken?: string }
+): RegistrationEmailContent => {
+  const { siteUrl, viewToken } = options
+  const viewUrl = viewToken ? `${siteUrl}/r/${encodeURIComponent(viewToken)}` : undefined
+  const portalUrl = `${siteUrl}/my-registration`
+  const payUrl = viewToken
+    ? `${siteUrl}/register/pay?view=${encodeURIComponent(viewToken)}`
+    : `${siteUrl}/payment`
+  const html = buildHtml(type, registration, { viewUrl, portalUrl, payUrl, siteUrl })
+  assertEmailIncludesLogo(html)
+
+  return {
+    subject: buildSubject(type, registration),
+    text: buildBody(type, registration, { viewUrl, portalUrl }),
+    html,
+    viewUrl,
+    portalUrl,
   }
 }
 
@@ -637,19 +725,10 @@ export const sendRegistrationEmail = async (
   type: EmailType,
   options: { request: Request; viewToken?: string }
 ) => {
-  const siteUrl = getRequestSiteUrl(options.request)
-  const viewUrl = options.viewToken
-    ? `${siteUrl}/r/${encodeURIComponent(options.viewToken)}`
-    : undefined
-  const portalUrl = `${siteUrl}/my-registration`
-
-  const subject = buildSubject(type, registration)
-  const text = buildBody(type, registration, { viewUrl, portalUrl })
-  const payUrl = options.viewToken
-    ? `${siteUrl}/register/pay?view=${encodeURIComponent(options.viewToken)}`
-    : `${siteUrl}/payment`
-  const html = buildHtml(type, registration, { viewUrl, portalUrl, payUrl, siteUrl })
-  assertEmailIncludesLogo(html)
+  const { subject, text, html, viewUrl, portalUrl } = buildRegistrationEmail(registration, type, {
+    siteUrl: getRequestSiteUrl(options.request),
+    viewToken: options.viewToken,
+  })
   const logoAttachment = getEmailLogoAttachment()
   const { notificationRecipientEmail: notificationRecipient } = await getRegistrationRuntimeSettings()
 

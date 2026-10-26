@@ -3,15 +3,18 @@ id: global.email
 title: Branded transactional email
 status: active
 synced_commit: working-tree
-synced_at: 2026-10-22
+synced_at: 2026-10-24
 owners: [team]
 files:
   - src/lib/email/template.ts
   - src/lib/email/provider.ts
   - src/lib/email/send.ts
+  - src/lib/email/send.test.ts
   - src/lib/email/password-reset.ts
+  - src/lib/support/contact.ts
   - src/lib/site-url.ts
   - public/brand/cfca-logo-official.jpg
+  - scripts/email/send-sample-emails.ts
 ---
 
 # Branded transactional email
@@ -33,6 +36,13 @@ All outbound transactional emails use a shared Couples for Christ Australia HTML
 - **Email copies**: every registrant email from `send.ts` is BCC'd to the Registration Settings email copy recipient (`notification_recipient_email`) when set. Password reset emails are never copied (they contain a sign-in link).
 - When the active provider’s credentials are missing, sends are logged to the console (dev) and still recorded in `email_log` when applicable.
 - HTML uses table layout + inline styles; user-controlled strings are escaped.
+- **Support contacts** (same addresses, subjects and labels as the registration details page — `src/lib/support/contact.ts`): every registrant email from `send.ts` includes `mailto:` links whose subject names the registration (`<topic> — <Registration No> (<Unique Code>)`) and whose body lists Registration No, Unique Code and name. Each link has an envelope icon (✉, forced to text style) before the label.
+  - **Ask about conference payment** (`payment@cfcanatcon.com`): bottom of the Payment summary in the details card (registration submitted / updated / accommodation updated), and under the Payment section in payment received / payment reminder.
+  - **Ask about accommodation or transport** (`accomodation@cfcanatcon.com`): under the Accommodation & Transport section (registration submitted / updated / accommodation updated).
+  - **Need help?** box after the main call-to-action in all five registrant emails, with the shared help text and an outlined **Ask a question** button (`support@cfcanatcon.com`).
+  - Plain-text bodies list the same contacts as `<label>: email <address>`.
+- `buildRegistrationEmail` builds subject / text / HTML without sending; `sendRegistrationEmail` wraps it (recipient, BCC copy, `email_log`).
+- **Sample emails for review**: `npm run email:samples -- --registration <No> --to <address> --site-url <public origin>` sends one `[SAMPLE]` copy of each of the five registrant emails using that registration's data. It is read-only (no `email_log` row, no new view token), sends only to `--to` (no BCC), and uses a placeholder view token, so View registration / Pay links in samples do not open the registration.
 
 ## Acceptance criteria
 
@@ -46,6 +56,9 @@ All outbound transactional emails use a shared Couples for Christ Australia HTML
 - [ ] Switching providers does not change email content/templates
 - [ ] Office 365 path does not require disabling Security Defaults or SMTP app passwords
 - [ ] Every registrant email (registration, payment received, reminders, resends) is BCC'd to the configured copy recipient; password reset emails are not
+- [ ] Every registrant email has a Need help? box (support@) and an Ask about conference payment link (payment@), each with an envelope icon and a subject naming the registration
+- [ ] Registration submitted / updated / accommodation updated emails also have an Ask about accommodation or transport link (accomodation@) under Accommodation & Transport
+- [ ] Sample emails can be sent to one reviewer address without writing to the database or copying anyone else
 
 ## Related specs
 

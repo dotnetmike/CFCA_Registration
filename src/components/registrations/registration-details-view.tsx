@@ -2,13 +2,14 @@
 
 import { useState, type ReactNode } from "react"
 import { useRouter } from "next/navigation"
-import { Clock, Landmark, Lock } from "lucide-react"
+import { BedDouble, Clock, Landmark, Lock, Users, type LucideIcon } from "lucide-react"
 import { useBusyCursor } from "@/hooks/use-busy-cursor"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { PaymentSummary } from "@/components/payments/payment-summary"
 import { PaymentStatusBadge } from "@/components/payments/payment-status-badge"
 import { UniqueCode } from "@/components/payments/unique-code"
+import { NeedHelpCard, SupportLink } from "@/components/support/support-links"
 import { balanceDue } from "@/lib/payments/labels"
 import { formatCurrency } from "@/lib/pricing/calculate"
 import { CFCA_POSITION_LABELS, MINISTRY_LABELS } from "@/lib/registrations/schema"
@@ -87,6 +88,13 @@ const DetailRow = ({ label, children }: { label: string; children: ReactNode }) 
     <dt className="text-sm font-medium text-[#64748B]">{label}</dt>
     <dd className="break-words text-[15px] text-[#172033] sm:text-base">{children}</dd>
   </div>
+)
+
+const IconCardHeader = ({ icon: Icon, title }: { icon: LucideIcon; title: string }) => (
+  <CardHeader className="flex flex-row items-center gap-3 space-y-0 border-b border-[#E2E8F0] py-4">
+    <Icon className="h-5 w-5 shrink-0 text-[#1E5AA8]" aria-hidden="true" />
+    <CardTitle className="font-sans text-base font-semibold text-[#172033]">{title}</CardTitle>
+  </CardHeader>
 )
 
 type PayBalanceActionsProps = {
@@ -189,6 +197,11 @@ export const RegistrationDetailsView = ({
   const hasDropoffContact =
     hasText(registration.dropoff_transport_contact_name) ||
     hasText(registration.dropoff_transport_contact_phone)
+  const supportRef = {
+    registrationNo: registration.registration_no,
+    uniqueCode: registration.participant_reference,
+    name: `${registration.given_name} ${registration.surname}`,
+  }
 
   return (
     <>
@@ -274,7 +287,7 @@ export const RegistrationDetailsView = ({
               <UniqueCode code={paymentRef} />
             </div>
           </div>
-          <div className="p-4 sm:p-6">
+          <div className="space-y-4 p-4 sm:p-6">
             <PaymentSummary
               amountDue={registration.amount_due}
               amountPaid={registration.amount_paid}
@@ -288,7 +301,9 @@ export const RegistrationDetailsView = ({
                   onlineEnabled={onlineEnabled}
                 />
               ) : null}
+              <SupportLink topic="payment" registration={supportRef} />
             </PaymentSummary>
+            <NeedHelpCard registration={supportRef} />
           </div>
         </div>
       </Card>
@@ -297,10 +312,8 @@ export const RegistrationDetailsView = ({
 
       <div className="grid gap-6 md:grid-cols-2">
         <Card>
-          <CardHeader>
-            <CardTitle className="font-sans text-lg">Other people attending</CardTitle>
-          </CardHeader>
-          <CardContent>
+          <IconCardHeader icon={Users} title="Other people attending" />
+          <CardContent className="pt-5">
             {attendees.length > 0 ? (
               <ul className="space-y-3">
                 {attendees.map((a, i) => (
@@ -323,10 +336,8 @@ export const RegistrationDetailsView = ({
         </Card>
 
         <Card>
-          <CardHeader>
-            <CardTitle className="font-sans text-lg">Accommodation &amp; transport</CardTitle>
-          </CardHeader>
-          <CardContent>
+          <IconCardHeader icon={BedDouble} title="Accommodation & transport" />
+          <CardContent className="space-y-4 pt-5">
             <DetailList>
               <DetailRow label="Accommodation">
                 {getAccommodationLabel(registration.accommodation_type) || "—"}
@@ -375,6 +386,7 @@ export const RegistrationDetailsView = ({
                 </DetailRow>
               )}
             </DetailList>
+            <SupportLink topic="accommodation" registration={supportRef} />
           </CardContent>
         </Card>
       </div>

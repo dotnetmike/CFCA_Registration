@@ -15,6 +15,7 @@ CFCA_Registration/
 │   └── proxy.ts           # Auth gate for protected pages
 ├── supabase/migrations/   # Numbered SQL only
 ├── scripts/db/            # deploy runner
+├── scripts/email/         # send-sample-emails (read-only template review)
 └── .cursor/rules/         # AI always-on rules
 ```
 
@@ -88,7 +89,8 @@ flowchart LR
 | `lib/reconciliation` | Stripe / CBA CSV parsers, matching rules, bank-line ledger, reconciliation service |
 | `lib/backups` | Daily registration backup: zip archive builder, ensure / list / download service |
 | `lib/audit` | Sanitize + write audit rows |
-| `lib/email` | Providers (`provider.ts`: Resend / Microsoft Graph) + HTML templates (`template.ts`) |
+| `lib/email` | Providers (`provider.ts`: Resend / Microsoft Graph) + HTML templates (`template.ts`); `send.ts` builds (`buildRegistrationEmail`) and sends registrant emails |
+| `lib/support` | Support contact addresses, labels and `mailto:` builder shared by the details page and emails |
 | `lib/dashboard` | Client list cache |
 | `lib/db` | Migration helpers |
 | `lib/supabase` | Admin client |

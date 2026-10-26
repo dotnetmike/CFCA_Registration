@@ -3,11 +3,13 @@ id: features.magic-link-view
 title: Magic-link registration view
 status: active
 synced_commit: working-tree
-synced_at: 2026-10-08
+synced_at: 2026-10-24
 owners: [team]
 files:
   - src/app/r/[token]/page.tsx
   - src/components/registrations/registration-details-view.tsx
+  - src/components/support/support-links.tsx
+  - src/lib/support/contact.ts
   - src/app/api/registrations/view/[token]/route.ts
   - src/lib/registrations/view-token.ts
   - src/lib/site-url.ts
@@ -37,6 +39,12 @@ Permanent read-only view of a registration from the confirmation email, without 
   - Pay page in this mode (view token only, no signup token) is labelled “Registration payment” (not “Step 2 of 3”), offers the same Online (V2 + Stripe) / Bank options, and links back to the registration details.
   - Stripe Checkout success returns to `/r/<token>?payment=success&session_id=…`, which shows the checkout outcome (`StripeCheckoutReturn`, retry → pay page) and reloads the registration once confirmed. Bank “continue” returns to `/r/<token>`. Cancel returns to the pay page.
   - Fully paid registrations show no pay button.
+- **Card headings:** **Payment summary** title in brand blue (`#1E5AA8`, uppercase). **Other people attending** (people icon) and **Accommodation & transport** (bed icon) cards have an icon + bold 16px title header with a divider below.
+- **Support contacts** (`src/lib/support/contact.ts`, `SupportLink` / `NeedHelpCard` in `src/components/support/support-links.tsx`): each opens the visitor's email app (`mailto:`) with a subject naming their registration — `<topic> — <Registration No> (<Unique Code>)` — and a body listing Registration No, Unique Code and name. The two inline support links and the **Ask a question** button show a mail (envelope) icon before the label so it is clear they open an email. Always shown, whether or not money is owed:
+  - **Ask about conference payment** link inside the Payment summary card → `payment@cfcanatcon.com`, subject “Conference payment question — …”.
+  - **Need help?** card under the Payment summary (“Ask the organising team about payment, accommodation, hotels or transportation.”) with an **Ask a question** button → `support@cfcanatcon.com`, subject “Question about my registration — …”.
+  - **Ask about accommodation or transport** link at the bottom of the Accommodation & transport card → `accomodation@cfcanatcon.com`, subject “Accommodation / transport question — …”.
+  - The registrant emails carry the same support contacts (see `global.email`).
 
 ## Acceptance criteria
 
@@ -45,6 +53,7 @@ Permanent read-only view of a registration from the confirmation email, without 
 - [ ] Edit path requires auth
 - [ ] Balance due shown with a Pay button only when a submitted registration has a balance due
 - [ ] Paying from the view link returns to the view page with the payment outcome
+- [ ] Need help (support@), payment (payment@) and accommodation (accomodation@) links open an email with the registration number and Unique Code in the subject
 
 ## Related specs
 
