@@ -29,7 +29,7 @@ CFCA_Registration/
 | Amount due / pricing | `src/lib/pricing/calculate.ts` + `service.computeAmountDue` | `features.registration` / payment |
 | Early bird (per adult: counting, claim, expiry, wording) | `src/lib/pricing/early-bird.ts`, `src/lib/registrations/early-bird-claim.ts`, `early-bird-expiry.ts`, `early-bird-expiry-runner.ts` | `features.registration`, `features.payment` |
 | Early Bird Important Reminders box (form review + details view) | `src/components/registrations/early-bird-reminders.tsx` | `features.registration`, `features.payment` |
-| Daily payment cron (early-bird expiry + reminders) | `src/app/api/cron/payment-reminders/route.ts` | `features.payment` |
+| Daily payment cron (early-bird expiry + reminders) | `src/app/api/cron/payment-reminders/route.ts`, `src/lib/payments/payment-reminders.ts` (pacing, duplicate guard), schedule in `vercel.json` | `features.payment` |
 | Souvenirs | `src/lib/registrations/souvenirs.ts` | `features.registration` |
 | Guest vs auth submit API | `src/app/api/registrations/route.ts` | `features.registration` |
 | Update registration / no-op | `src/app/api/registrations/[id]/route.ts`, `compare.ts` | `features.registration` |

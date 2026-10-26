@@ -72,22 +72,26 @@ Only `STRIPE_SECRET_KEY` is required. The webhook ignores the posted payload bey
 
 ## Daily payment reminders and early-bird expiry
 
-`GET /api/cron/payment-reminders` (Bearer `CRON_SECRET`) is called once a day by an external scheduler; nothing in this repo schedules it. Rules: `features.registration` (early bird is per adult) and `features.payment`.
+`GET /api/cron/payment-reminders` (Bearer `CRON_SECRET`) is called by **Vercel Cron**, configured in [`vercel.json`](../../vercel.json): the main run at `0 22 * * *` UTC (9:00 am Melbourne in daylight saving, 8:00 am otherwise) and a catch-up run at `0 23 * * *` UTC (`?run=catch-up`), both on the same Melbourne date. Vercel only runs crons on the production deployment and adds the `Authorization: Bearer <CRON_SECRET>` header itself, so `CRON_SECRET` must be set in the Vercel Production environment variables. Reminder dates come from Registration Settings and are compared with the Melbourne calendar date. Rules: `features.registration` (early bird is per adult) and `features.payment`.
 
 ```mermaid
 sequenceDiagram
-  participant Cron as External scheduler
+  participant Cron as Vercel Cron (vercel.json)
   participant API as /api/cron/payment-reminders
   participant Run as runEarlyBirdExpiry
   participant Plan as planEarlyBirdExpiry (pure)
   participant DB as Postgres
   participant Mail as sendRegistrationEmail
   Cron->>API: GET (Bearer CRON_SECRET)
-  API->>Run: runtime pricing
+  API->>DB: insert audit cron.payment_reminders_run (run_id), read runs from the last 330s
+  alt an earlier run is still in its window
+    API-->>Cron: "Another payment reminder run is already in progress"
+  end
+  API->>Run: runtime pricing + shared email pacer (2.5s apart, ~250s budget)
   Run->>DB: submitted registrations with is_early_bird (+ early_bird_adult_limit when the column exists)
   Run->>Plan: registrations, pricing, canStorePartial
   Note over Plan: due date passed (Melbourne day) or pool paid adults ≥ cap<br/>→ unpaid early-bird adults move to regular, paid adults keep early bird
-  loop each change
+  loop each change (deferred once out of time)
     Run->>DB: update fee, status, early-bird fields WHERE amount_due and amount_paid unchanged
     alt row updated
       Run->>DB: audit registration.early_bird_expired
@@ -98,15 +102,24 @@ sequenceDiagram
       Note over Run: skipped, re-checked next run
     end
   end
-  API->>DB: on reminder dates, pending/partial submitted registrations (+ attendees)
-  API->>Mail: payment_reminder (with early-bird notice when adults are unpaid)
-  API-->>Cron: { sent, repriced, earlyBirdExpiry, date }
+  alt repricing failed
+    API-->>Cron: 500, reminders held (catch-up run retries)
+  end
+  API->>DB: on reminder dates (Melbourne day), email_log payment_reminder rows sent today
+  API->>DB: pending/partial submitted registrations (+ attendees) read after repricing, oldest submitted first
+  loop each registration not already reminded today and not awaiting repricing (deferred once out of time)
+    API->>Mail: payment_reminder (with Important Reminders when early-bird adults are unpaid)
+  end
+  API-->>Cron: { sent, alreadyReminded, heldForRepricing, failed, deferred, repriced, earlyBirdExpiry, date }
 ```
+
+- **Duplicates:** a repeat delivery within 330 seconds of another run stands down (audit-row lock). A later run (the catch-up, or a manual rerun) skips everyone who already has a successful reminder today, and retries failed sends.
+- **Time limit:** `maxDuration = 300`. The pacer stops starting new emails or early-bird changes after ~250 seconds; the catch-up run an hour later sends the rest. At 2.5 seconds per email one run covers roughly 100 reminders.
 
 - A registration is repriced once: afterwards its unpaid adults are no longer on early bird, so reruns plan nothing for it.
 - Without migration `028` (`early_bird_adult_limit` missing) only registrations with no adults covered by payment are repriced (whole registration to regular); part-paid ones wait until the column exists.
-- An expiry failure is logged (`[cron] Early-bird expiry failed`) and reminders still go out.
-- Code: `src/lib/registrations/early-bird-expiry.ts` (plan), `early-bird-expiry-runner.ts` (DB + audit + email), `src/lib/pricing/early-bird.ts` (counting, dates, notice wording).
+- **Repricing first:** an expiry failure is logged (`[cron] Early-bird expiry failed`) and, on a reminder date, no reminders go out that run (`500`). Registrations whose repricing was skipped (row changed meanwhile, or an error) or deferred (out of time) are held from reminders until a later run reprices them, so no reminder shows a fee that is about to change.
+- Code: `src/lib/registrations/early-bird-expiry.ts` (plan), `early-bird-expiry-runner.ts` (DB + audit + email), `src/lib/pricing/early-bird.ts` (counting, dates, notice wording), `src/lib/payments/payment-reminders.ts` (pacer, already-reminded check, run lock).
 
 ## Admin manual payment update
 

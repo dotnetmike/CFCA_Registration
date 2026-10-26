@@ -2,6 +2,7 @@ import { createAdminClient } from "@/lib/supabase/admin"
 import type { PricingConfig } from "@/lib/pricing/calculate"
 import { writeAuditLog } from "@/lib/audit/log"
 import { sendRegistrationEmail } from "@/lib/email/send"
+import type { EmailPacer } from "@/lib/payments/payment-reminders"
 import { hasEarlyBirdAdultLimitColumn } from "./early-bird-column"
 import {
   planEarlyBirdExpiry,
@@ -20,6 +21,8 @@ export type EarlyBirdExpiryResult = {
   repriced: number
   emailed: number
   skipped: string[]
+  /** Not started because the run was out of time; picked up by the next run. */
+  deferred: string[]
 }
 
 const applyChange = async (change: EarlyBirdExpiryChange, hasLimitColumn: boolean) => {
@@ -45,10 +48,13 @@ const applyChange = async (change: EarlyBirdExpiryChange, hasLimitColumn: boolea
  * Moves unpaid early-bird adults to the regular rate after the payment due date or once a pool is full
  * (see `planEarlyBirdExpiry`), audits each change and emails the registrant when the fee changed.
  * A registration whose fee or payments changed since it was read is skipped and re-checked on the next run.
+ * With a pacer, emails are spaced out and no new change starts once the run is out of time, so a fee
+ * change is never left without its email.
  */
 export const runEarlyBirdExpiry = async (
   pricing: PricingConfig,
-  request: Request
+  request: Request,
+  pacer?: EmailPacer
 ): Promise<EarlyBirdExpiryResult> => {
   const hasLimitColumn = await hasEarlyBirdAdultLimitColumn()
   const { data, error } = await createAdminClient()
@@ -62,9 +68,19 @@ export const runEarlyBirdExpiry = async (
   const changes = planEarlyBirdExpiry((data ?? []) as unknown as EarlyBirdExpiryCandidate[], pricing, {
     canStorePartial: hasLimitColumn,
   })
-  const result: EarlyBirdExpiryResult = { planned: changes.length, repriced: 0, emailed: 0, skipped: [] }
+  const result: EarlyBirdExpiryResult = {
+    planned: changes.length,
+    repriced: 0,
+    emailed: 0,
+    skipped: [],
+    deferred: [],
+  }
 
   for (const change of changes) {
+    if (pacer && !pacer.hasTimeForAnother()) {
+      result.deferred.push(change.registrationNo)
+      continue
+    }
     try {
       if (!(await applyChange(change, hasLimitColumn))) {
         result.skipped.push(change.registrationNo)
@@ -95,6 +111,7 @@ export const runEarlyBirdExpiry = async (
       if (!change.feeChanged) continue
       const full = await getRegistrationWithAttendees(change.id)
       if (!full) continue
+      await pacer?.waitForTurn()
       await sendRegistrationEmail(full, "early_bird_pricing_updated", {
         request,
         earlyBirdChange: {

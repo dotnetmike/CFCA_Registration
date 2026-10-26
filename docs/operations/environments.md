@@ -57,6 +57,8 @@ In **Project → Settings → Environment Variables**:
 2. **Preview**, limited to branch **`dev`** — DEV Supabase + secrets + `APP_ENV=dev`.
 3. **Preview**, limited to branch **`uat`** — UAT Supabase + secrets + `APP_ENV=uat`.
 
+**Daily payment cron:** `vercel.json` schedules `GET /api/cron/payment-reminders` at `0 22 * * *` (UTC) plus a catch-up run at `0 23 * * *`. The route needs a 300-second function limit (`maxDuration`), which requires Fluid Compute (default on new projects) on the Hobby plan. Vercel runs crons on the production deployment only and sends `Authorization: Bearer <CRON_SECRET>`, so `CRON_SECRET` must be set in the **Production** environment variables (redeploy after adding it). Check runs under **Project → Settings → Cron Jobs** (View Logs). Reminder dates are set in Dashboard → Registration Settings, not env vars. See [payment flow](../flows/payment.md#daily-payment-reminders-and-early-bird-expiry).
+
 Also recommended:
 
 - `SKIP_DB_DEPLOY=true` on Vercel if you apply migrations from your machine / CI against each Supabase project separately.

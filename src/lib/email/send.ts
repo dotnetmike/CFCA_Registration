@@ -929,6 +929,7 @@ export const sendRegistrationEmail = async (
   }
 
   await logEmail(registration, type, registration.email, subject, result.id)
+  return result
 }
 
 const logEmail = async (
