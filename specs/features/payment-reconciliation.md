@@ -3,7 +3,7 @@ id: features.payment-reconciliation
 title: Payment reconciliation (Stripe + CBA CSV)
 status: active
 synced_commit: working-tree
-synced_at: 2026-10-22
+synced_at: 2026-10-27
 owners: [team]
 files:
   - src/app/dashboard/payments/reconcile/page.tsx
@@ -26,6 +26,9 @@ files:
   - src/lib/reconciliation/service.ts
   - src/lib/reconciliation/http.ts
   - src/lib/reconciliation/reconciliation.test.ts
+  - src/lib/reconciliation/bank-dedupe.ts
+  - src/lib/reconciliation/bank-dedupe.test.ts
+  - scripts/db/reverse-duplicate-bank-lines.ts
   - supabase/migrations/025_payment_reconciliation.sql
   - supabase/migrations/026_stripe_bank_settlement.sql
   - scripts/db/lib/cleanup-plan.ts
@@ -77,6 +80,8 @@ Staff with `payments:reconcile` upload the **Stripe balance history** export and
 ### Re-running / efficiency
 
 - Stripe rows are keyed by the Stripe transaction id; bank lines by a fingerprint (date, amount, description, balance, occurrence in the file). Uploading overlapping files is safe: known rows are not inserted again.
+  - CBA has two CSV exports for the same account: the statement export (with a Balance column) and the transaction-history export (no Balance column), so the same transaction gets different fingerprints. A line with a new fingerprint is also compared by **date + amount + description** (case and spacing ignored, `src/lib/reconciliation/bank-dedupe.ts`): per combination, only as many lines are inserted as the file has beyond what is already stored, so re-importing days covered by another export never applies a payment twice, while two identical transfers on the same day in one file still both count. Lines skipped this way are counted in the run's skipped rows.
+  - **Clean-up of earlier duplicates:** `npm run db:reverse-duplicate-bank-lines -- --actor <admin email>` lists stored lines that repeat a transaction from an earlier import (per date + amount + description, the real count is the most any single import contained; the earliest-imported lines are kept) and the payments each would reverse, with every registration's amount paid / status before → after. Nothing is written without `--apply`, which marks each duplicate **Ignored** through the same path as the admin override (negative payment row, recalculated amount paid / status, reconciliation events, audit rows; no emails).
 - Rows already **Matched**, **Ignored**, **Not applicable** or **admin set** are skipped (counted as "skipped"). Only stored **Unmatched** rows without an admin override are re-checked on each upload or with **Re-check unmatched**.
 - One run at a time: a second upload while a run is processing returns **409**.
 

@@ -177,6 +177,8 @@ sequenceDiagram
   Svc->>DB: reconciliation_runs (processing, 10 min lock)
   Svc->>Svc: parse CSV (failed parse = failed run)
   Svc->>DB: look up existing ids / fingerprints
+  Svc->>DB: bank only, lines with new fingerprints, stored lines on the same dates (date + amount + description)
+  Note over Svc: skip a line already stored from another CBA export (e.g. no Balance column)
   Note over Svc: skip Matched / Ignored / N/A / admin-set rows
   Svc->>DB: re-check stored Unmatched rows (conditional update)
   Svc->>DB: insert new rows with match outcome

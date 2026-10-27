@@ -157,7 +157,7 @@ erDiagram
 |-------|------|
 | `reconciliation_runs` | One row per upload / re-check (counters, file SHA-256, error); `processing` acts as a 10-minute run lock |
 | `stripe_balance_transactions` | Stripe balance history rows, unique by `stripe_txn_id`; status + match + admin override fields; bank settlement (`payout_id`, `bank_line_id`, `bank_received_date`) recomputed after every run (migration 026) |
-| `bank_statement_lines` | CBA CSV lines, unique by `fingerprint`; `kind` = transfer / stripe_payout / debit |
+| `bank_statement_lines` | CBA CSV lines, unique by `fingerprint`; imports also skip lines already stored with the same date + amount + description (another export format); `kind` = transfer / stripe_payout / debit |
 | `reconciliation_events` | Activity log per row and run (from/to status, amount, comment, actor) |
 | `payments.reconciliation_bank_line_id` | Payment applied (positive) or reversed (negative) from a bank line |
 

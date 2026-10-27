@@ -35,6 +35,7 @@ import {
 } from "@/lib/reconciliation/ledger"
 import { RECONCILIATION_STATUS_LABELS } from "@/lib/reconciliation/labels"
 import { summarizeReconciledAmounts } from "@/lib/reconciliation/reconciled-amounts"
+import { bankLineContentKey, selectNewBankLines } from "@/lib/reconciliation/bank-dedupe"
 import type {
   BankLineKind,
   BankSettlement,
@@ -918,7 +919,21 @@ export const importBankCsv = async (params: {
     }
     counters.skippedRows = [...existing.values()].filter((row) => !isOpenForAutoMatch(row)).length
 
-    const fresh = parsed.filter((line) => !existing.has(line.fingerprint))
+    const unseen = parsed.filter((line) => !existing.has(line.fingerprint))
+    const storedCounts = new Map<string, number>()
+    for (const dates of chunk([...new Set(unseen.map((line) => line.transactionDate))])) {
+      const { data, error } = await admin
+        .from("bank_statement_lines")
+        .select("transaction_date, amount, description")
+        .in("transaction_date", dates)
+      if (error) throw new Error(error.message)
+      for (const row of data ?? []) {
+        const key = bankLineContentKey(row.transaction_date, toCents(row.amount), row.description)
+        storedCounts.set(key, (storedCounts.get(key) ?? 0) + 1)
+      }
+    }
+    const fresh = selectNewBankLines(parsed, unseen, storedCounts)
+    counters.skippedRows += unseen.length - fresh.length
     counters.newRows = fresh.length
     const inserts = fresh.map((line) => ({
       fingerprint: line.fingerprint,
