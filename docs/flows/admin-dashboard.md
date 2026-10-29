@@ -26,17 +26,19 @@ flowchart TB
   Cache[Client cache summary + totals]
   KPIs[KPI cards]
   Charts[Payment and state charts]
-  Table[Summary by state]
+  Map[Headcount map per state]
   CSV[Fresh CSV export]
   Fetch --> Cache
   Cache --> KPIs
   Cache --> Charts
-  Cache --> Table
+  Cache --> Map
   Refresh[Refresh] -->|clear + refetch| Fetch
   Export[Export CSV] --> CSV
 ```
 
-Reports UI: welcome panel, payment donut, registrations-by-state bar chart, people composition, share progress table.
+Reports UI: welcome panel, payment donut, registrations-by-state bar chart, people composition, per-state headcount map, early bird capacity.
+
+The headcount map (`StateHeadcountMap`) is pure client rendering from the cached `summary`: `buildStateHeadcounts` sums adults (registrants + spouses + additional adults) per state, and the "as of" date is the cache entry's `fetchedAt` in Melbourne time. State outlines are static SVG paths in `src/lib/dashboard/australia-states-map.ts`, generated once by `npx tsx scripts/maps/generate-australia-states.ts` from Natural Earth 1:50m admin-1 boundaries (public domain; Lambert conformal conic projection). Re-run the script only to change resolution or label anchors; callout box positions live in the component.
 
 ## Registration detail
 
@@ -136,6 +138,7 @@ Role editor: Users page → Edit roles → `PATCH /api/admin/users` → audit `u
 - `src/lib/auth/user-groups.ts`
 - `src/lib/dashboard/registrations-list-cache.ts`
 - `src/lib/dashboard/reports-cache.ts`
+- `src/components/dashboard/state-headcount-map.tsx`, `src/lib/dashboard/state-headcount.ts`, `src/lib/dashboard/australia-states-map.ts`
 - `src/app/dashboard/registrations/[id]/page.tsx`
 - `src/app/dashboard/audit/page.tsx`
 - `src/app/dashboard/backups/page.tsx`, `src/components/backups/daily-backup-status.tsx`, `src/lib/backups/*`

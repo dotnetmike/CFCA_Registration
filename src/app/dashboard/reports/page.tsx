@@ -22,6 +22,7 @@ import { StatCard } from "@/components/dashboard/stat-card"
 import { WelcomePanel } from "@/components/dashboard/welcome-panel"
 import { DashboardPanel } from "@/components/dashboard/dashboard-panel"
 import { EarlyBirdCapacityPanel } from "@/components/dashboard/early-bird-capacity-panel"
+import { StateHeadcountMap } from "@/components/dashboard/state-headcount-map"
 import { formatCurrency } from "@/lib/pricing/calculate"
 import { PAYMENT_LABELS, PAYMENT_STATUS_LABELS } from "@/lib/payments/labels"
 import { formatCacheAge } from "@/lib/dashboard/list-cache"
@@ -214,8 +215,6 @@ const ReportsPage = () => {
       ),
     [paymentStatusCounts]
   )
-
-  const maxStateRegistrations = Math.max(1, ...stateRows.map((r) => r.registrations))
 
   if (isLoading) {
     return <p className="text-center text-ink-soft">Loading reports...</p>
@@ -431,64 +430,7 @@ const ReportsPage = () => {
         </DashboardPanel>
       </div>
 
-      <DashboardPanel
-        title={`Summary by state (${totals.registrations} registrations · ${totals.people} people)`}
-        description="Share of total registrations shown as progress bars"
-        bodyClassName="overflow-x-auto p-0 sm:p-0"
-      >
-        <table className="cfca-reports-table">
-          <thead>
-            <tr>
-              <th className="px-5 sm:px-6">State</th>
-              <th>Registrations</th>
-              <th>Spouses</th>
-              <th title="Additional attendees aged 18+">Additional adults</th>
-              <th title="Additional attendees under 18">Kids</th>
-              <th>Total people</th>
-              <th className="min-w-[10rem] px-5 sm:px-6">Share</th>
-            </tr>
-          </thead>
-          <tbody>
-            {stateRows.length === 0 ? (
-              <tr>
-                <td colSpan={7} className="px-6 py-8 text-center text-ink-soft">
-                  No registration data yet.
-                </td>
-              </tr>
-            ) : (
-              stateRows.map((row) => {
-                const share = Math.round((row.registrations / maxStateRegistrations) * 100)
-                return (
-                  <tr key={row.state}>
-                    <td className="px-5 font-semibold sm:px-6">{row.state}</td>
-                    <td className="tabular-nums">{row.registrations}</td>
-                    <td className="tabular-nums">{row.spouses}</td>
-                    <td className="tabular-nums">{row.additionalAdults}</td>
-                    <td className="tabular-nums">{row.kids}</td>
-                    <td className="tabular-nums font-semibold">{row.people}</td>
-                    <td className="px-5 sm:px-6">
-                      <div className="flex items-center gap-3">
-                        <div className="cfca-progress-track flex-1" aria-hidden="true">
-                          <div
-                            className="cfca-progress-fill"
-                            style={{ width: `${share}%` }}
-                          />
-                        </div>
-                        <span className="w-10 text-right text-xs tabular-nums text-ink-soft">
-                          {totals.registrations > 0
-                            ? Math.round((row.registrations / totals.registrations) * 100)
-                            : 0}
-                          %
-                        </span>
-                      </div>
-                    </td>
-                  </tr>
-                )
-              })
-            )}
-          </tbody>
-        </table>
-      </DashboardPanel>
+      {fetchedAt != null ? <StateHeadcountMap summary={summary} asOf={fetchedAt} /> : null}
 
       {earlyBird ? <EarlyBirdCapacityPanel earlyBird={earlyBird} /> : null}
 

@@ -16,6 +16,7 @@ CFCA_Registration/
 ├── supabase/migrations/   # Numbered SQL only
 ├── scripts/db/            # deploy runner
 ├── scripts/email/         # send-sample-emails (read-only template review)
+├── scripts/maps/          # one-off generator for the Reports Australia state map paths
 └── .cursor/rules/         # AI always-on rules
 ```
 
