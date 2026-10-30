@@ -36,7 +36,7 @@ flowchart TB
   Export[Export CSV] --> CSV
 ```
 
-Reports UI: welcome panel, payment donut, registrations-by-state bar chart, people composition, per-state headcount map, early bird capacity.
+Reports UI: welcome panel, payment donut, registrations-by-state bar chart, people composition, per-state headcount map, Early Bird Registration Report (KPI cards, per-group donuts, per-state stacked bars, client-side CSV export; figures derived in `src/lib/dashboard/early-bird-report.ts` from the cached `earlyBird` payload).
 
 The headcount map (`StateHeadcountMap`) is pure client rendering from the cached `summary`: `buildStateHeadcounts` sums all attendees per state split into adults (18+), teens (12–17), kids (2–11) and infants (0–1) from the summary's `teens` / `children` / `infants` fields, and the total card is the sum of the states. The Adults / Kids / Teens checkboxes are local component state (`HeadcountSelection`, default `ALL_SELECTABLE_BANDS`; all three ticked = everyone incl. infants); `headcountForSelection` / `bandsForSelection` derive the numbers, and a single selected group switches to the compact single-number card layout, and the "as of" date is the cache entry's `fetchedAt` in Melbourne time. State outlines are static SVG paths in `src/lib/dashboard/australia-states-map.ts`, generated once by `npx tsx scripts/maps/generate-australia-states.ts` from Natural Earth 1:50m admin-1 boundaries (public domain; Lambert conformal conic projection). Re-run the script only to change resolution or label anchors; callout box positions live in the component.
 
