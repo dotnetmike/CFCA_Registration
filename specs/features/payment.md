@@ -3,7 +3,7 @@ id: features.payment
 title: Payment information
 status: active
 synced_commit: working-tree
-synced_at: 2026-10-26
+synced_at: 2026-10-30
 owners: [team]
 files:
   - src/app/payment/page.tsx
@@ -75,8 +75,9 @@ Presentation (`PaymentSummary` component and email payment rows):
   - HTML emails: same green callout inside the Payment summary (above **Pay $X securely**) of registration emails when a balance is due, and in the payment reminder. Plain-text emails include the same sentence when a balance is due.
 - Guest V2 first-time pay also uses `/register/pay` (see `features.registration-workflow-v2`).
 - **CFCA bank account** (account name, BSB, account number) is a runtime setting edited in Dashboard → Registration Settings → **Bank Transfer Details** (no env vars). Served to payment pages via `GET /api/registration-settings` (`settings.bankDetails`) and `GET /api/payments/pay-context` (`bankDetails`). BSB stored as `123-456`; account number 4–10 digits. If any field is blank, payment pages show “Bank transfer details are not available yet. Please contact the registration team.” instead of the details. Changes audited as `settings.bank_details_changed`.
-- Stripe: `STRIPE_SECRET_KEY` only, plus a Dashboard webhook URL to `/api/payments/stripe/webhook`.
-- Online Payment redirects to Stripe Checkout; webhook + optional `session_id` status recovery mark the registration paid.
+- Stripe: `STRIPE_SECRET_KEY` only, plus a live webhook endpoint `https://www.cfcanatcon.com/api/payments/stripe/webhook` subscribed to `checkout.session.completed`, `checkout.session.async_payment_succeeded`, `checkout.session.async_payment_failed`, `checkout.session.expired`, `payment_intent.succeeded` and `payment_intent.payment_failed`. Without it, payments are only recorded when the payer reaches the return page.
+- Online Payment redirects to Stripe Checkout; webhook + `session_id` status recovery on the return page mark the registration paid (recorded once per Stripe payment).
+  - Logged-in payers return to `/my-registration?payment=success&session_id=…`. Session cookies are `SameSite=Lax` so the session survives this return from Stripe; if the visitor still has to log in, the login redirect keeps the full path and query so the payment is confirmed after login. The return page starts confirming the payment immediately, without waiting for the registration to load.
 - Administrators configure payment reminder dates in Registration Settings (not env vars). The authorized daily cron sends reminders only to submitted registrations with `pending` or `partial` payment status, and only when today's **Melbourne** calendar date is one of the reminder dates. With no reminder dates set, no reminders are sent (early-bird expiry still runs).
   - **Reminder dates control** (`PaymentReminderDatesField`, Dashboard → Registration Settings → Payment Reminders): a date picker plus **Add date** button (Enter in the picker also adds). Added dates show as a sorted list of removable chips (e.g. `Tue, 1 Dec 2026`; past dates marked "(past)"), duplicates are refused, and at most 12 dates can be added (the API limit). Nothing is stored until **Save Settings**.
 - **Schedule:** Vercel Cron (`vercel.json`) calls `GET /api/cron/payment-reminders` on the production deployment at 22:00 UTC (9:00 am Melbourne in daylight saving, 8:00 am otherwise) and again at 23:00 UTC as a **catch-up** run (`?run=catch-up`, same handler) — both on the same Melbourne date. Vercel sends `Authorization: Bearer <CRON_SECRET>`, so `CRON_SECRET` must be set in the Vercel Production environment; any other caller without it gets `401`.

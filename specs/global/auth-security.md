@@ -2,8 +2,8 @@
 id: global.auth-security
 title: Auth and security
 status: active
-synced_commit: 8ee5938
-synced_at: 2026-09-06
+synced_commit: working-tree
+synced_at: 2026-10-30
 owners: [team]
 files:
   - src/proxy.ts
@@ -32,7 +32,9 @@ Custom JWT auth (not Supabase Auth). Access + refresh cookies; Bearer tokens for
 - Access JWT: HS256, `JWT_ACCESS_SECRET`, expiry `JWT_ACCESS_EXPIRY` (default 6h).
 - Refresh token: httpOnly cookie `cfca_refresh_token`, rotated on refresh; hashed in DB.
 - Access cookie: `cfca_access_token` (httpOnly) for proxy checks.
-- Proxy (`src/proxy.ts`) verifies access JWT or silent-refreshes; else redirect to `/login?redirect=…`.
+- Both session cookies are `Secure` (production) and `SameSite=Lax`: sent on top-level navigations back from Stripe Checkout, never on cross-site POSTs or embedded requests.
+- Proxy (`src/proxy.ts`) verifies access JWT or silent-refreshes; else redirect to `/login?redirect=<path + query>`.
+- Login and signup only follow same-site `redirect` values (`safeRedirectPath` in `src/lib/auth/paths.ts`: must start with a single `/`); anything else goes to `/my-registration`.
 - API routes use `requireAuth` (Bearer) + optional `requirePermission`.
 - Failed password change must **not** return 401 in a way that triggers session-expiry redirect (use 400 for wrong current password).
 - Audit important auth events via `writeAuditLog`.
@@ -40,7 +42,8 @@ Custom JWT auth (not Supabase Auth). Access + refresh cookies; Bearer tokens for
 
 ## Acceptance criteria
 
-- [ ] Protected pages redirect to login without valid session
+- [ ] Protected pages redirect to login without valid session, keeping the original path and query
+- [ ] Login/signup never redirect off-site
 - [ ] `authFetch` attaches Bearer and refreshes on 401 for data APIs
 - [ ] Logout clears session cookies
 - [ ] Publishable/anon key cannot CRUD app data via Supabase REST

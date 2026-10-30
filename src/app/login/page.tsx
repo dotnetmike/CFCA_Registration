@@ -4,6 +4,7 @@ import { Suspense, useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
 import { useAuth } from "@/lib/auth/context"
+import { safeRedirectPath } from "@/lib/auth/paths"
 import { useBusyCursor } from "@/hooks/use-busy-cursor"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -16,7 +17,7 @@ const LoginForm = () => {
   const { login } = useAuth()
   const router = useRouter()
   const searchParams = useSearchParams()
-  const redirect = searchParams.get("redirect") ?? "/my-registration"
+  const redirect = safeRedirectPath(searchParams.get("redirect"))
   const resetSuccess = searchParams.get("reset") === "success"
 
   const [email, setEmail] = useState("")

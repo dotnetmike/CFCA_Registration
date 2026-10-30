@@ -6,10 +6,11 @@ export const REFRESH_TOKEN_COOKIE = "cfca_refresh_token"
 
 const DEFAULT_ACCESS_MAX_AGE = 60 * 60 * 6
 
+// Lax so the session survives top-level returns from Stripe Checkout; cross-site POSTs still omit it.
 export const getRefreshCookieOptions = (maxAgeSeconds: number) => ({
   httpOnly: true,
   secure: process.env.NODE_ENV === "production",
-  sameSite: "strict" as const,
+  sameSite: "lax" as const,
   path: "/",
   maxAge: maxAgeSeconds,
 })
@@ -17,7 +18,7 @@ export const getRefreshCookieOptions = (maxAgeSeconds: number) => ({
 export const getAccessCookieOptions = (maxAgeSeconds: number) => ({
   httpOnly: true,
   secure: process.env.NODE_ENV === "production",
-  sameSite: "strict" as const,
+  sameSite: "lax" as const,
   path: "/",
   maxAge: maxAgeSeconds,
 })

@@ -3,6 +3,12 @@ export const protectedPaths = ["/my-registration", "/payment", "/dashboard", "/a
 export const isProtectedPath = (pathname: string) =>
   protectedPaths.some((p) => pathname === p || pathname.startsWith(`${p}/`))
 
+/** Same-site path (with optional query) for post-login redirects; anything else falls back. */
+export const safeRedirectPath = (value: string | null | undefined, fallback = "/my-registration") => {
+  if (!value || !value.startsWith("/") || value.startsWith("//") || value.includes("\\")) return fallback
+  return value
+}
+
 export const isPublicAuthPath = (pathname: string) =>
   pathname === "/login" ||
   pathname === "/signup" ||

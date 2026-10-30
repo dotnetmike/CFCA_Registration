@@ -10,7 +10,7 @@ import { isProtectedPath } from "@/lib/auth/paths"
 
 const redirectToLogin = (request: NextRequest) => {
   const loginUrl = new URL("/login", request.url)
-  loginUrl.searchParams.set("redirect", request.nextUrl.pathname)
+  loginUrl.searchParams.set("redirect", `${request.nextUrl.pathname}${request.nextUrl.search}`)
   const response = NextResponse.redirect(loginUrl)
   clearSessionCookies(response)
   return response

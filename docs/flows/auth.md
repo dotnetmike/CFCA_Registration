@@ -78,7 +78,7 @@ sequenceDiagram
 
 Protected prefixes: `/my-registration`, `/payment`, `/dashboard`, `/account`.
 
-Unauthenticated → `/login?redirect=<path>`.
+Unauthenticated → `/login?redirect=<path + query>` (query kept so a Stripe return `?payment=success&session_id=…` is confirmed after login). Login/signup follow only same-site paths (`safeRedirectPath`). Session cookies are `SameSite=Lax` so they are sent when Stripe Checkout redirects back to the site.
 
 ## Debug tips
 

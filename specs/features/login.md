@@ -2,8 +2,8 @@
 id: features.login
 title: Login
 status: active
-synced_commit: 8ee5938
-synced_at: 2026-09-06
+synced_commit: working-tree
+synced_at: 2026-10-30
 owners: [team]
 files:
   - src/app/login/page.tsx
@@ -20,7 +20,7 @@ Authenticate existing users.
 
 - Form: email, password; loading disables submit.
 - Link: Forgot password? ? `/forgot-password`.
-- Default redirect: `?redirect=` or `/my-registration`.
+- Default redirect: `?redirect=` (same-site path with optional query only, via `safeRedirectPath`) or `/my-registration`.
 - Success sets session cookies + client auth state.
 - Failed login audited; generic invalid credentials message.
 - After password reset success: `?reset=success` shows success alert.

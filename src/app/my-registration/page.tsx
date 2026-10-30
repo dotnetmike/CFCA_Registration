@@ -51,6 +51,31 @@ const MyRegistrationContent = () => {
     setReloadKey((key) => key + 1)
   }, [])
 
+  return (
+    <div className="cfca-page mx-auto max-w-5xl space-y-6">
+      <StripeCheckoutReturn
+        sessionId={checkoutSessionId}
+        retryHref="/payment"
+        onConfirmed={handlePaymentConfirmed}
+      />
+      <MyRegistrationBody
+        isLoading={isLoading}
+        registration={registration}
+        onlineEnabled={onlineEnabled}
+        pricing={pricing}
+      />
+    </div>
+  )
+}
+
+type MyRegistrationBodyProps = {
+  isLoading: boolean
+  registration: RegistrationDetails | null
+  onlineEnabled: boolean
+  pricing: PricingConfig | null
+}
+
+const MyRegistrationBody = ({ isLoading, registration, onlineEnabled, pricing }: MyRegistrationBodyProps) => {
   if (isLoading) return <p className="text-center text-gray-500">Loading...</p>
 
   if (!registration) {
@@ -65,34 +90,26 @@ const MyRegistrationContent = () => {
   }
 
   return (
-    <div className="cfca-page mx-auto max-w-5xl space-y-6">
-      <StripeCheckoutReturn
-        sessionId={checkoutSessionId}
-        retryHref="/payment"
-        onConfirmed={handlePaymentConfirmed}
-      />
-
-      <RegistrationDetailsView
-        registration={registration}
-        payHref="/payment"
-        onlineEnabled={onlineEnabled}
-        pricing={pricing}
-        actions={
-          <>
-            <Link href="/">
-              <Button aria-label="Edit registration">Edit registration</Button>
+    <RegistrationDetailsView
+      registration={registration}
+      payHref="/payment"
+      onlineEnabled={onlineEnabled}
+      pricing={pricing}
+      actions={
+        <>
+          <Link href="/">
+            <Button aria-label="Edit registration">Edit registration</Button>
+          </Link>
+          {registration.submitted_at && (
+            <Link href="/payment">
+              <Button variant="outline" aria-label="View payment details">
+                View payment details
+              </Button>
             </Link>
-            {registration.submitted_at && (
-              <Link href="/payment">
-                <Button variant="outline" aria-label="View payment details">
-                  View payment details
-                </Button>
-              </Link>
-            )}
-          </>
-        }
-      />
-    </div>
+          )}
+        </>
+      }
+    />
   )
 }
 

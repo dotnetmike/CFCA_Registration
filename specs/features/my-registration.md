@@ -3,7 +3,7 @@ id: features.my-registration
 title: My Registration
 status: active
 synced_commit: working-tree
-synced_at: 2026-10-26
+synced_at: 2026-10-30
 owners: [team]
 files:
   - src/app/my-registration/page.tsx
@@ -21,7 +21,8 @@ Logged-in summary of the user�s registration. Primary destination for update-n
 
 ## Behavior
 
-- Protected (`/my-registration`). Unauthenticated visitors are redirected to `/login?redirect=/my-registration`.
+- Protected (`/my-registration`). Unauthenticated visitors are redirected to `/login?redirect=/my-registration` (the original query string is kept in `redirect`, e.g. a Stripe return `?payment=success&session_id=…`).
+- **Stripe return:** with `?payment=success&session_id=…` the page shows the online payment confirmation (`StripeCheckoutReturn`) immediately, independent of the registration loading, and reloads the registration once the payment is confirmed (`features.payment`).
 - Loads own registration via `GET /api/registrations`.
 - If no registration is linked to the account, `GET /api/registrations` self-heals by looking for a submitted, unlinked registration with a matching email and auto-linking it to the logged-in account before returning it (handles guest submissions made with the same email prior to login/signup).
 - Empty ? prompt to start `/` (registration form).

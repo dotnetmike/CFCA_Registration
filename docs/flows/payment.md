@@ -53,8 +53,8 @@ sequenceDiagram
     Stripe->>WH: checkout.session.completed
     WH->>Stripe: events.retrieve(id) with secret key
     WH->>WH: ledger source=stripe, audit, email
-    Stripe->>Done: success_url ?session_id=
-    Done->>API: poll GET status?session_id every 3s, up to 45s
+    Stripe->>Done: success_url ?session_id= (Lax cookies keep the session)
+    Done->>API: poll GET status?session_id every 3s, up to 45s (starts before registration loads)
   end
 ```
 
@@ -250,5 +250,5 @@ The legacy PDF tables (`bank_statements`, `bank_transactions`, storage bucket `b
 - Upload returns 409 → another run is processing (lock expires after 10 minutes if a run crashed).
 - Balance due = `max(0, amount_due - amount_paid)` (`balanceDue` in `src/lib/payments/labels.ts`). UI/email wording: Registration fee / Amount paid / Balance due / Payment status badge — see `features.payment`.
 - Stripe Online missing → check `STRIPE_SECRET_KEY` and workflow = V2
-- Paid on Stripe but not marked paid → check webhook endpoint URL + `checkout.session.completed` delivery in Stripe Dashboard
+- Paid on Stripe but not marked paid → check the live webhook endpoint exists (Stripe Dashboard → Developers → Webhooks, `https://www.cfcanatcon.com/api/payments/stripe/webhook`, `we_1UW7U7H5O1RdB1loywPAFrEn` created 30 Oct 2026) and its `checkout.session.completed` deliveries. Until then payments were recorded only by the return-page status check. To record a missed paid session, call `GET /api/payments/stripe/status?session_id=<cs_live_…>` on production (idempotent per PaymentIntent; sends the Payment received email once).
 - Permission: `payments:reconcile` for reconcile + typically `registrations:write_all` for manual updates
