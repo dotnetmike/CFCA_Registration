@@ -1,31 +1,26 @@
 "use client"
 
-import { useCallback, useEffect, useMemo, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
+import Link from "next/link"
 import { useRouter } from "next/navigation"
-import {
-  Bar,
-  BarChart,
-  CartesianGrid,
-  Cell,
-  Pie,
-  PieChart,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts"
 import { useAuth } from "@/lib/auth/context"
 import { isManager } from "@/lib/auth/permissions-client"
 import { useBusyCursor } from "@/hooks/use-busy-cursor"
 import { Button } from "@/components/ui/button"
 import { StatCard } from "@/components/dashboard/stat-card"
-import { WelcomePanel } from "@/components/dashboard/welcome-panel"
 import { DashboardPanel } from "@/components/dashboard/dashboard-panel"
 import { EarlyBirdCapacityPanel } from "@/components/dashboard/early-bird-capacity-panel"
 import { StateHeadcountMap } from "@/components/dashboard/state-headcount-map"
+import {
+  AttendeeCompositionPanel,
+  CollectionProgressPanel,
+  PaymentStatusPanel,
+  StateRegistrationsPanel,
+} from "@/components/dashboard/reports-overview"
 import { formatCurrency } from "@/lib/pricing/calculate"
-import { PAYMENT_LABELS, PAYMENT_STATUS_LABELS } from "@/lib/payments/labels"
+import { PAYMENT_LABELS } from "@/lib/payments/labels"
 import { formatCacheAge } from "@/lib/dashboard/list-cache"
+import { adultTotal, collectionProgress } from "@/lib/dashboard/reports-overview"
 import {
   emptyPaymentStatusCounts,
   emptyReportsTotals,
@@ -36,12 +31,20 @@ import {
   type ReportsTotals,
 } from "@/lib/dashboard/reports-cache"
 
-const PAYMENT_COLORS: Record<keyof ReportsPaymentStatusCounts, string> = {
-  pending: "#d97706",
-  partial: "#0284c7",
-  paid: "#059669",
-  overpaid: "#7c3aed",
-}
+const IconDownload = () => (
+  <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+    <path d="M12 3v12" />
+    <path d="m7 10 5 5 5-5" />
+    <path d="M5 21h14" />
+  </svg>
+)
+
+const IconList = () => (
+  <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+    <path d="M9 6h11M9 12h11M9 18h11" />
+    <path d="M4 6h.01M4 12h.01M4 18h.01" />
+  </svg>
+)
 
 const IconUsers = () => (
   <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8">
@@ -178,79 +181,43 @@ const ReportsPage = () => {
     }
   }
 
-  const stateRows = useMemo(() => {
-    return Object.entries(summary)
-      .map(([state, data]) => ({ state, ...data }))
-      .sort((a, b) => b.registrations - a.registrations)
-  }, [summary])
-
-  const stateChartData = useMemo(
-    () =>
-      stateRows.map((row) => ({
-        state: row.state,
-        registrations: row.registrations,
-        people: row.people,
-      })),
-    [stateRows]
-  )
-
-  const compositionData = useMemo(
-    () => [
-      { name: "Registrations", value: totals.registrations, fill: "#0d47a1" },
-      { name: "Spouses", value: totals.spouses, fill: "#1565c0" },
-      { name: "Additional adults", value: totals.additionalAdults, fill: "#1e88e5" },
-      { name: "Kids", value: totals.kids, fill: "#42a5f5" },
-    ],
-    [totals]
-  )
-
-  const paymentChartData = useMemo(
-    () =>
-      (Object.keys(paymentStatusCounts) as (keyof ReportsPaymentStatusCounts)[]).map(
-        (status) => ({
-          name: PAYMENT_STATUS_LABELS[status],
-          value: paymentStatusCounts[status],
-          fill: PAYMENT_COLORS[status],
-        })
-      ),
-    [paymentStatusCounts]
-  )
-
   if (isLoading) {
     return <p className="text-center text-ink-soft">Loading reports...</p>
   }
 
+  const progress = collectionProgress(totals)
+
   return (
     <div className="cfca-page space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div className="space-y-2">
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div className="space-y-1.5">
           <p className="text-xs font-semibold uppercase tracking-[0.22em] text-accent-ink">
-            Staff workspace
+            CFCA National Conference 2027
           </p>
-          <h1 className="font-display text-4xl font-semibold text-ink">Reports</h1>
-          {fetchedAt != null && (
-            <p className="text-sm text-ink-soft">
-              Summary cached · updated {formatCacheAge(fetchedAt)}
-            </p>
-          )}
+          <h1 className="font-display text-3xl font-semibold text-ink sm:text-4xl">
+            Registration &amp; Payment Report
+          </h1>
+          <p className="text-sm text-ink-soft">
+            Conference operations overview
+            {fetchedAt != null ? ` · Summary cached · updated ${formatCacheAge(fetchedAt)}` : null}
+          </p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
           <Button
             type="button"
             variant="outline"
-            size="sm"
             onClick={() => void handleExport()}
             isLoading={isExporting}
             loadingText="Exporting..."
             disabled={isExporting || isRefreshing}
             aria-label="Export detailed CSV"
           >
+            <IconDownload />
             Export CSV
           </Button>
           <Button
             type="button"
             variant="outline"
-            size="sm"
             onClick={() => void loadReports(true)}
             isLoading={isRefreshing}
             loadingText="Refreshing..."
@@ -258,6 +225,12 @@ const ReportsPage = () => {
             aria-label="Refresh reports summary"
           >
             Refresh
+          </Button>
+          <Button asChild>
+            <Link href="/dashboard" aria-label="View registrations">
+              <IconList />
+              View registrations
+            </Link>
           </Button>
         </div>
       </div>
@@ -277,22 +250,22 @@ const ReportsPage = () => {
         <StatCard
           label="Registrations"
           value={String(totals.registrations)}
-          hint={`${totals.people} people in total`}
+          hint="Submitted registrations"
           tone="brand"
           icon={<IconUsers />}
         />
         <StatCard
-          label="Attendees"
+          label="Total attendees"
           value={String(totals.people)}
-          hint={`${totals.registrations} registrations · ${totals.spouses} spouses · ${totals.additionalAdults} additional adults · ${totals.kids} kids`}
+          hint={`${adultTotal(totals)} adults · ${totals.kids} under 18`}
           tone="info"
           icon={<IconPeople />}
           className="animate-rise-delay-1"
         />
         <StatCard
-          label="Collected"
+          label="Payments collected"
           value={formatCurrency(totals.amount_paid)}
-          hint={`of ${formatCurrency(totals.amount_due)} in registration fees`}
+          hint={`${progress.collectedPercent.toFixed(1)}% of total fees`}
           tone="success"
           icon={<IconPaid />}
           className="animate-rise-delay-2"
@@ -300,7 +273,7 @@ const ReportsPage = () => {
         <StatCard
           label={PAYMENT_LABELS.balanceDue}
           value={formatCurrency(totals.amount_remaining)}
-          hint={`${paymentStatusCounts.pending + paymentStatusCounts.partial} unpaid / part paid`}
+          hint={`${progress.balancePercent.toFixed(1)}% of total fees`}
           tone="warning"
           icon={<IconBalance />}
           className="animate-rise-delay-3"
@@ -308,126 +281,13 @@ const ReportsPage = () => {
       </div>
 
       <div className="grid gap-4 lg:grid-cols-[1.4fr_1fr]">
-        <WelcomePanel
-          name={user?.name?.trim() || "team"}
-          secondaryAction={
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="border-white/40 bg-transparent text-white hover:bg-white/10 hover:text-white"
-              onClick={() => void handleExport()}
-              isLoading={isExporting}
-              loadingText="Exporting..."
-              disabled={isExporting || isRefreshing}
-              aria-label="Export detailed registrations CSV"
-            >
-              Export detailed CSV
-            </Button>
-          }
-        />
-        <DashboardPanel
-          title="Payment status"
-          description="Distribution across all registrations"
-        >
-          <div className="h-56">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={paymentChartData}
-                  dataKey="value"
-                  nameKey="name"
-                  innerRadius={52}
-                  outerRadius={78}
-                  paddingAngle={3}
-                >
-                  {paymentChartData.map((entry) => (
-                    <Cell key={entry.name} fill={entry.fill} />
-                  ))}
-                </Pie>
-                <Tooltip
-                  formatter={(value) => [String(value ?? 0), "Registrations"]}
-                  contentStyle={{
-                    borderRadius: 12,
-                    borderColor: "rgba(13,71,161,0.16)",
-                    fontSize: 12,
-                  }}
-                />
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
-          <ul className="mt-2 grid grid-cols-2 gap-2 text-xs">
-            {paymentChartData.map((entry) => (
-              <li key={entry.name} className="flex items-center gap-2 text-ink-soft">
-                <span
-                  className="h-2.5 w-2.5 rounded-full"
-                  style={{ backgroundColor: entry.fill }}
-                  aria-hidden="true"
-                />
-                {entry.name}
-                <span className="ml-auto font-semibold tabular-nums text-ink">{entry.value}</span>
-              </li>
-            ))}
-          </ul>
-        </DashboardPanel>
+        <CollectionProgressPanel totals={totals} paymentStatusCounts={paymentStatusCounts} />
+        <PaymentStatusPanel paymentStatusCounts={paymentStatusCounts} registrations={totals.registrations} />
       </div>
 
-      <div className="grid gap-4 xl:grid-cols-2">
-        <DashboardPanel
-          title="Registrations by state"
-          description="Submitted registrations grouped by CFCA membership state"
-        >
-          <div className="h-72">
-            {stateChartData.length === 0 ? (
-              <p className="flex h-full items-center justify-center text-sm text-ink-soft">
-                No registration data yet.
-              </p>
-            ) : (
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={stateChartData} margin={{ top: 8, right: 8, left: -12, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(13,71,161,0.12)" />
-                  <XAxis dataKey="state" tick={{ fontSize: 12, fill: "#1a3348" }} />
-                  <YAxis allowDecimals={false} tick={{ fontSize: 12, fill: "#1a3348" }} />
-                  <Tooltip
-                    contentStyle={{
-                      borderRadius: 12,
-                      borderColor: "rgba(13,71,161,0.16)",
-                      fontSize: 12,
-                    }}
-                  />
-                  <Bar dataKey="registrations" fill="#0d47a1" radius={[6, 6, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            )}
-          </div>
-        </DashboardPanel>
-
-        <DashboardPanel
-          title="People composition"
-          description="Registrations (one registrant each), spouses, additional adults (18+), and children under 18"
-        >
-          <div className="h-72">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={compositionData} margin={{ top: 8, right: 8, left: -12, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(13,71,161,0.12)" />
-                <XAxis dataKey="name" tick={{ fontSize: 12, fill: "#1a3348" }} />
-                <YAxis allowDecimals={false} tick={{ fontSize: 12, fill: "#1a3348" }} />
-                <Tooltip
-                  contentStyle={{
-                    borderRadius: 12,
-                    borderColor: "rgba(13,71,161,0.16)",
-                    fontSize: 12,
-                  }}
-                />
-                <Bar dataKey="value" radius={[6, 6, 0, 0]}>
-                  {compositionData.map((entry) => (
-                    <Cell key={entry.name} fill={entry.fill} />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </DashboardPanel>
+      <div className="grid gap-4 lg:grid-cols-2">
+        <StateRegistrationsPanel summary={summary} registrations={totals.registrations} />
+        <AttendeeCompositionPanel totals={totals} />
       </div>
 
       {fetchedAt != null ? <StateHeadcountMap summary={summary} asOf={fetchedAt} /> : null}

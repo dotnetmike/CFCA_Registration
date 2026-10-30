@@ -1,6 +1,7 @@
 "use client"
 
 import { Button } from "@/components/ui/button"
+import { DonutChart } from "@/components/dashboard/donut-chart"
 import { StatCard } from "@/components/dashboard/stat-card"
 import { formatCalendarDate } from "@/components/reconciliation/format"
 import { downloadTextFile } from "@/lib/dashboard/download-csv"
@@ -62,47 +63,6 @@ const IconInfo = () => (
   </svg>
 )
 
-type DonutSegment = { value: number; color: string }
-
-const DONUT_RADIUS = 52
-const DONUT_STROKE = 20
-const DONUT_CIRCUMFERENCE = 2 * Math.PI * DONUT_RADIUS
-
-const Donut = ({ segments, total, center, label }: { segments: DonutSegment[]; total: number; center: number; label: string }) => {
-  const offsets = segments.reduce<number[]>(
-    (acc, segment, index) => [...acc, (acc[index] ?? 0) + segment.value],
-    [0]
-  )
-  return (
-    <div className="relative h-36 w-36 shrink-0">
-      <svg viewBox="0 0 140 140" className="h-full w-full -rotate-90" role="img" aria-label={label}>
-        <circle cx="70" cy="70" r={DONUT_RADIUS} fill="none" stroke={COLOR_UNALLOCATED} strokeWidth={DONUT_STROKE} />
-        {total > 0
-          ? segments.map((segment, index) =>
-              segment.value > 0 ? (
-                <circle
-                  key={segment.color}
-                  cx="70"
-                  cy="70"
-                  r={DONUT_RADIUS}
-                  fill="none"
-                  stroke={segment.color}
-                  strokeWidth={DONUT_STROKE}
-                  strokeDasharray={`${(segment.value / total) * DONUT_CIRCUMFERENCE} ${DONUT_CIRCUMFERENCE}`}
-                  strokeDashoffset={-(offsets[index] / total) * DONUT_CIRCUMFERENCE}
-                />
-              ) : null
-            )
-          : null}
-      </svg>
-      <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className="font-display text-3xl font-semibold tabular-nums text-ink">{center}</span>
-        <span className="text-xs text-ink-soft">confirmed</span>
-      </div>
-    </div>
-  )
-}
-
 const LegendRow = ({ color, label, value }: { color: string; label: string; value: number }) => (
   <div className="flex items-center justify-between gap-4 py-1.5 text-sm">
     <span className="flex items-center gap-2 text-ink">
@@ -120,14 +80,16 @@ const PoolPanel = ({ pool }: { pool: EarlyBirdPool }) => {
     <div className="flex flex-col rounded-2xl border border-[color:var(--line)] bg-white">
       <h4 className="px-5 pt-4 font-display text-lg font-semibold text-ink">{POOL_TITLES[pool.id] ?? pool.label}</h4>
       <div className="flex flex-1 flex-col items-center gap-5 px-5 py-4 sm:flex-row">
-        <Donut
+        <DonutChart
           segments={[
-            { value: segments.confirmed, color: COLOR_CONFIRMED },
-            { value: segments.awaiting, color: COLOR_AWAITING },
+            { key: "confirmed", value: segments.confirmed, color: COLOR_CONFIRMED },
+            { key: "awaiting", value: segments.awaiting, color: COLOR_AWAITING },
           ]}
           total={pool.capacity}
-          center={pool.used}
-          label={`${pool.label}: ${pool.used} confirmed, ${pool.reserved} awaiting payment, ${segments.unallocated} unallocated of ${pool.capacity}`}
+          centerValue={pool.used}
+          centerLabel="confirmed"
+          trackColor={COLOR_UNALLOCATED}
+          ariaLabel={`${pool.label}: ${pool.used} confirmed, ${pool.reserved} awaiting payment, ${segments.unallocated} unallocated of ${pool.capacity}`}
         />
         <div className="w-full flex-1">
           <LegendRow color={COLOR_CONFIRMED} label="Confirmed" value={pool.used} />
