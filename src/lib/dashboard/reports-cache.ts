@@ -75,5 +75,5 @@ export const emptyPaymentStatusCounts = (): ReportsPaymentStatusCounts => ({
 })
 
 export const reportsCache = createDashboardValueCache<ReportsCacheValue>({
-  storageKey: "cfca.dashboard.reports.v5",
+  storageKey: "cfca.dashboard.reports.v6",
 })
