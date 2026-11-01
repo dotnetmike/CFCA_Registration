@@ -9,6 +9,7 @@ import {
   formatHeadcountAsOf,
   headcountForSelection,
   isEveryoneSelected,
+  statesWithHeadcount,
   toggleHeadcountBand,
   type HeadcountBand,
   type HeadcountBreakdown,
@@ -234,12 +235,13 @@ export const StateHeadcountMap = ({ summary, asOf }: StateHeadcountMapProps) => 
   const isSingle = selection.length === 1
   const layout = isSingle ? SINGLE_LAYOUT : detailedLayout(bands.length)
   const counts = report.states.map((row) => ({ ...row, count: headcountForSelection(row, selection) }))
+  const calloutRows = statesWithHeadcount(counts, selection)
   const totalCount = headcountForSelection(report.total, selection)
   const unassignedCount = headcountForSelection(report.unassigned, selection)
   const maxCount = Math.max(0, ...counts.map((row) => row.count))
   const asOfLabel = formatHeadcountAsOf(asOf)
   const selectionLabel = isEveryone ? "all registered attendees" : bands.map((band) => band.label).join(" and ")
-  const mapLabel = `Map of Australia showing ${selectionLabel} per state as of ${asOfLabel}: ${counts
+  const mapLabel = `Map of Australia showing ${selectionLabel} per state as of ${asOfLabel}: ${calloutRows
     .map((row) => `${row.state} ${row.count}`)
     .join(", ")}. Total ${totalCount}.`
 
@@ -331,7 +333,7 @@ export const StateHeadcountMap = ({ summary, asOf }: StateHeadcountMapProps) => 
               )
             })}
 
-            {counts.map((row) => {
+            {calloutRows.map((row) => {
               const shape = AUSTRALIA_STATE_PATHS[row.state]
               const callout = layout.callouts[row.state]
               if (!shape || !callout) return null
@@ -400,7 +402,7 @@ export const StateHeadcountMap = ({ summary, asOf }: StateHeadcountMapProps) => 
         </svg>
 
         <ul className="sr-only">
-          {counts.map((row) => (
+          {calloutRows.map((row) => (
             <li key={row.state}>
               {row.state}: {row.count} ({describeBreakdown(row, bands)})
             </li>

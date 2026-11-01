@@ -107,6 +107,10 @@ export const buildStateHeadcounts = (summary: ReportsSummary): StateHeadcountRep
   return { states, unassigned, total }
 }
 
+/** States with at least one attendee in the selected groups. */
+export const statesWithHeadcount = <T extends HeadcountBreakdown>(states: T[], selection: HeadcountSelection) =>
+  states.filter((row) => headcountForSelection(row, selection) > 0)
+
 /** "28 Oct 2026" in Melbourne time. */
 export const formatHeadcountAsOf = (timestamp: number) =>
   new Intl.DateTimeFormat("en-AU", {

@@ -8,6 +8,7 @@ import {
   formatHeadcountAsOf,
   headcountBreakdown,
   headcountForSelection,
+  statesWithHeadcount,
   toggleHeadcountBand,
   visibleHeadcountBands,
 } from "./state-headcount"
@@ -72,6 +73,21 @@ test("buildStateHeadcounts lists every state and the total equals the sum of sta
     report.states.reduce((sum, s) => sum + s.people, 0),
     report.total.people
   )
+})
+
+test("statesWithHeadcount drops states with nobody in the selected groups, in map order", () => {
+  const report = buildStateHeadcounts({
+    VIC: row(30, 25, 11, { teens: 1 }),
+    WA: row(5, 5, 0, { children: 2 }),
+    SA: row(0, 0, 0, { infants: 1 }),
+  })
+  const shown = (selection: Parameters<typeof statesWithHeadcount>[1]) =>
+    statesWithHeadcount(report.states, selection).map((s) => s.state)
+  assert.deepEqual(shown(ALL_SELECTABLE_BANDS), ["VIC", "SA", "WA"])
+  assert.deepEqual(shown(["children"]), ["WA"])
+  assert.deepEqual(shown(["teens"]), ["VIC"])
+  assert.deepEqual(shown(["children", "teens"]), ["VIC", "WA"])
+  assert.deepEqual(statesWithHeadcount(buildStateHeadcounts({}).states, ALL_SELECTABLE_BANDS), [])
 })
 
 test("buildStateHeadcounts adds unrecognised states to the total as unassigned", () => {
