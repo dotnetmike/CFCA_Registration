@@ -39,17 +39,19 @@ test("every registration email has the Need help card and payment support link",
     const { html, text } = build(type)
     assert.match(html, /Need help\?/, type)
     assert.match(html, mailtoPattern("support@cfcanatcon.com"), type)
-    assert.match(html, mailtoPattern("payment@cfcanatcon.com"), type)
+    assert.match(html, /Ask about conference payment/, type)
+    assert.match(html, /Conference%20payment%20question/, type)
     assert.match(text, /Ask a question: email support@cfcanatcon\.com/, type)
-    assert.match(text, /Ask about conference payment: email payment@cfcanatcon\.com/, type)
+    assert.match(text, /Ask about conference payment: email support@cfcanatcon\.com/, type)
   }
 })
 
 test("full-details emails include the accommodation support link", () => {
   for (const type of ALL_TYPES.slice(0, 3)) {
     const { html, text } = build(type)
-    assert.match(html, mailtoPattern("accomodation@cfcanatcon.com"), type)
-    assert.match(text, /Ask about accommodation or transport: email accomodation@cfcanatcon\.com/, type)
+    assert.match(html, /Ask about accommodation or transport/, type)
+    assert.match(html, /Accommodation%20%2F%20transport%20question/, type)
+    assert.match(text, /Ask about accommodation or transport: email support@cfcanatcon\.com/, type)
   }
 })
 

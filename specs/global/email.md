@@ -3,7 +3,7 @@ id: global.email
 title: Branded transactional email
 status: active
 synced_commit: working-tree
-synced_at: 2026-10-26
+synced_at: 2026-11-11
 owners: [team]
 files:
   - src/lib/email/template.ts
@@ -38,9 +38,9 @@ All outbound transactional emails use a shared Couples for Christ Australia HTML
 - When the active provider’s credentials are missing, sends are logged to the console (dev) and still recorded in `email_log` when applicable.
 - HTML uses table layout + inline styles; user-controlled strings are escaped.
 - **Support contacts** (same addresses, subjects and labels as the registration details page — `src/lib/support/contact.ts`): every registrant email from `send.ts` includes `mailto:` links whose subject names the registration (`<topic> — <Registration No> (<Unique Code>)`) and whose body lists Registration No, Unique Code and name. Each link has an envelope icon (✉, forced to text style) before the label.
-  - **Ask about conference payment** (`payment@cfcanatcon.com`): bottom of the Payment summary in the details card (registration submitted / updated / accommodation updated), and under the Payment section in payment received / payment reminder.
-  - **Ask about accommodation or transport** (`accomodation@cfcanatcon.com`): under the Accommodation & Transport section (registration submitted / updated / accommodation updated).
-  - **Need help?** box after the main call-to-action in every registrant email, with the shared help text and an outlined **Ask a question** button (`support@cfcanatcon.com`).
+  - **Ask about conference payment** (`support@cfcanatcon.com`, subject “Conference payment question — …”): bottom of the Payment summary in the details card (registration submitted / updated / accommodation updated), and under the Payment section in payment received / payment reminder.
+  - **Ask about accommodation or transport** (`support@cfcanatcon.com`, subject “Accommodation / transport question — …”): under the Accommodation & Transport section (registration submitted / updated / accommodation updated).
+  - **Need help?** box after the main call-to-action in every registrant email, with the shared help text and an outlined **Ask a question** button (`support@cfcanatcon.com`, subject “Question about my registration — …”).
   - Plain-text bodies list the same contacts as `<label>: email <address>`.
 - **Early Bird Registration – Important Reminders** (amber callout with a bold title and a bulleted list, `remindersCalloutHtml`; items from `earlyBirdReminders`, wording in `features.payment`): shown while early-bird adults on the registration are not covered by payment and the early-bird payment due date has not passed — inside the details-card Payment summary of registration submitted / updated / accommodation updated emails (under the reserved-registration helper, above the bank transfer callout) and in the payment reminder intro. Bullets: Limited slots, Payment required, Deadline (payment due date from settings), Unpaid registrations (regular adult rate from settings). Plain-text bodies include it as a `EARLY BIRD REGISTRATION – IMPORTANT REMINDERS` line followed by one `- <Label>: <text>` line per bullet. `sendRegistrationEmail` reads runtime pricing settings for this. The Early Bird pricing update email does not include it.
 - **Early Bird pricing update** email (`early_bird_pricing_updated`, sent by the daily payment cron's early-bird expiry when the fee changed; logged in `email_log` as `registration_updated` because `email_type` is a DB enum):
@@ -62,8 +62,8 @@ All outbound transactional emails use a shared Couples for Christ Australia HTML
 - [ ] Switching providers does not change email content/templates
 - [ ] Office 365 path does not require disabling Security Defaults or SMTP app passwords
 - [ ] Every registrant email (registration, payment received, reminders, resends) is BCC'd to the configured copy recipient; password reset emails are not
-- [ ] Every registrant email has a Need help? box (support@) and an Ask about conference payment link (payment@), each with an envelope icon and a subject naming the registration
-- [ ] Registration submitted / updated / accommodation updated emails also have an Ask about accommodation or transport link (accomodation@) under Accommodation & Transport
+- [ ] Every registrant email has a Need help? box and an Ask about conference payment link (both `support@cfcanatcon.com`), each with an envelope icon and a subject naming the registration
+- [ ] Registration submitted / updated / accommodation updated emails also have an Ask about accommodation or transport link (`support@cfcanatcon.com`) under Accommodation & Transport
 - [ ] Sample emails can be sent to one reviewer address without writing to the database or copying anyone else
 - [ ] Registration emails and payment reminders show the amber bulleted "Early Bird Registration – Important Reminders" callout only while early-bird adults are unpaid and the due date has not passed
 - [ ] Registrants whose early-bird pricing is removed by the daily cron receive an Early Bird pricing update email with the reason and previous / new fee

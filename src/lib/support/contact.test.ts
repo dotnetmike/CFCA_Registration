@@ -11,7 +11,7 @@ test("support mailto targets the topic address with the registration in the subj
   })
   const url = new URL(href)
   assert.equal(url.protocol, "mailto:")
-  assert.equal(url.pathname, "payment@cfcanatcon.com")
+  assert.equal(url.pathname, "support@cfcanatcon.com")
   assert.equal(url.searchParams.get("subject"), "Conference payment question — CFCA27-000040 (VIC_TEST_001)")
   assert.match(url.searchParams.get("body") ?? "", /Registration No: CFCA27-000040\nUnique Code: VIC_TEST_001\nName: Test Person/)
 })

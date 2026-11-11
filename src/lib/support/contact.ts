@@ -13,12 +13,12 @@ export const SUPPORT_CONTACTS: Record<SupportTopic, SupportContact> = {
     linkLabel: "Ask a question",
   },
   accommodation: {
-    email: "accomodation@cfcanatcon.com",
+    email: "support@cfcanatcon.com",
     subject: "Accommodation / transport question",
     linkLabel: "Ask about accommodation or transport",
   },
   payment: {
-    email: "payment@cfcanatcon.com",
+    email: "support@cfcanatcon.com",
     subject: "Conference payment question",
     linkLabel: "Ask about conference payment",
   },

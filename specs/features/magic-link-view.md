@@ -3,7 +3,7 @@ id: features.magic-link-view
 title: Magic-link registration view
 status: active
 synced_commit: working-tree
-synced_at: 2026-10-26
+synced_at: 2026-11-11
 owners: [team]
 files:
   - src/app/r/[token]/page.tsx
@@ -43,9 +43,9 @@ Permanent read-only view of a registration from the confirmation email, without 
   - **Early Bird Registration – Important Reminders:** while early-bird adults on the registration are not covered by payment and the early-bird payment due date has not passed, an amber box (`EarlyBirdReminders` in `src/components/registrations/early-bird-reminders.tsx`: warning icon + bold title, bulleted list, `#FFFBEB` / `#FDE68A` / `#92400E`) appears in the Payment summary above the helper text, using the pricing from `GET /api/registration-settings` (`settings.pricing`) and the bullets in `features.payment`.
 - **Card headings:** **Payment summary** title in brand blue (`#1E5AA8`, uppercase). **Other people attending** (people icon) and **Accommodation & transport** (bed icon) cards have an icon + bold 16px title header with a divider below.
 - **Support contacts** (`src/lib/support/contact.ts`, `SupportLink` / `NeedHelpCard` in `src/components/support/support-links.tsx`): each opens the visitor's email app (`mailto:`) with a subject naming their registration — `<topic> — <Registration No> (<Unique Code>)` — and a body listing Registration No, Unique Code and name. The two inline support links and the **Ask a question** button show a mail (envelope) icon before the label so it is clear they open an email. Always shown, whether or not money is owed:
-  - **Ask about conference payment** link inside the Payment summary card → `payment@cfcanatcon.com`, subject “Conference payment question — …”.
+  - **Ask about conference payment** link inside the Payment summary card → `support@cfcanatcon.com`, subject “Conference payment question — …”.
   - **Need help?** card under the Payment summary (“Ask the organising team about payment, accommodation, hotels or transportation.”) with an **Ask a question** button → `support@cfcanatcon.com`, subject “Question about my registration — …”.
-  - **Ask about accommodation or transport** link at the bottom of the Accommodation & transport card → `accomodation@cfcanatcon.com`, subject “Accommodation / transport question — …”.
+  - **Ask about accommodation or transport** link at the bottom of the Accommodation & transport card → `support@cfcanatcon.com`, subject “Accommodation / transport question — …”.
   - The registrant emails carry the same support contacts (see `global.email`).
 
 ## Acceptance criteria
@@ -55,7 +55,7 @@ Permanent read-only view of a registration from the confirmation email, without 
 - [ ] Edit path requires auth
 - [ ] Balance due shown with a Pay button only when a submitted registration has a balance due
 - [ ] Paying from the view link returns to the view page with the payment outcome
-- [ ] Need help (support@), payment (payment@) and accommodation (accomodation@) links open an email with the registration number and Unique Code in the subject
+- [ ] Need help, payment and accommodation links all open an email to `support@cfcanatcon.com` with the registration number and Unique Code in the subject
 
 ## Related specs
 
