@@ -152,7 +152,7 @@ Spec: `features.payment-reconciliation`. Code: `src/lib/reconciliation/*` (pure 
 | Route | Purpose |
 |-------|---------|
 | `GET /api/payments/reconcile` | Overview: runs, Stripe rows, bank lines, payouts, last 500 events, registration options |
-| `POST /api/payments/reconcile` | Multipart `file` (CSV ≤ 10 MB) + `source` = `stripe` \| `bank` |
+| `POST /api/payments/reconcile` | Multipart `file` (CSV; blank rows stripped client-side under ~4 MB host limit, API accepts ≤ 10 MB) + `source` = `stripe` \| `bank` |
 | `POST /api/payments/reconcile/recheck` | Re-match stored Unmatched rows (no file) |
 | `GET /api/payments/reconcile/items?itemType&itemId` | Full event history of one row |
 | `PATCH /api/payments/reconcile/items` | Ignore / override with comment |

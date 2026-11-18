@@ -13,6 +13,7 @@ import { StatCard } from "@/components/dashboard/stat-card"
 import { formatCurrency } from "@/lib/pricing/calculate"
 import { invalidateRegistrationCaches } from "@/lib/dashboard/invalidate-registration-caches"
 import { classifyStripeType } from "@/lib/reconciliation/matching"
+import { RECONCILE_UPLOAD_MAX_BYTES, trimEmptyCsvLines } from "@/lib/reconciliation/csv-trim"
 import {
   AWAITING_STRIPE_EXPORT_LABEL,
   BANK_LINE_KIND_LABELS,
@@ -476,22 +477,61 @@ const ReconcilePage = () => {
     setBusyAction(source)
     setNotice(null)
     try {
-      const formData = new FormData()
-      formData.append("file", file)
-      formData.append("source", source)
-      const res = await authFetch("/api/payments/reconcile", { method: "POST", body: formData })
-      const data = await res.json().catch(() => ({}))
-      if (!res.ok) {
-        setNotice({ variant: "error", message: data.error ?? "Upload failed." })
+      const rawText = await file.text()
+      const trimmedText = trimEmptyCsvLines(rawText)
+      if (!trimmedText.trim()) {
+        setNotice({ variant: "error", message: "The file is empty after removing blank rows." })
         return false
       }
-      const run = data.run as ReconciliationRunView
+      if (new TextEncoder().encode(trimmedText).length > RECONCILE_UPLOAD_MAX_BYTES) {
+        setNotice({
+          variant: "error",
+          message:
+            "File is still too large after removing blank rows (max about 4 MB for upload). Export a shorter date range from NetBank and try again.",
+        })
+        return false
+      }
+      const uploadFile = new File([trimmedText], file.name, {
+        type: file.type || "text/csv",
+      })
+      const formData = new FormData()
+      formData.append("file", uploadFile)
+      formData.append("source", source)
+      const res = await authFetch("/api/payments/reconcile", { method: "POST", body: formData })
+      const raw = await res.text()
+      let data: { error?: string; run?: ReconciliationRunView } = {}
+      try {
+        data = raw ? (JSON.parse(raw) as typeof data) : {}
+      } catch {
+        data = {}
+      }
+      if (!res.ok) {
+        const detail =
+          typeof data.error === "string" && data.error.trim()
+            ? data.error
+            : raw.trim().slice(0, 280) || res.statusText || `HTTP ${res.status}`
+        setNotice({
+          variant: "error",
+          message: res.status === 413
+            ? "Upload rejected as too large by the host. Remove blank rows from the CSV (Excel often pads with empty lines) and try again."
+            : `Upload failed: ${detail}`,
+        })
+        return false
+      }
+      if (!data.run) {
+        setNotice({ variant: "error", message: "Upload failed: the server returned no run result." })
+        return false
+      }
+      const run = data.run
       invalidateRegistrationCaches()
       setNotice({ variant: run.unmatched > 0 ? "warning" : "success", message: describeRun(run) })
       showView(source)
       return true
-    } catch {
-      setNotice({ variant: "error", message: "Upload failed." })
+    } catch (err) {
+      setNotice({
+        variant: "error",
+        message: `Upload failed: ${err instanceof Error ? err.message : "network or browser error"}`,
+      })
       return false
     } finally {
       await loadOverview()

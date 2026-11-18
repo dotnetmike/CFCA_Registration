@@ -10,6 +10,7 @@ files:
   - src/app/api/payments/reconcile/route.ts
   - src/app/api/payments/reconcile/recheck/route.ts
   - src/app/api/payments/reconcile/items/route.ts
+  - src/lib/reconciliation/csv-trim.ts
   - src/app/api/payments/reconciled-amounts/route.ts
   - src/lib/reconciliation/reconciled-amounts.ts
   - src/components/reconciliation/upload-card.tsx
@@ -46,7 +47,7 @@ Staff with `payments:reconcile` upload the **Stripe balance history** export and
 
 - "Staff workspace" eyebrow, `Payment Reconciliation` heading with a help tooltip, **Re-check unmatched** and **Refresh** buttons.
 - KPI cards: **Matched Stripe** (with unmatched / ignored counts), **Stripe payments in bank** (gross total and count of Stripe payments confirmed received in the CBA account, plus how many are paid out but awaiting the CBA statement, with a **Show** shortcut), **Applied from bank** (total + number of transfers, matched bank lines), **Needs review** (unmatched Stripe + bank rows excluding STRIPE credits awaiting a Stripe export, with a **Show** shortcut that opens the unmatched filter).
-- Two upload cards (Stripe, CBA): CSV only, max 10 MB, help tooltip with export instructions, last upload time + file name. Upload button shows a spinner and disables every other action while running.
+- Two upload cards (Stripe, CBA): CSV only, help tooltip with export instructions, last upload time + file name. Upload button shows a spinner and disables every other action while running. Before upload the browser strips blank / Excel-padded rows (keeps the request under the host body limit of about 4.5 MB); the API also strips blanks and accepts up to 10 MB. Failed uploads show the server message (or status text), not a bare "Upload failed."
 - After each upload / re-check an alert summarises the run: rows in file, new, already reconciled (skipped), re-checked, matched / unmatched / not applicable, bank payments applied, and Stripe rows newly confirmed as received in the bank.
 - Tabs (keyboard arrows supported): **Stripe transactions**, **Bank statement**, **Stripe payouts**, **Run history** (history of reconciliation runs, including an **In bank** column), **Activity log**. Each tab has a search box, filters (Stripe: status, type, **Bank settlement**; Bank: status incl. **Awaiting Stripe export**, kind), a table with sticky first / actions columns and **100 rows per page**.
 - Status labels: **Matched Stripe / Unmatched Stripe**, **Matched bank / Unmatched bank**, **Awaiting Stripe export** (STRIPE bank lines only), **Ignored**, **Not applicable**. Rows set by an admin show "Admin set". Hover the status for an explanation.
