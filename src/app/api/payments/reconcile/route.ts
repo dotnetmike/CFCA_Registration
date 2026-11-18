@@ -9,7 +9,7 @@ import {
 
 export const runtime = "nodejs"
 
-const MAX_FILE_BYTES = 5 * 1024 * 1024
+const MAX_FILE_BYTES = 10 * 1024 * 1024
 
 const isCsvFile = (file: File) =>
   file.name.toLowerCase().endsWith(".csv") ||
@@ -40,7 +40,7 @@ export const POST = async (request: NextRequest) => {
   if (!(file instanceof File)) return jsonError("Choose a CSV file to upload.")
   if (source !== "stripe" && source !== "bank") return jsonError("Unknown upload type.")
   if (!isCsvFile(file)) return jsonError("Only CSV files are accepted.")
-  if (file.size > MAX_FILE_BYTES) return jsonError("File too large (max 5 MB).")
+  if (file.size > MAX_FILE_BYTES) return jsonError("File too large (max 10 MB).")
 
   const params = { text: await file.text(), filename: file.name, actorId: auth.sub, request }
   try {

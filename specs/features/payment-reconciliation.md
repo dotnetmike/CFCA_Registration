@@ -3,7 +3,7 @@ id: features.payment-reconciliation
 title: Payment reconciliation (Stripe + CBA CSV)
 status: active
 synced_commit: working-tree
-synced_at: 2026-10-27
+synced_at: 2026-11-18
 owners: [team]
 files:
   - src/app/dashboard/payments/reconcile/page.tsx
@@ -46,7 +46,7 @@ Staff with `payments:reconcile` upload the **Stripe balance history** export and
 
 - "Staff workspace" eyebrow, `Payment Reconciliation` heading with a help tooltip, **Re-check unmatched** and **Refresh** buttons.
 - KPI cards: **Matched Stripe** (with unmatched / ignored counts), **Stripe payments in bank** (gross total and count of Stripe payments confirmed received in the CBA account, plus how many are paid out but awaiting the CBA statement, with a **Show** shortcut), **Applied from bank** (total + number of transfers, matched bank lines), **Needs review** (unmatched Stripe + bank rows excluding STRIPE credits awaiting a Stripe export, with a **Show** shortcut that opens the unmatched filter).
-- Two upload cards (Stripe, CBA): CSV only, max 5 MB, help tooltip with export instructions, last upload time + file name. Upload button shows a spinner and disables every other action while running.
+- Two upload cards (Stripe, CBA): CSV only, max 10 MB, help tooltip with export instructions, last upload time + file name. Upload button shows a spinner and disables every other action while running.
 - After each upload / re-check an alert summarises the run: rows in file, new, already reconciled (skipped), re-checked, matched / unmatched / not applicable, bank payments applied, and Stripe rows newly confirmed as received in the bank.
 - Tabs (keyboard arrows supported): **Stripe transactions**, **Bank statement**, **Stripe payouts**, **Run history** (history of reconciliation runs, including an **In bank** column), **Activity log**. Each tab has a search box, filters (Stripe: status, type, **Bank settlement**; Bank: status incl. **Awaiting Stripe export**, kind), a table with sticky first / actions columns and **100 rows per page**.
 - Status labels: **Matched Stripe / Unmatched Stripe**, **Matched bank / Unmatched bank**, **Awaiting Stripe export** (STRIPE bank lines only), **Ignored**, **Not applicable**. Rows set by an admin show "Admin set". Hover the status for an explanation.
@@ -61,7 +61,8 @@ Staff with `payments:reconcile` upload the **Stripe balance history** export and
 
 ### CBA bank statement upload
 
-- Expected export: NetBank → account → Export → CSV (`Date, Amount, Description, Balance`, with or without a header row, `$` and thousand separators allowed).
+- Expected export: NetBank → account → Export → CSV (`Date, Amount, Description/Payee, Balance/Total`, with or without a header row). Extra columns are ignored. Blank rows are ignored.
+- **Tolerant parsing:** amounts may include `$`, commas, `+`/`-` or parentheses. Dates accept Australian `d/m/y`, US `m/d/y` (when unambiguous or when the file's other dates decide the order), ISO `yyyy-mm-dd` / `yyyy/mm/dd`, and named months (`18 Nov 2026`, `Nov 18, 2026`). A row with an unreadable date or amount is **skipped and logged** (`rows_skipped` activity + console warning with samples); the rest of the file still loads. The upload only fails when no readable transactions remain.
 - Each line is classified: negative amount → **Money out** (Not applicable); description containing `STRIPE` → **Stripe payout**; otherwise **Bank transfer**.
 - **Bank transfers** match a registration when the description contains exactly one registration's Unique Code or registration number (case, spaces, `_` and `-` ignored, e.g. `VIC_SMITH_001`, `VIC SMITH 001`, `VICSMITH001`), the longest code wins when one code contains another, and the transaction date is **on or after** the registration date (Melbourne time), since Unique Codes can be reused. Zero or several candidates → Unmatched with the reason.
 - A matched transfer is **applied automatically**: a `payments` row (`source = bank_reconcile`, linked to the bank line) is inserted, Amount paid and payment status are updated (`payment_last_updated_source = bank_reconcile`), audit `payment.record` is written, and the **Payment received** email is sent once per registration after the run.
@@ -110,6 +111,7 @@ Staff with `payments:reconcile` upload the **Stripe balance history** export and
 - [ ] Any row's status can be overridden only with a comment; changes are logged
 - [ ] Re-uploading or re-checking skips Matched / Ignored / Not applicable / admin-set rows
 - [ ] CBA upload matches transfers by Unique Code / registration number and applies the payment automatically (Amount paid, status, Payment received email)
+- [ ] CBA upload ignores blank rows and extra columns, accepts flexible dates and `$` amounts, and skips unreadable rows while loading the rest
 - [ ] STRIPE Direct Credits match Stripe payouts (rows after the previous payout up to this payout)
 - [ ] Exports can be uploaded in any order: a bank statement uploaded first keeps STRIPE credits as Awaiting Stripe export, and the later Stripe upload confirms those Stripe payments as Received in bank
 - [ ] Each Stripe row shows its bank settlement (received / awaiting bank statement / not paid out)

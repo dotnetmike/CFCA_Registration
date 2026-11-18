@@ -117,8 +117,9 @@ test("matches Stripe payments to registrations and recorded payments", () => {
 })
 
 test("parses the CBA statement and classifies lines", () => {
-  const lines = parseCbaStatement(CBA_CSV)
+  const { lines, skipped } = parseCbaStatement(CBA_CSV)
   assert.equal(lines.length, 9)
+  assert.equal(skipped.length, 0)
   assert.deepEqual(
     lines.map((l) => l.kind),
     ["stripe_payout", "transfer", "transfer", "transfer", "transfer", "transfer", "stripe_payout", "transfer", "debit"]
@@ -128,17 +129,57 @@ test("parses the CBA statement and classifies lines", () => {
   assert.equal(lines[0].balanceCents, 286999)
   assert.equal(new Set(lines.map((l) => l.fingerprint)).size, 9)
   assert.deepEqual(
-    parseCbaStatement(CBA_CSV).map((l) => l.fingerprint),
+    parseCbaStatement(CBA_CSV).lines.map((l) => l.fingerprint),
     lines.map((l) => l.fingerprint),
     "fingerprints are stable across uploads"
   )
 })
 
 test("parses a headerless NetBank export", () => {
-  const lines = parseCbaStatement(`21/10/2026,"+220.00","Fast Transfer From X VIC_ALPHA_001","+2654.19"\n`)
+  const { lines } = parseCbaStatement(`21/10/2026,"+220.00","Fast Transfer From X VIC_ALPHA_001","+2654.19"\n`)
   assert.equal(lines.length, 1)
   assert.equal(lines[0].amountCents, 22000)
   assert.equal(lines[0].kind, "transfer")
+})
+
+test("CBA upload ignores blank rows, extra columns and skips unreadable rows", () => {
+  const csv = `Date, Amount, Payee, Total, Notes
+17/11/2026,$540.00,Fast Transfer From A VIC_ALPHA_001,"$19,308.41",keep
+,,,
+bogus,not-money,Fast Transfer From B,,
+11/17/2026,$220.00,Fast Transfer From C VIC_BRAVO_001,$100.00,us-style date
+18 Nov 2026,"$1,100.00",Fast Transfer From D VIC_CHARLIE_001,$50.00,named month
+`
+  const { lines, skipped } = parseCbaStatement(csv)
+  assert.deepEqual(
+    lines.map((l) => [l.transactionDate, l.amountCents]),
+    [
+      ["2026-11-17", 54000],
+      ["2026-11-17", 22000],
+      ["2026-11-18", 110000],
+    ]
+  )
+  assert.equal(skipped.length, 1)
+  assert.match(skipped[0].reason, /unreadable/i)
+})
+
+test("CBA dates prefer Australian d/m/y and still accept m/d/y when the day is unambiguous", () => {
+  const { lines } = parseCbaStatement(`Date,Amount,Payee,Total
+01/02/2026,$10.00,Fast Transfer From A VIC_ALPHA_001,$10.00
+13/02/2026,$20.00,Fast Transfer From B VIC_BRAVO_001,$30.00
+`)
+  assert.deepEqual(
+    lines.map((l) => l.transactionDate),
+    ["2026-02-01", "2026-02-13"]
+  )
+})
+
+test("parseMoneyToCents accepts dollar signs, commas and parentheses", () => {
+  assert.equal(parseMoneyToCents("$540.00"), 54000)
+  assert.equal(parseMoneyToCents('"$2,368.58"'), 236858)
+  assert.equal(parseMoneyToCents("-$50.00"), -5000)
+  assert.equal(parseMoneyToCents("(50.00)"), -5000)
+  assert.equal(parseMoneyToCents(""), null)
 })
 
 test("matches bank transfers by Unique Code regardless of separators", () => {
@@ -150,7 +191,7 @@ test("matches bank transfers by Unique Code regardless of separators", () => {
     registration("e", "VIC_ECHO_001", "2026-10-19T00:00:00Z"),
     registration("f", "VIC_FOX_002", "2026-10-19T00:00:00Z"),
   ]
-  const lines = parseCbaStatement(CBA_CSV)
+  const { lines } = parseCbaStatement(CBA_CSV)
   const outcomes = lines.filter((l) => l.kind === "transfer").map((l) => matchBankTransferLine(l, registrations))
 
   assert.deepEqual(
@@ -197,7 +238,7 @@ test("prefers the longer Unique Code when one contains another", () => {
 
 test("matches Direct Credits from Stripe to the payout of the same amount", () => {
   const { payouts } = assignPayouts(parseStripeBalanceHistory(STRIPE_CSV))
-  const lines = parseCbaStatement(CBA_CSV).filter((l) => l.kind === "stripe_payout")
+  const lines = parseCbaStatement(CBA_CSV).lines.filter((l) => l.kind === "stripe_payout")
   const taken = new Set<string>()
   const outcomes = lines.map((line) => {
     const outcome = matchBankPayoutLine(line, payouts, taken)

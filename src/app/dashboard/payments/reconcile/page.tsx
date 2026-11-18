@@ -179,7 +179,7 @@ const describeRun = (run: ReconciliationRunView) => {
   const parts: string[] = []
   if (run.source !== "recheck") {
     parts.push(
-      `${run.rowsInFile} rows in file: ${run.newRows} new, ${run.skippedRows} already reconciled and skipped.`
+      `${run.rowsInFile} rows loaded: ${run.newRows} new, ${run.skippedRows} skipped (already reconciled or unreadable).`
     )
   }
   if (run.recheckedRows > 0 || run.source === "recheck") {

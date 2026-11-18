@@ -904,9 +904,29 @@ export const importBankCsv = async (params: {
   request?: NextRequest
 }) =>
   withRun("bank", params.actorId, params.request, { name: params.filename, text: params.text }, async (admin, runId, counters) => {
-    const parsed = parseCbaStatement(params.text)
-    if (parsed.length === 0) throw new ReconciliationFileError("The file has no transactions.")
+    const { lines: parsed, skipped: parseSkipped } = parseCbaStatement(params.text)
     counters.rowsInFile = parsed.length
+    counters.skippedRows = parseSkipped.length
+    if (parseSkipped.length > 0) {
+      console.warn(
+        "[reconcile] skipped unreadable CBA rows",
+        parseSkipped.slice(0, 50).map((row) => `row ${row.line}: ${row.reason}`)
+      )
+      await insertEvents(admin, [
+        {
+          run_id: runId,
+          item_type: null,
+          item_id: null,
+          action: "rows_skipped",
+          comment: `Skipped ${parseSkipped.length} unreadable row${parseSkipped.length === 1 ? "" : "s"} (blank rows ignored; rest of the file still loaded).`,
+          details: {
+            count: parseSkipped.length,
+            samples: parseSkipped.slice(0, 50),
+          },
+          actor_id: params.actorId,
+        },
+      ])
+    }
 
     const existing = new Map<string, Pick<BankRow, "id" | "status" | "manual_override">>()
     for (const fingerprints of chunk(parsed.map((l) => l.fingerprint))) {
@@ -917,7 +937,7 @@ export const importBankCsv = async (params: {
       if (error) throw new Error(error.message)
       for (const row of data ?? []) existing.set(row.fingerprint, row)
     }
-    counters.skippedRows = [...existing.values()].filter((row) => !isOpenForAutoMatch(row)).length
+    counters.skippedRows += [...existing.values()].filter((row) => !isOpenForAutoMatch(row)).length
 
     const unseen = parsed.filter((line) => !existing.has(line.fingerprint))
     const storedCounts = new Map<string, number>()

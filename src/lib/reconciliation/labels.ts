@@ -61,6 +61,7 @@ export const RECONCILIATION_ACTION_LABELS: Record<string, string> = {
   bank_unconfirmed: "Bank confirmation removed",
   run_completed: "Run completed",
   run_failed: "Run failed",
+  rows_skipped: "Unreadable rows skipped",
 }
 
 export const formatReconciliationAction = (action: string) =>
@@ -76,7 +77,7 @@ export const RECONCILIATION_HELP = {
   stripeUpload:
     "Stripe Dashboard → Balance → Balance history (All activity) → Export → CSV. Include the metadata columns registration_id and participant_reference. Payments are matched to the registration saved on the Stripe payment and checked against the payment recorded in this system.",
   bankUpload:
-    "CommBank NetBank → the CFCA account → Export → CSV. Transfers are matched by the Unique Code (e.g. VIC_SMITH_001) or registration number in the description, and the payment is applied to that registration automatically (Amount paid updated, Payment received email sent). Direct Credits from STRIPE are matched to Stripe payouts. You can upload this before the Stripe export: STRIPE credits wait and are matched when the Stripe export arrives.",
+    "CommBank NetBank → the CFCA account → Export → CSV (Date, Amount, Payee/Description, Balance/Total). Extra columns and blank rows are ignored; dates may be d/m/y, m/d/y or named months; amounts may include $. Unreadable rows are skipped and the rest still loads. Transfers are matched by the Unique Code (e.g. VIC_SMITH_001) or registration number in the description, and the payment is applied to that registration automatically (Amount paid updated, Payment received email sent). Direct Credits from STRIPE are matched to Stripe payouts. You can upload this before the Stripe export: STRIPE credits wait and are matched when the Stripe export arrives.",
   payouts:
     "Stripe pays out the balance in batches. A payout contains the Stripe rows whose “Available On” time is after the previous payout and up to this payout. It appears in CBA as “Direct Credit … STRIPE”. Difference ≠ $0.00 means some rows for that payout are not in the uploaded Stripe exports yet. When the Direct Credit is matched, every Stripe row in the payout is marked Received in bank, whichever export was uploaded first.",
   recheck:
