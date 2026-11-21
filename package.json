@@ -1,6 +1,6 @@
 {
   "name": "cfca-registration",
-  "version": "0.41.6",
+  "version": "0.41.7",
   "private": true,
   "scripts": {
     "env:select": "tsx scripts/env/select-env.ts",
@@ -13,6 +13,8 @@
     "db:restore": "tsx scripts/env/select-env.ts && tsx scripts/db/restore-backup.ts",
     "db:reprice-registrations": "tsx scripts/env/select-env.ts && tsx scripts/db/reprice-registrations.ts",
     "db:reverse-duplicate-bank-lines": "tsx scripts/env/select-env.ts && tsx scripts/db/reverse-duplicate-bank-lines.ts",
+    "db:fix-overpay-manalo-robles": "tsx scripts/env/select-env.ts && tsx scripts/db/fix-overpay-manalo-robles.ts",
+    "db:rollback-overpay-manalo-robles": "tsx scripts/env/select-env.ts && tsx scripts/db/rollback-overpay-manalo-robles.ts",
     "email:samples": "tsx scripts/env/select-env.ts && tsx scripts/email/send-sample-emails.ts",
     "dev": "tsx scripts/env/select-env.ts && tsx scripts/db/deploy.ts && next dev --webpack",
     "dev:dev": "tsx scripts/env/select-env.ts --env=dev && tsx scripts/db/deploy.ts && next dev --webpack",

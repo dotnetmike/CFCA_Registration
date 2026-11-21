@@ -33,6 +33,9 @@ yarn-error.log*
 # database backups (personal data, password hashes)
 /backups/
 
+# one-off ops snapshots (contain registration PII)
+/scripts/db/snapshots/
+
 # env files (never commit secrets)
 .env*
 !.env*.example
